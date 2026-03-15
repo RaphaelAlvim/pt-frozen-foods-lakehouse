@@ -1,0 +1,2 @@
+-- Gold serving views
+-- To be implemented later

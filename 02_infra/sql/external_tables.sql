@@ -1,0 +1,2 @@
+-- External tables definitions
+-- To be implemented later

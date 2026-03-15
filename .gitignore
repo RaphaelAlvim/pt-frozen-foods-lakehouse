@@ -1,0 +1,83 @@
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# ============================================================
+# Jupyter / Notebook
+# ============================================================
+.ipynb_checkpoints/
+
+# ============================================================
+# Environment / Secrets
+# ============================================================
+.env
+.env.*
+!.env.example
+
+# ============================================================
+# OS / Editor
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# ============================================================
+# Logs / Temp
+# ============================================================
+*.log
+logs/
+tmp/
+temp/
+
+# ============================================================
+# Terraform
+# ============================================================
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# ============================================================
+# Outputs / Reports generated locally
+# ============================================================
+06_outputs/profiling/*
+06_outputs/reports/*
+06_outputs/samples/*
+03_data/exports/*
+
+# Keep folders tracked
+!06_outputs/profiling/.gitkeep
+!06_outputs/reports/.gitkeep
+!06_outputs/samples/.gitkeep
+!03_data/exports/.gitkeep
+
+# ============================================================
+# Large / local data (adjust if needed)
+# ============================================================
+# Uncomment below if you do NOT want local raw/bronze/silver/gold data in git
+03_data/raw/**
+03_data/bronze/**
+03_data/silver/**
+03_data/gold/**
+!03_data/raw/**/.gitkeep
+!03_data/bronze/**/.gitkeep
+!03_data/silver/**/.gitkeep
+!03_data/gold/**/.gitkeep
