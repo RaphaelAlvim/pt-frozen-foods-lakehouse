@@ -1,0 +1,25 @@
+# Copy this file to terraform.tfvars and fill in the values for your environment.
+
+project_name = "yourproject"
+environment  = "dev"
+location     = "westeurope"
+
+resource_group_name         = "rg-yourproject-dev-we"
+storage_account_name        = "styourprojectdevwe01"
+data_factory_name           = "adf-yourproject-dev-we"
+databricks_workspace_name   = "dbw-yourproject-dev-we"
+key_vault_name              = "kv-yourproject-dev-we"
+log_analytics_workspace_name = "log-yourproject-dev-we"
+
+storage_containers = [
+  "raw",
+  "bronze",
+  "silver",
+  "gold"
+]
+
+tags = {
+  project     = "your_project"
+  environment = "dev"
+  owner       = "your_team"
+}
