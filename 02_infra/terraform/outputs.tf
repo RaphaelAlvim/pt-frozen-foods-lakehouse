@@ -67,3 +67,23 @@ output "data_factory_id" {
   description = "ID of the created Data Factory."
   value       = module.data_factory.data_factory_id
 }
+
+output "databricks_workspace_name" {
+  description = "Name of the created Azure Databricks workspace."
+  value       = module.databricks_workspace.databricks_workspace_name
+}
+
+output "databricks_workspace_id" {
+  description = "ID of the created Azure Databricks workspace."
+  value       = module.databricks_workspace.databricks_workspace_id
+}
+
+output "databricks_workspace_url" {
+  description = "Workspace URL of the created Azure Databricks workspace."
+  value       = module.databricks_workspace.workspace_url
+}
+
+output "databricks_managed_resource_group_id" {
+  description = "Managed Resource Group ID of the created Azure Databricks workspace."
+  value       = module.databricks_workspace.managed_resource_group_id
+}

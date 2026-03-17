@@ -39,6 +39,11 @@ variable "databricks_sku" {
   default     = "standard"
 }
 
+variable "databricks_managed_resource_group_name" {
+  description = "Managed Resource Group name for Azure Databricks."
+  type        = string
+}
+
 variable "key_vault_name" {
   description = "Name of the Azure Key Vault."
   type        = string

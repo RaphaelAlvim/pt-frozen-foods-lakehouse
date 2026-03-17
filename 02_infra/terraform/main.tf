@@ -45,3 +45,14 @@ module "data_factory" {
   location            = module.resource_group.location
   tags                = var.tags
 }
+
+module "databricks_workspace" {
+  source = "./modules/databricks_workspace"
+
+  databricks_workspace_name   = var.databricks_workspace_name
+  resource_group_name         = module.resource_group.resource_group_name
+  location                    = module.resource_group.location
+  sku                         = var.databricks_sku
+  managed_resource_group_name = var.databricks_managed_resource_group_name
+  tags                        = var.tags
+}
