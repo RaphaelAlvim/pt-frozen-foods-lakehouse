@@ -57,3 +57,13 @@ output "log_analytics_workspace_guid" {
   description = "Workspace ID of the created Log Analytics workspace."
   value       = module.monitoring.log_analytics_workspace_guid
 }
+
+output "data_factory_name" {
+  description = "Name of the created Data Factory."
+  value       = module.data_factory.data_factory_name
+}
+
+output "data_factory_id" {
+  description = "ID of the created Data Factory."
+  value       = module.data_factory.data_factory_id
+}

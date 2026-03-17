@@ -36,3 +36,12 @@ module "monitoring" {
   location                     = module.resource_group.location
   tags                         = var.tags
 }
+
+module "data_factory" {
+  source = "./modules/data_factory"
+
+  data_factory_name   = var.data_factory_name
+  resource_group_name = module.resource_group.resource_group_name
+  location            = module.resource_group.location
+  tags                = var.tags
+}
