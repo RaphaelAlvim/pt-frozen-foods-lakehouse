@@ -45,15 +45,25 @@ temp/
 # ============================================================
 # Terraform
 # ============================================================
-.terraform/
+# Terraform local variable files
+*.tfvars
+!*.tfvars.example
+# Terraform state files
 *.tfstate
 *.tfstate.*
+# Terraform plan files
+*.tfplan
+plan.out
+# Terraform working directory
+.terraform/
+# Crash logs
 crash.log
+crash.*.log
+# Override files
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-.terraform.lock.hcl
 
 # ============================================================
 # Outputs / Reports generated locally

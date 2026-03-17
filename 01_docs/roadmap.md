@@ -1,27 +1,44 @@
-# Roadmap
+# Roadmap — PT Frozen Foods
 
-## Phase 1
-- Create repository structure
-- Create initial project files
-- Build synthetic data generator
+## Overview
 
-## Phase 2
-- Generate raw source datasets
-- Implement Bronze layer
-- Implement Silver layer
+This roadmap describes the evolution of the data platform.
 
-## Phase 3
-- Implement Gold layer
-- Build analytics notebooks
-- Build Customer 360
+## Phase 1 — Foundation (Completed)
 
-## Phase 4
-- Build ML datasets
-- Forecast
-- Recommendation
-- Churn
-
-## Phase 5
 - Terraform infrastructure
-- ADF orchestration
-- Databricks execution
+- ADLS Gen2
+- Key Vault
+- Log Analytics
+- Data Factory
+
+## Phase 2 — Processing (Next)
+
+- Databricks setup
+- notebook structure
+- orchestration integration
+
+## Phase 3 — Ingestion
+
+- Logic Apps workflows
+- RAW ingestion patterns
+
+## Phase 4 — Data Layers
+
+- Bronze, Silver, Gold implementation
+
+## Phase 5 — Analytics
+
+- reporting datasets
+- analytical outputs
+
+## Phase 6 — Machine Learning
+
+- forecasting
+- recommendation systems
+
+## Future
+
+- CI/CD
+- monitoring enhancements
+- data governance
