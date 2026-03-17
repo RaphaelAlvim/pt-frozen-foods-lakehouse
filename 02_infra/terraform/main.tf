@@ -1,3 +1,5 @@
+data "azurerm_client_config" "current" {}
+
 module "resource_group" {
   source = "./modules/resource_group"
 
@@ -15,3 +17,22 @@ module "storage_account" {
   containers           = var.storage_containers
   tags                 = var.tags
 } 
+
+module "key_vault" {
+  source = "./modules/key_vault"
+
+  key_vault_name      = var.key_vault_name
+  resource_group_name = module.resource_group.resource_group_name
+  location            = module.resource_group.location
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  tags                = var.tags
+}
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  log_analytics_workspace_name = var.log_analytics_workspace_name
+  resource_group_name          = module.resource_group.resource_group_name
+  location                     = module.resource_group.location
+  tags                         = var.tags
+}
