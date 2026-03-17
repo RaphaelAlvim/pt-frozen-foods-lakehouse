@@ -174,7 +174,7 @@ Each dataset is defined by:
 - source domain: web
 - dataset name: web_event_logs
 - ingestion mode: manual upload
-- expected file format: json
+- expected file format: csv
 - RAW landing path: `raw/web/web_event_logs/load_date=YYYY-MM-DD/`
 - description: web interaction event log dataset
 - notes: supports digital behavior analysis, funnel analysis, and recommendation preparation
