@@ -1,169 +1,170 @@
 # RAW Layer Conventions — PT Frozen Foods
 
-## Overview
+## Purpose
 
-This document defines the organizational conventions for the RAW layer in ADLS Gen2.
+The RAW layer is responsible for storing data in its original form, preserving all ingested data without business transformation.
 
-The RAW layer is the landing zone of the platform. Its purpose is to receive incoming files exactly as they arrive from source systems or controlled ingestion processes, without applying business transformations.
-
-The goal of these conventions is to ensure consistency, traceability, and readiness for downstream Bronze processing.
+It acts as the controlled landing zone of the platform and guarantees traceability, reproducibility, and data integrity.
 
 ---
 
-## Purpose of the RAW Layer
+## Core Principles
 
-The RAW layer is responsible for:
+The RAW layer follows strict engineering principles:
 
-- receiving incoming files from all ingestion mechanisms
-- preserving original file structure and content
-- separating ingestion from transformation logic
-- enabling repeatable and auditable downstream processing
-- supporting manual and automated landing patterns
-
-No business transformation should happen in the RAW layer.
-
----
-
-## Directory Structure
-
-Files in the RAW layer must be organized using the following hierarchy:
-
-source_domain  
--> dataset_name  
--> load_date=YYYY-MM-DD  
-
-This means the directory structure follows three logical levels:
-
-1. source domain  
-2. dataset  
-3. load date partition  
+- no data loss is allowed
+- no overwrite is allowed
+- all ingestion events must be preserved
+- data must remain in original format
+- ingestion must be fully traceable
+- RAW must be immutable from a business logic perspective
 
 ---
 
-## Standard RAW Structure
+## Folder Structure
 
-The standard structure is:
+All datasets must follow a standardized structure:
 
-raw/
-  crm/
-    crm_clients/
-      load_date=YYYY-MM-DD/
-    crm_segmentacao/
-      load_date=YYYY-MM-DD/
-    crm_status/
-      load_date=YYYY-MM-DD/
+raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
 
-  erp/
-    erp_fornecedores/
-      load_date=YYYY-MM-DD/
-    erp_itens_pedido/
-      load_date=YYYY-MM-DD/
-    erp_pedidos/
-      load_date=YYYY-MM-DD/
-    erp_produtos/
-      load_date=YYYY-MM-DD/
-    erp_vendedores/
-      load_date=YYYY-MM-DD/
+### Example
 
-  reference/
-    reference_calendario/
-      load_date=YYYY-MM-DD/
-    reference_canais_venda/
-      load_date=YYYY-MM-DD/
-    reference_localidades/
-      load_date=YYYY-MM-DD/
-
-  weather_api/
-    weather_porto_daily/
-      load_date=YYYY-MM-DD/
-
-  web/
-    web_event_logs/
-      load_date=YYYY-MM-DD/
+raw/reference/reference_calendar/load_date=2026-03-18/
 
 ---
 
-## Naming Rules
+## Naming Conventions
 
-The following naming rules apply:
-
-- source domains must be lowercase
-- dataset names must be lowercase
-- words must be separated with underscores
-- load date partitions must follow the format `load_date=YYYY-MM-DD`
-
-Examples:
-
-- `crm/crm_clients/load_date=2026-03-18/`
-- `erp/erp_pedidos/load_date=2026-03-18/`
-- `reference/reference_calendario/load_date=2026-03-18/`
+- all names must be in **snake_case**
+- no spaces allowed
+- all names must be in English
+- dataset names must be consistent with source systems
 
 ---
 
-## File Naming Guidance
+## File Naming Convention
 
-Inside each partition folder, files should preserve a clear and source-aligned name.
+Each file must include a timestamp to ensure versioning.
 
-Examples:
+Pattern:
 
-- `crm_clients.csv`
-- `erp_pedidos.csv`
-- `reference_calendario.csv`
-- `weather_porto_daily.csv`
-- `web_event_logs.json`
+<dataset>_<timestamp>.csv
 
-If multiple arrivals occur on the same date, the file name may optionally include a timestamp.
+### Example
 
-Examples:
-
-- `crm_clients_20260318_101500.csv`
-- `reference_localidades_20260318_153000.csv`
+reference_calendar_20260318T101500Z.csv
 
 ---
 
-## Supported Ingestion Modes
+## Timestamp Rules
 
-These RAW conventions must be used consistently for both ingestion modes:
-
-### Manual ingestion
-Used for:
-- CRM datasets
-- ERP datasets
-- weather data
-- web event data
-
-### Logic App ingestion
-Used for:
-- reference_calendario
-- reference_canais_venda
-- reference_localidades
-
-The landing path standard remains the same regardless of how the file arrives.
+- format: yyyyMMddTHHmmssZ
+- timezone: UTC
+- generated at ingestion time
+- must not depend on file content
 
 ---
 
-## Why These Conventions Matter
+## Partitioning
 
-These conventions are important because they:
+Partitioning is based on ingestion date:
 
-- improve organization and discoverability
-- simplify Databricks ingestion logic
-- make pipeline behavior more predictable
-- support repeatable Bronze processing
-- reduce ambiguity between datasets and ingestion runs
-- preserve traceability of data arrivals
+load_date=YYYY-MM-DD
+
+### Rules
+
+- must use UTC date
+- represents ingestion time, not business date
+- multiple files can exist within the same partition
 
 ---
 
-## Downstream Impact
+## Versioning Strategy
 
-The Bronze layer will depend directly on this RAW organization.
+The RAW layer uses append-only versioning.
 
-Databricks notebooks and future orchestration logic will use these folder patterns to:
+### Rules
 
-- identify the source dataset
-- detect new arrivals
-- process data partition by partition
-- maintain structured ingestion workflows
+- no file overwrite is allowed
+- every ingestion creates a new file
+- multiple versions of the same dataset can coexist
+- versioning is controlled via timestamp in file name
 
-For this reason, RAW conventions must remain stable once defined.
+### Example
+
+raw/reference/reference_calendar/load_date=2026-03-18/
+- reference_calendar_20260318T091500Z.csv
+- reference_calendar_20260318T141000Z.csv
+
+---
+
+## Rejected Zone
+
+The RAW layer includes a dedicated rejected area for invalid or unexpected files.
+
+### Structure
+
+raw/rejected/<source>/load_date=YYYY-MM-DD/
+
+### Current implementation
+
+raw/rejected/sharepoint_reference/load_date=YYYY-MM-DD/
+
+---
+
+## Rejected Files Rules
+
+Rejected files must follow these rules:
+
+- must not be written into official dataset paths
+- must be preserved for audit and investigation
+- must include timestamp in file name
+- must follow the same partitioning logic (load_date)
+- must not be processed downstream
+
+### Example
+
+raw/rejected/sharepoint_reference/load_date=2026-03-18/reference_calender_20260318T101500Z.csv
+
+---
+
+## File Integrity
+
+The RAW layer must preserve:
+
+- original schema
+- original column names
+- original data types (as received)
+- original file format
+
+No transformations are allowed in RAW.
+
+---
+
+## Relationship with Bronze Layer
+
+The RAW layer feeds the Bronze layer.
+
+### Responsibilities separation
+
+RAW:
+- ingestion
+- storage
+- preservation
+
+Bronze:
+- parsing
+- schema normalization
+- technical enrichment
+
+---
+
+## Design Rationale
+
+This design ensures:
+
+- full data traceability
+- safe reprocessing capability
+- auditability of ingestion events
+- separation between ingestion and transformation
+- alignment with enterprise Lakehouse best practices

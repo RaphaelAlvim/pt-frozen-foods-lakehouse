@@ -1,112 +1,195 @@
 # RAW Implementation Plan — PT Frozen Foods
 
-## Overview
+## Objectives
 
-This document defines the first practical implementation step for the ingestion layer of the PT Frozen Foods platform.
+This document defines how the RAW layer ingestion is implemented for the PT Frozen Foods platform.
 
-After defining the ingestion strategy, RAW conventions, and source contracts, the next implementation step is to create the physical RAW structure in ADLS Gen2.
-
-This ensures that all future ingestion mechanisms — both manual uploads and SharePoint + Logic App flows — land data in a controlled and standardized location.
-
----
-
-## Decision
-
-The first practical implementation step for the ingestion layer is:
-
-- create the physical RAW directory structure in ADLS Gen2
-
-This step comes before Logic App implementation and before manual loading execution.
-
----
-
-## Rationale
-
-The RAW layer is the common landing zone for all source data entering the platform.
-
-Creating the RAW structure first provides:
-
-- a stable target for manual uploads
-- a stable target for Logic App ingestion
-- consistency with documented source contracts
-- readiness for downstream Bronze processing
-- reduced ambiguity during implementation
-
-Without a defined physical landing structure, ingestion processes would be more error-prone and less reproducible.
+The goal is to ensure a consistent, controlled, and traceable ingestion process aligned with enterprise data engineering practices.
 
 ---
 
 ## Scope
 
-The initial implementation will focus on the following source domains:
+This plan covers:
 
-- crm
-- erp
-- reference
-- weather_api
-- web
-
-And the following datasets:
-
-### CRM
-- crm_clients
-- crm_segmentacao
-- crm_status
-
-### ERP
-- erp_fornecedores
-- erp_itens_pedido
-- erp_pedidos
-- erp_produtos
-- erp_vendedores
-
-### Reference
-- reference_calendario
-- reference_canais_venda
-- reference_localidades
-
-### Weather
-- weather_porto_daily
-
-### Web
-- web_event_logs
+- ingestion of reference data via SharePoint + Logic App
+- storage rules in the RAW layer
+- file validation and routing logic
+- rejected files handling
+- versioning and partitioning strategy
 
 ---
 
-## Standard Structure
+## Ingestion Flow
 
-The physical structure must follow this pattern:
+The ingestion process follows these steps:
 
-source_domain  
--> dataset_name  
--> load_date=YYYY-MM-DD  
-
-Examples:
-
-- raw/crm/crm_clients/load_date=YYYY-MM-DD/
-- raw/erp/erp_pedidos/load_date=YYYY-MM-DD/
-- raw/reference/reference_calendario/load_date=YYYY-MM-DD/
-- raw/weather_api/weather_porto_daily/load_date=YYYY-MM-DD/
-- raw/web/web_event_logs/load_date=YYYY-MM-DD/
-
----
-
-## Implementation Sequence
-
-The RAW implementation will follow this sequence:
-
-1. create the base source-domain folders
-2. create dataset-level folders
-3. validate naming consistency
-4. use the structure as the official landing target for future ingestion
+1. file is created or modified in SharePoint
+2. Logic App is triggered
+3. file metadata is retrieved
+4. file content is read
+5. file name is validated
+6. timestamp is generated (UTC)
+7. load_date is generated (UTC)
+8. file is routed to:
+   - RAW dataset (valid file)
+   - rejected zone (invalid file)
 
 ---
 
-## Relationship with Next Steps
+## File Validation
 
-After the RAW structure is physically created, the next steps will be:
+### Accepted files
 
-1. define and execute the manual upload process
-2. implement Logic App for SharePoint-based ingestion
-3. validate landing behavior
-4. move toward Bronze processing design
+- reference_calendar.csv
+- reference_locations.csv
+- reference_sales_channels.csv
+
+### Validation behavior
+
+- if file name matches expected list → proceed to RAW
+- if file name does not match → route to rejected zone
+
+This validation ensures that only known datasets enter the official RAW structure.
+
+---
+
+## Path Structures
+
+### Valid files
+
+raw/reference/<dataset>/load_date=YYYY-MM-DD/<dataset>_<timestamp>.csv
+
+### Examples
+
+raw/reference/reference_calendar/load_date=2026-03-18/reference_calendar_20260318T101500Z.csv
+
+---
+
+### Rejected files
+
+raw/rejected/sharepoint_reference/load_date=YYYY-MM-DD/<filename>_<timestamp>.csv
+
+### Example
+
+raw/rejected/sharepoint_reference/load_date=2026-03-18/reference_calender_20260318T101500Z.csv
+
+---
+
+## Versioning Strategy
+
+The RAW layer follows an append-only approach.
+
+### Rules
+
+- no overwrite is allowed
+- every ingestion generates a new file
+- multiple versions can exist within the same load_date
+- versioning is controlled via timestamp in file name
+
+---
+
+## Timestamp Generation
+
+### Format
+
+yyyyMMddTHHmmssZ
+
+### Rules
+
+- must be generated at ingestion time
+- must use UTC
+- must be independent from file content
+
+---
+
+## Load Date Generation
+
+### Format
+
+load_date=YYYY-MM-DD
+
+### Rules
+
+- based on UTC date
+- represents ingestion time
+- not derived from file content
+
+---
+
+## Rejected Files Handling
+
+Rejected files are files that do not comply with the expected naming contract.
+
+### Behavior
+
+- must not be stored in official RAW dataset paths
+- must be stored in rejected zone
+- must include timestamp in file name
+- must follow the same partitioning logic (load_date)
+- must be preserved for audit and troubleshooting
+
+---
+
+## Notification
+
+Each rejected file triggers an operational notification.
+
+### Target
+
+rm@rmdatasolutions.net
+
+### Notification content
+
+- file name
+- SharePoint path
+- ingestion timestamp (UTC)
+- rejection reason
+- expected file names
+
+---
+
+## Error Handling
+
+The ingestion process must handle errors in a controlled manner.
+
+### Types of errors
+
+- invalid file name
+- file read failure
+- storage write failure
+
+### Behavior
+
+- errors must be logged
+- ingestion must not silently fail
+- rejected files must be preserved when possible
+
+---
+
+## Responsibilities
+
+### Logic App
+
+- trigger ingestion
+- validate file name
+- generate timestamp and load_date
+- route files
+- send notifications
+
+### RAW Layer
+
+- store files
+- preserve data
+- maintain traceability
+
+---
+
+## Design Principles
+
+- no data loss
+- no overwrite
+- full traceability
+- separation between ingestion and transformation
+- reproducibility of ingestion events
+- alignment with enterprise Lakehouse architecture

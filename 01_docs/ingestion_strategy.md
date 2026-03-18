@@ -137,9 +137,9 @@ The automated ingestion design for reference files is based on a SharePoint fold
 
 The Logic App is expected to use a trigger equivalent to:
 
-- when a file is created or modified
+- when a file is created or modified in the monitored folder
 
-This allows reference files maintained in SharePoint to be automatically landed in the Data Lake whenever they are added or updated.
+This ensures that both new files and updates to existing files are captured and ingested.
 
 ### Logic App design choice
 
@@ -152,24 +152,116 @@ This design was chosen because it:
 - improves maintainability
 - provides a cleaner architecture for portfolio and real-world implementation
 
-### Landing targets in RAW
+---
 
-Each file must be routed to its corresponding dataset path in RAW:
+## Landing targets in RAW
+
+Each file must be routed to its corresponding dataset path in RAW using timestamp-based versioning:
 
 - `reference_calendar.csv`
-  -> `raw/reference/reference_calendar/load_date=YYYY-MM-DD/reference_calendar.csv`
+  -> `raw/reference/reference_calendar/load_date=YYYY-MM-DD/reference_calendar_<timestamp>.csv`
 
 - `reference_locations.csv`
-  -> `raw/reference/reference_locations/load_date=YYYY-MM-DD/reference_locations.csv`
+  -> `raw/reference/reference_locations/load_date=YYYY-MM-DD/reference_locations_<timestamp>.csv`
 
 - `reference_sales_channels.csv`
-  -> `raw/reference/reference_sales_channels/load_date=YYYY-MM-DD/reference_sales_channels.csv`
+  -> `raw/reference/reference_sales_channels/load_date=YYYY-MM-DD/reference_sales_channels_<timestamp>.csv`
 
-### Load date behavior
+### Timestamp format
+
+The timestamp must follow UTC standard:
+yyyyMMddTHHmmssZ
+
+Example:
+
+reference_calendar_20260318T101500Z.csv
+
+
+---
+
+## Load date behavior
 
 The `load_date` partition should represent the date of ingestion into the Data Lake, not necessarily the internal date of the file content.
 
 This preserves landing history and aligns with the platform convention already defined for RAW.
+
+---
+
+## RAW behavior rules
+
+The RAW layer follows strict data preservation principles:
+
+- no file overwrite is allowed
+- every ingestion event generates a new file
+- files are versioned using timestamp
+- multiple files can exist for the same dataset within the same `load_date`
+- RAW must preserve all historical arrivals for traceability and reprocessing
+
+---
+
+## Rejected Files Handling
+
+Files that do not match the expected naming contract must not be ingested into the official RAW dataset paths.
+
+### Rejected zone
+
+Invalid files must be stored in a dedicated rejected area:
+
+raw/rejected/sharepoint_reference/load_date=YYYY-MM-DD/
+
+
+### Behavior
+
+When a file is rejected:
+
+- it is not written to the official RAW dataset
+- it is stored in the rejected zone with timestamp
+- the original file name is preserved (with timestamp suffix)
+- the event is logged for traceability
+
+### Example
+
+raw/rejected/sharepoint_reference/load_date=2026-03-18/reference_calender_20260318T101500Z.csv
+
+
+### Notification
+
+Each rejected file must trigger an operational notification to:
+
+
+### Notification
+
+Each rejected file must trigger an operational notification to:
+
+rm@rmdatasolutions.net
+
+
+The notification should include:
+
+- file name
+- SharePoint location
+- ingestion timestamp (UTC)
+- rejection reason
+- expected file names
+
+---
+
+## File Validation Rule
+
+The Logic App must validate incoming files based on file name.
+
+### Accepted files
+
+- reference_calendar.csv
+- reference_locations.csv
+- reference_sales_channels.csv
+
+### Validation logic
+
+- if file name matches expected values → process normally
+- if file name does not match → route to rejected zone
+
+This ensures that only known datasets are ingested into the official RAW structure.
 
 ---
 
@@ -196,3 +288,4 @@ This ingestion model can evolve in future iterations to include:
 - ingestion metadata tracking
 - CI/CD integration for ingestion-related artifacts
 - validation and reconciliation workflows after landing
+
