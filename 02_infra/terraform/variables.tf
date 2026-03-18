@@ -60,6 +60,11 @@ variable "storage_containers" {
   default     = ["raw", "bronze", "silver", "gold"]
 }
 
+variable "logic_app_name" {
+  description = "Name of the Logic App workflow"
+  type        = string
+}
+
 variable "tags" {
   description = "Standard tags applied to all resources."
   type        = map(string)

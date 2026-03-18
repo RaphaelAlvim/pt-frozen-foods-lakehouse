@@ -56,3 +56,12 @@ module "databricks_workspace" {
   managed_resource_group_name = var.databricks_managed_resource_group_name
   tags                        = var.tags
 }
+
+module "logic_app" {
+  source = "./modules/logic_app"
+
+  logic_app_name      = var.logic_app_name
+  location            = var.location
+  resource_group_name = module.resource_group.resource_group_name
+  tags                = var.tags
+}

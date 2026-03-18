@@ -87,3 +87,23 @@ output "databricks_managed_resource_group_id" {
   description = "Managed Resource Group ID of the created Azure Databricks workspace."
   value       = module.databricks_workspace.managed_resource_group_id
 }
+
+output "logic_app_id" {
+  description = "ID of the Logic App"
+  value       = module.logic_app.logic_app_id
+}
+
+output "logic_app_name" {
+  description = "Name of the Logic App"
+  value       = module.logic_app.logic_app_name
+}
+
+output "logic_app_principal_id" {
+  description = "Managed identity principal ID of the Logic App"
+  value       = module.logic_app.logic_app_principal_id
+}
+
+output "logic_app_tenant_id" {
+  description = "Managed identity tenant ID of the Logic App"
+  value       = module.logic_app.logic_app_tenant_id
+}
