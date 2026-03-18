@@ -37,7 +37,7 @@ This applies to:
 - weather data
 - web event data
 
-The goal is to simulate the arrival of business data from systems such as CRM, ERP platforms, APIs, and operational logs without exposing or depending on real production systems.
+The goal is to represent business data arriving from systems such as CRM, ERP platforms, APIs, and operational logs without exposing or depending on real production systems.
 
 ### 2. SharePoint + Azure Logic Apps
 
@@ -59,15 +59,15 @@ These datasets are suitable for SharePoint-driven ingestion because they are sma
 
 #### CRM
 - crm_clients
-- crm_segmentacao
+- crm_segmentation
 - crm_status
 
 #### ERP
-- erp_fornecedores
-- erp_itens_pedido
-- erp_pedidos
-- erp_produtos
-- erp_vendedores
+- erp_suppliers
+- erp_order_items
+- erp_orders
+- erp_products
+- erp_salespersons
 
 #### Weather API
 - weather_porto_daily
@@ -78,9 +78,9 @@ These datasets are suitable for SharePoint-driven ingestion because they are sma
 ### Logic App + SharePoint sources
 
 #### Reference
-- reference_calendario
-- reference_canais_venda
-- reference_localidades
+- reference_calendar
+- reference_sales_channels
+- reference_locations
 
 ---
 
@@ -115,6 +115,64 @@ Azure Databricks is responsible for transformation and processing after ingestio
 
 ---
 
+## SharePoint + Logic App Design
+
+The automated ingestion design for reference files is based on a SharePoint folder monitored by a single Azure Logic App.
+
+### SharePoint source
+
+- tenant host: `rmdatascience.sharepoint.com`
+- site path: `/sites/PT-Frozen-Foods-Data`
+- site name: `PT-Frozen-Foods-Data`
+- document library: `Documents`
+- monitored folder: `reference`
+
+### Files monitored
+
+- `reference_calendar.csv`
+- `reference_locations.csv`
+- `reference_sales_channels.csv`
+
+### Trigger behavior
+
+The Logic App is expected to use a trigger equivalent to:
+
+- when a file is created or modified
+
+This allows reference files maintained in SharePoint to be automatically landed in the Data Lake whenever they are added or updated.
+
+### Logic App design choice
+
+A single Logic App will be used for all reference files.
+
+This design was chosen because it:
+
+- reduces operational complexity
+- centralizes the ingestion logic for reference data
+- improves maintainability
+- provides a cleaner architecture for portfolio and real-world implementation
+
+### Landing targets in RAW
+
+Each file must be routed to its corresponding dataset path in RAW:
+
+- `reference_calendar.csv`
+  -> `raw/reference/reference_calendar/load_date=YYYY-MM-DD/reference_calendar.csv`
+
+- `reference_locations.csv`
+  -> `raw/reference/reference_locations/load_date=YYYY-MM-DD/reference_locations.csv`
+
+- `reference_sales_channels.csv`
+  -> `raw/reference/reference_sales_channels/load_date=YYYY-MM-DD/reference_sales_channels.csv`
+
+### Load date behavior
+
+The `load_date` partition should represent the date of ingestion into the Data Lake, not necessarily the internal date of the file content.
+
+This preserves landing history and aligns with the platform convention already defined for RAW.
+
+---
+
 ## Why This Strategy Was Chosen
 
 This ingestion strategy reflects a practical balance between realism and confidentiality.
@@ -125,7 +183,7 @@ The project is based on a real business scenario, but real production data canno
 - Logic Apps is used where event-driven or business-managed ingestion adds architectural value
 - ADF remains focused on orchestration rather than direct landing
 
-This keeps the platform aligned with real-world data engineering practices while remaining safe for documentation and portfolio use.
+This keeps the platform aligned with real-world data engineering practices while remaining safe from a confidentiality perspective.
 
 ---
 
@@ -137,3 +195,4 @@ This ingestion model can evolve in future iterations to include:
 - stronger event-driven ingestion patterns
 - ingestion metadata tracking
 - CI/CD integration for ingestion-related artifacts
+- validation and reconciliation workflows after landing
