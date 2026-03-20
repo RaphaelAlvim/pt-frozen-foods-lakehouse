@@ -19,6 +19,8 @@ The ingestion strategy follows these principles:
 - ensure all data first lands in the RAW layer
 - use automated ingestion only where it adds architectural value
 - use manual ingestion where synthetic data and confidentiality constraints make direct source integration unnecessary
+- preserve historical arrivals in RAW
+- avoid silent failures during ingestion
 
 ---
 
@@ -94,6 +96,7 @@ The RAW layer is the controlled landing zone of the platform and is responsible 
 - isolating ingestion from transformation
 - enabling traceability of source arrivals
 - supporting repeatable Bronze processing
+- preserving historical versions of arrivals
 
 No business transformations should occur in the RAW layer.
 
@@ -135,15 +138,25 @@ The automated ingestion design for reference files is based on a SharePoint fold
 
 ### Trigger behavior
 
-The Logic App is expected to use a trigger equivalent to:
+The Logic App uses a trigger equivalent to:
 
 - when a file is created or modified in the monitored folder
 
 This ensures that both new files and updates to existing files are captured and ingested.
 
+### Trigger frequency
+
+The SharePoint trigger works with polling, not with native push events.
+
+For this project:
+
+- polling frequency can be adjusted depending on operational needs
+- lower frequency is acceptable because reference files are low volume
+- shorter polling intervals may be used temporarily during testing
+
 ### Logic App design choice
 
-A single Logic App will be used for all reference files.
+A single Logic App is used for all reference files.
 
 This design was chosen because it:
 
@@ -154,9 +167,28 @@ This design was chosen because it:
 
 ---
 
-## Landing targets in RAW
+## File Validation Rule
 
-Each file must be routed to its corresponding dataset path in RAW using timestamp-based versioning:
+The Logic App validates incoming files based on file name.
+
+### Accepted files
+
+- reference_calendar.csv
+- reference_locations.csv
+- reference_sales_channels.csv
+
+### Validation logic
+
+- if file name matches expected values → process normally
+- if file name does not match → route to rejected area
+
+This ensures that only known datasets are ingested into the official RAW structure.
+
+---
+
+## Landing Targets in RAW
+
+Each valid file is routed to its corresponding dataset path in RAW using timestamp-based versioning:
 
 - `reference_calendar.csv`
   -> `raw/reference/reference_calendar/load_date=YYYY-MM-DD/reference_calendar_<timestamp>.csv`
@@ -169,25 +201,26 @@ Each file must be routed to its corresponding dataset path in RAW using timestam
 
 ### Timestamp format
 
-The timestamp must follow UTC standard:
+The timestamp follows UTC standard:
+
 yyyyMMddTHHmmssZ
 
 Example:
 
-reference_calendar_20260318T101500Z.csv
+reference_calendar_20260319T151315Z.csv
 
 
 ---
 
-## Load date behavior
+## Load Date Behavior
 
-The `load_date` partition should represent the date of ingestion into the Data Lake, not necessarily the internal date of the file content.
+The `load_date` partition represents the date of ingestion into the Data Lake, not necessarily the internal date of the file content.
 
 This preserves landing history and aligns with the platform convention already defined for RAW.
 
 ---
 
-## RAW behavior rules
+## RAW Behavior Rules
 
 The RAW layer follows strict data preservation principles:
 
@@ -205,63 +238,72 @@ Files that do not match the expected naming contract must not be ingested into t
 
 ### Rejected zone
 
-Invalid files must be stored in a dedicated rejected area:
+Invalid files are stored in a dedicated rejected area inside the reference domain:
 
-raw/rejected/sharepoint_reference/load_date=YYYY-MM-DD/
-
+raw/reference/_rejected/load_date=YYYY-MM-DD/
 
 ### Behavior
 
 When a file is rejected:
 
-- it is not written to the official RAW dataset
-- it is stored in the rejected zone with timestamp
-- the original file name is preserved (with timestamp suffix)
-- the event is logged for traceability
+- it is not written to the official RAW dataset path
+- it is stored in the rejected area with timestamp
+- the original file name is preserved as the base name
+- the event is logged through Logic App execution history
+- the file remains available for investigation and audit
 
 ### Example
 
-raw/rejected/sharepoint_reference/load_date=2026-03-18/reference_calender_20260318T101500Z.csv
+raw/reference/_rejected/load_date=2026-03-19/reference_calender_20260319T151315Z.csv
 
 
-### Notification
+---
 
-Each rejected file must trigger an operational notification to:
+## Notification
 
-
-### Notification
-
-Each rejected file must trigger an operational notification to:
+Each rejected file triggers an operational notification to:
 
 rm@rmdatasolutions.net
 
 
-The notification should include:
+### Notification channel
 
-- file name
-- SharePoint location
-- ingestion timestamp (UTC)
+The current implementation uses SMTP-based email sending from the Logic App.
+
+### Notification content
+
+The alert includes:
+
+- rejected file name
+- detection timestamp in UTC
+- SharePoint source context
 - rejection reason
-- expected file names
+- target rejected path in ADLS
+
+This provides immediate operational visibility when unexpected files are placed in the SharePoint reference folder.
 
 ---
 
-## File Validation Rule
+## Authentication Strategy
 
-The Logic App must validate incoming files based on file name.
+### SharePoint
 
-### Accepted files
+The SharePoint connection uses a dedicated service account:
 
-- reference_calendar.csv
-- reference_locations.csv
-- reference_sales_channels.csv
+svc.sharepoint.ingestion@rmdatasolutions.net
 
-### Validation logic
 
-- if file name matches expected values → process normally
-- if file name does not match → route to rejected zone
+This account was created specifically for ingestion purposes and validated with read-only access to the SharePoint site and monitored folder.
 
-This ensures that only known datasets are ingested into the official RAW structure.
+### Azure Storage
+
+The Blob Storage connection uses the Logic App managed identity.
+
+This design avoids hardcoded credentials and aligns with modern Azure authentication practices.
+
+### RBAC approach
+
+Access to storage is granted through a security group-based RBAC strategy, improving maintainability and governance of permissions.
 
 ---
 
@@ -274,8 +316,26 @@ The project is based on a real business scenario, but real production data canno
 - manual ingestion is used to represent realistic enterprise sources with synthetic data
 - Logic Apps is used where event-driven or business-managed ingestion adds architectural value
 - ADF remains focused on orchestration rather than direct landing
+- RAW preserves all arrivals without overwrite
+- rejected files remain visible and auditable instead of being silently discarded
 
 This keeps the platform aligned with real-world data engineering practices while remaining safe from a confidentiality perspective.
+
+---
+
+## Current Operational State
+
+At the current stage of the project, the SharePoint reference ingestion flow is operational and validated end-to-end.
+
+Validated capabilities include:
+
+- detection of valid and invalid files in SharePoint
+- file content retrieval from SharePoint
+- whitelist-based validation of accepted file names
+- landing of valid files in the correct RAW dataset paths
+- landing of invalid files in `raw/reference/_rejected/`
+- timestamp-based versioning
+- email notification for rejected files
 
 ---
 
@@ -283,9 +343,11 @@ This keeps the platform aligned with real-world data engineering practices while
 
 This ingestion model can evolve in future iterations to include:
 
-- more automated source integrations
-- stronger event-driven ingestion patterns
+- workflow export and versioning as code
+- Terraform integration of Logic App workflow definition
+- stronger operational logging and observability
 - ingestion metadata tracking
 - CI/CD integration for ingestion-related artifacts
 - validation and reconciliation workflows after landing
+- standardized alerting patterns across other ingestion sources
 

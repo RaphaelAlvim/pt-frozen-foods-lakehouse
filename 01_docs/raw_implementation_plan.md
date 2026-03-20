@@ -1,43 +1,156 @@
 # RAW Implementation Plan — PT Frozen Foods
 
-## Objectives
+## Overview
 
-This document defines how the RAW layer ingestion is implemented for the PT Frozen Foods platform.
+This document defines how the RAW layer is physically implemented in the PT Frozen Foods data platform.
 
-The goal is to ensure a consistent, controlled, and traceable ingestion process aligned with enterprise data engineering practices.
+The RAW layer represents the initial landing zone of all incoming data and must preserve the original structure and content of source files. It is a critical component of the Lakehouse architecture and must follow strict rules to ensure traceability, reproducibility, and auditability.
 
----
-
-## Scope
-
-This plan covers:
-
-- ingestion of reference data via SharePoint + Logic App
-- storage rules in the RAW layer
-- file validation and routing logic
-- rejected files handling
-- versioning and partitioning strategy
+This document reflects the current implementation state, including both manual ingestion and automated ingestion via Azure Logic Apps integrated with SharePoint.
 
 ---
 
-## Ingestion Flow
+## RAW Layer Objectives
 
-The ingestion process follows these steps:
+The RAW layer is designed to:
 
-1. file is created or modified in SharePoint
-2. Logic App is triggered
-3. file metadata is retrieved
-4. file content is read
-5. file name is validated
-6. timestamp is generated (UTC)
-7. load_date is generated (UTC)
-8. file is routed to:
-   - RAW dataset (valid file)
-   - rejected zone (invalid file)
+- store data exactly as received from source systems
+- preserve full historical arrival of files
+- isolate ingestion from transformation logic
+- support reprocessing scenarios
+- enable traceability and auditability
+- prevent data loss during ingestion
 
 ---
 
-## File Validation
+## Storage Structure
+
+The RAW layer is implemented in Azure Data Lake Storage Gen2 (ADLS Gen2) using the following hierarchical structure:
+
+domain → dataset → partition
+
+### Domains
+
+The following domains are defined:
+
+- crm
+- erp
+- reference
+- weather_api
+- web
+
+### Dataset structure
+
+Each dataset is stored under its respective domain:
+
+raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
+
+Example:
+
+raw/crm/crm_clients/load_date=2026-03-19/
+
+---
+
+## Naming Conventions
+
+The RAW layer follows strict naming conventions:
+
+- all names in lowercase
+- snake_case format
+- no spaces or special characters
+- dataset names aligned with business entities
+
+---
+
+## Load Date Partition
+
+Each dataset is partitioned by ingestion date using:
+
+load_date=YYYY-MM-DD
+
+Important:
+
+- load_date represents ingestion time, not business event time
+- multiple files may exist within the same partition
+- partitioning supports scalable processing and filtering
+
+---
+
+## File Versioning Strategy
+
+To prevent overwriting and ensure full historical traceability, all files are versioned using a UTC timestamp.
+
+### File naming pattern
+
+<dataset>_yyyyMMddTHHmmssZ.csv
+
+Example:
+
+reference_calendar_20260319T151315Z.csv
+
+### Rules
+
+- no file overwrite is allowed
+- every ingestion generates a new file
+- multiple versions of the same dataset can exist within the same load_date
+- timestamps ensure uniqueness and ordering of arrivals
+
+---
+
+## Manual Ingestion Implementation
+
+Manual ingestion is used for synthetic datasets representing enterprise systems.
+
+### Sources
+
+- CRM datasets
+- ERP datasets
+- weather data
+- web event logs
+
+### Process
+
+- files are manually uploaded to ADLS
+- files are placed directly into the correct dataset folder
+- users must follow naming and partition conventions
+
+---
+
+## SharePoint + Logic App Ingestion
+
+Reference datasets are ingested automatically using Azure Logic Apps integrated with SharePoint.
+
+### SharePoint configuration
+
+- tenant: rmdatascience.sharepoint.com
+- site: /sites/PT-Frozen-Foods-Data
+- document library: Documents
+- monitored folder: reference
+
+### Files monitored
+
+- reference_calendar.csv
+- reference_locations.csv
+- reference_sales_channels.csv
+
+---
+
+## Logic App Workflow
+
+The ingestion workflow consists of:
+
+1. trigger on file creation or modification
+2. retrieve file content from SharePoint
+3. validate file name
+4. route file based on validation result
+5. store file in ADLS
+6. send notification if rejected
+
+---
+
+## Validation Logic
+
+The Logic App enforces a whitelist validation rule.
 
 ### Accepted files
 
@@ -45,151 +158,145 @@ The ingestion process follows these steps:
 - reference_locations.csv
 - reference_sales_channels.csv
 
-### Validation behavior
+### Behavior
 
-- if file name matches expected list → proceed to RAW
-- if file name does not match → route to rejected zone
-
-This validation ensures that only known datasets enter the official RAW structure.
+- valid files → processed and stored in RAW
+- invalid files → redirected to rejected area
 
 ---
 
-## Path Structures
+## Valid File Handling
 
-### Valid files
+Valid files are stored in the RAW layer using dataset-based routing.
+
+### Target structure
 
 raw/reference/<dataset>/load_date=YYYY-MM-DD/<dataset>_<timestamp>.csv
 
-### Examples
+Example:
 
-raw/reference/reference_calendar/load_date=2026-03-18/reference_calendar_20260318T101500Z.csv
-
----
-
-### Rejected files
-
-raw/rejected/sharepoint_reference/load_date=YYYY-MM-DD/<filename>_<timestamp>.csv
-
-### Example
-
-raw/rejected/sharepoint_reference/load_date=2026-03-18/reference_calender_20260318T101500Z.csv
+raw/reference/reference_calendar/load_date=2026-03-19/reference_calendar_20260319T151315Z.csv
 
 ---
 
-## Versioning Strategy
+## Rejected File Handling
 
-The RAW layer follows an append-only approach.
+Invalid files are not discarded. Instead, they are stored for audit and investigation.
 
-### Rules
+### Rejected path
 
-- no overwrite is allowed
-- every ingestion generates a new file
-- multiple versions can exist within the same load_date
-- versioning is controlled via timestamp in file name
-
----
-
-## Timestamp Generation
-
-### Format
-
-yyyyMMddTHHmmssZ
-
-### Rules
-
-- must be generated at ingestion time
-- must use UTC
-- must be independent from file content
-
----
-
-## Load Date Generation
-
-### Format
-
-load_date=YYYY-MM-DD
-
-### Rules
-
-- based on UTC date
-- represents ingestion time
-- not derived from file content
-
----
-
-## Rejected Files Handling
-
-Rejected files are files that do not comply with the expected naming contract.
+raw/reference/_rejected/load_date=YYYY-MM-DD/
 
 ### Behavior
 
-- must not be stored in official RAW dataset paths
-- must be stored in rejected zone
-- must include timestamp in file name
-- must follow the same partitioning logic (load_date)
-- must be preserved for audit and troubleshooting
+- rejected files are stored with timestamp
+- original filename is preserved as base
+- no overwrite occurs
+- files remain available for analysis
+
+### Example
+
+raw/reference/_rejected/load_date=2026-03-19/invalid_file_20260319T151315Z.csv
 
 ---
 
-## Notification
+## Notification Mechanism
 
-Each rejected file triggers an operational notification.
+Rejected files trigger an automatic email notification.
 
-### Target
+### Recipient
 
 rm@rmdatasolutions.net
+
+### Channel
+
+SMTP (Gmail App Password)
 
 ### Notification content
 
 - file name
-- SharePoint path
 - ingestion timestamp (UTC)
 - rejection reason
-- expected file names
+- target storage location
+
+This ensures operational visibility and fast issue detection.
 
 ---
 
-## Error Handling
+## Authentication Strategy
 
-The ingestion process must handle errors in a controlled manner.
+### SharePoint
 
-### Types of errors
+- dedicated service account used:
+  svc.sharepoint.ingestion@rmdatasolutions.net
+- read access to monitored folder
 
-- invalid file name
-- file read failure
-- storage write failure
+### Azure Storage
 
-### Behavior
+- Logic App uses Managed Identity
+- avoids credential exposure
 
-- errors must be logged
-- ingestion must not silently fail
-- rejected files must be preserved when possible
+### RBAC
 
----
-
-## Responsibilities
-
-### Logic App
-
-- trigger ingestion
-- validate file name
-- generate timestamp and load_date
-- route files
-- send notifications
-
-### RAW Layer
-
-- store files
-- preserve data
-- maintain traceability
+- access managed via security groups
+- improves governance and scalability
 
 ---
 
-## Design Principles
+## RAW Layer Rules (Strict)
 
-- no data loss
-- no overwrite
-- full traceability
-- separation between ingestion and transformation
-- reproducibility of ingestion events
-- alignment with enterprise Lakehouse architecture
+The following rules must always be respected:
+
+- no transformations allowed
+- no overwriting of files
+- all files must be versioned
+- all ingestion events must be preserved
+- rejected files must not be deleted automatically
+- ingestion must not fail silently
+
+---
+
+## Current Implementation Status
+
+The RAW layer is fully implemented and validated.
+
+### Completed
+
+- storage structure created
+- domains and datasets defined
+- manual ingestion operational
+- SharePoint ingestion operational
+- Logic App workflow implemented
+- validation rules active
+- rejected handling implemented
+- email alert implemented
+- timestamp versioning validated
+
+---
+
+## Next Steps
+
+The next phase of the project will focus on:
+
+- Bronze layer implementation in Databricks
+- integration with ADF orchestration
+- workflow export to JSON
+- Terraform integration for Logic App
+- CI/CD enablement
+- enhanced monitoring and logging
+
+---
+
+## Conclusion
+
+The RAW layer implementation is complete and aligned with enterprise-grade data engineering practices.
+
+It ensures:
+
+- full data traceability
+- ingestion reliability
+- controlled data entry
+- operational visibility
+- readiness for scalable downstream processing
+
+This provides a strong and robust foundation for the next stages of the Lakehouse architecture.

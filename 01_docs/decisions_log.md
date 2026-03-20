@@ -2,296 +2,445 @@
 
 ## Overview
 
-This document records key architectural and technical decisions made throughout the development of the PT Frozen Foods data platform.
+This document records key architectural, technical, and operational decisions made during the development of the PT Frozen Foods data platform.
 
-The goal is to ensure traceability, clarity of reasoning, and alignment with enterprise-grade data engineering practices.
+The purpose of this log is to:
+
+- provide traceability of decisions
+- document reasoning behind architectural choices
+- support future evolution of the platform
+- ensure alignment with enterprise-grade practices
+
+All decisions recorded here are considered deliberate and aligned with real-world data engineering standards.
 
 ---
 
-## Ingestion Architecture
+## Decision 001 — Use of Lakehouse Architecture
 
 ### Decision
 
-Adopt a hybrid ingestion model combining manual ingestion and automated ingestion.
-
-### Description
-
-- manual ingestion is used for CRM, ERP, Web and Weather datasets
-- automated ingestion is implemented using SharePoint + Azure Logic Apps for reference datasets
+Adopt a Lakehouse architecture based on Azure services.
 
 ### Rationale
 
-- synthetic data and confidentiality constraints prevent direct system integration
-- manual ingestion preserves control and reproducibility
-- automated ingestion is applied where it adds architectural value
+- combines flexibility of Data Lake with structure of Data Warehouse
+- supports scalable analytics and machine learning
+- aligns with modern data platform standards
+
+### Impact
+
+- data organized into RAW, Bronze, Silver, Gold layers
+- separation between ingestion, processing, and consumption
 
 ---
 
-## Logic App Design
+## Decision 002 — Use of Synthetic Data
 
 ### Decision
 
-Use Azure Logic App Consumption for automated ingestion.
-
-### Description
-
-- single Logic App for all reference datasets
-- event-driven ingestion
-- trigger based on file creation or modification
-- routing based on file name
+Use synthetic datasets instead of real production data.
 
 ### Rationale
 
-- reduces operational complexity
-- centralizes ingestion logic
-- improves maintainability
-- aligns with real-world architecture
+- confidentiality constraints
+- ability to simulate realistic enterprise scenarios
+- full control over data structure
+
+### Impact
+
+- manual ingestion required for some sources
+- architecture remains production-oriented
 
 ---
 
-## SharePoint Integration
+## Decision 003 — Hybrid Ingestion Strategy
 
 ### Decision
 
-Use SharePoint as the source for reference datasets.
-
-### Description
-
-- monitored folder: Documents/reference
-- files are business-managed reference data
-- ingestion triggered by file events
+Adopt a hybrid ingestion approach combining manual upload and automated ingestion.
 
 ### Rationale
 
-- SharePoint is a realistic enterprise source for reference data
-- allows business users to manage inputs
-- supports event-driven ingestion pattern
+- manual ingestion allows controlled simulation of enterprise systems
+- automated ingestion adds realism where appropriate
+
+### Impact
+
+- CRM, ERP, Web, Weather → manual ingestion
+- Reference data → SharePoint + Logic App
 
 ---
 
-## Authentication Strategy
+## Decision 004 — ADF as Orchestration Layer
 
 ### Decision
 
-Use a dedicated service account for SharePoint integration.
-
-### Service Account
-
-svc.sharepoint.ingestion@rmdatasolutions.net
-
-### Description
-
-- account configured with Authenticator
-- read-only access to SharePoint site and folder
-- used exclusively for integration
+Use Azure Data Factory primarily as an orchestration engine.
 
 ### Rationale
 
-- avoids dependency on personal accounts
-- ensures auditability
-- provides stability and control
-- aligns with enterprise security practices
+- separates ingestion from orchestration
+- aligns with modern architecture patterns
+- simplifies pipeline management
+
+### Impact
+
+- ADF triggers Databricks notebooks
+- ADF does not perform direct ingestion in this phase
 
 ---
 
-## RAW Layer Strategy
+## Decision 005 — Databricks for Processing
 
 ### Decision
 
-Adopt a strict append-only RAW layer.
-
-### Description
-
-- no overwrite allowed
-- every ingestion generates a new file
-- data is preserved in original format
-- ingestion is fully traceable
-
-### Rationale
-
-- ensures data integrity
-- supports reprocessing
-- enables auditability
-- aligns with Lakehouse best practices
-
----
-
-## Timestamp Standard
-
-### Decision
-
-Use UTC timestamp for file versioning.
-
-### Format
-
-yyyyMMddTHHmmssZ
-
-### Description
-
-- generated at ingestion time
-- independent of data content
-- used in file naming
-
-### Rationale
-
-- ensures consistency across systems
-- avoids timezone ambiguity
-- supports global scalability
-
----
-
-## Partitioning Strategy
-
-### Decision
-
-Partition RAW data using ingestion date.
-
-### Format
-
-load_date=YYYY-MM-DD
-
-### Description
-
-- based on UTC
-- represents ingestion time
-- not tied to business data
-
-### Rationale
-
-- standardizes ingestion tracking
-- simplifies downstream processing
-- supports efficient data organization
-
----
-
-## Rejected Files Strategy
-
-### Decision
-
-Introduce a dedicated rejected zone in the RAW layer.
-
-### Structure
-
-raw/rejected/sharepoint_reference/
-
-### Description
-
-- invalid files are not ingested into official datasets
-- files are preserved for investigation
-- files follow same partitioning and timestamp rules
-
-### Example
-
-raw/rejected/sharepoint_reference/load_date=2026-03-18/reference_calender_20260318T101500Z.csv
-
-### Rationale
-
-- prevents data loss
-- avoids silent ingestion errors
-- enables troubleshooting and audit
-
----
-
-## File Validation Strategy
-
-### Decision
-
-Validate files based on file name before ingestion.
-
-### Accepted files
-
-- reference_calendar.csv
-- reference_locations.csv
-- reference_sales_channels.csv
-
-### Behavior
-
-- valid files are processed normally
-- invalid files are routed to rejected zone
-
-### Rationale
-
-- ensures ingestion consistency
-- protects RAW dataset integrity
-- enforces source contract
-
----
-
-## Notification Strategy
-
-### Decision
-
-Send notification for rejected files.
-
-### Target
-
-rm@rmdatasolutions.net
-
-### Description
-
-Each rejected file triggers a notification containing:
-
-- file name
-- SharePoint location
-- ingestion timestamp (UTC)
-- rejection reason
-- expected file names
-
-### Rationale
-
-- ensures operational visibility
-- enables quick investigation
-- prevents unnoticed ingestion failures
-
----
-
-## Role of ADF
-
-### Decision
-
-Use Azure Data Factory as orchestration layer only.
-
-### Description
-
-- does not perform ingestion in this project
-- triggers Databricks notebooks
-- coordinates Bronze, Silver and Gold processing
-
-### Rationale
-
-- keeps ingestion decoupled from orchestration
-- simplifies architecture
-- aligns with Lakehouse pattern
-
----
-
-## Role of Databricks
-
-### Decision
-
-Use Databricks as the main processing engine.
-
-### Description
-
-- performs transformations
-- processes Bronze, Silver and Gold layers
-- prepares data for analytics and ML
+Use Azure Databricks for all data transformation.
 
 ### Rationale
 
 - scalable processing engine
-- industry standard for data platforms
-- aligns with project goals
+- supports structured and unstructured data
+- integrates with Delta Lake
+
+### Impact
+
+- Bronze, Silver, Gold layers implemented in Databricks
+- notebooks used for both exploration and production pipelines
 
 ---
 
-## Design Principles
+## Decision 006 — RAW Layer as Immutable Storage
 
-The following principles guide all decisions:
+### Decision
 
-- separation of concerns
-- data traceability
-- auditability
-- controlled ingestion
-- enterprise-grade architecture
-- reproducibility
+RAW layer must preserve all data without overwrite.
+
+### Rationale
+
+- ensures traceability
+- supports reprocessing
+- prevents data loss
+
+### Impact
+
+- timestamp-based file versioning implemented
+- multiple files allowed per partition
+
+---
+
+## Decision 007 — Timestamp-Based File Versioning
+
+### Decision
+
+Use UTC timestamp in file names to ensure uniqueness.
+
+### Rationale
+
+- avoids overwriting files
+- preserves multiple ingestion events per day
+- enables auditability
+
+### Impact
+
+- file naming pattern:
+  <dataset>_yyyyMMddTHHmmssZ.csv
+
+---
+
+## Decision 008 — Use of load_date Partition
+
+### Decision
+
+Partition RAW data using load_date.
+
+### Rationale
+
+- aligns ingestion with partitioning strategy
+- improves performance in downstream processing
+- separates ingestion time from business time
+
+### Impact
+
+- structure:
+  load_date=YYYY-MM-DD
+
+---
+
+## Decision 009 — Single Logic App for Reference Ingestion
+
+### Decision
+
+Use a single Logic App to handle all reference files.
+
+### Rationale
+
+- reduces complexity
+- centralizes ingestion logic
+- improves maintainability
+
+### Impact
+
+- routing logic implemented inside workflow
+- validation based on file name
+
+---
+
+## Decision 010 — File Name-Based Validation
+
+### Decision
+
+Validate incoming files using file name whitelist.
+
+### Rationale
+
+- ensures only expected datasets are processed
+- avoids ingestion of incorrect files
+- simple and effective control mechanism
+
+### Impact
+
+- accepted:
+  reference_calendar.csv
+  reference_locations.csv
+  reference_sales_channels.csv
+- others → rejected
+
+---
+
+## Decision 011 — Rejected Files Must Be Preserved
+
+### Decision
+
+Rejected files must not be discarded.
+
+### Rationale
+
+- prevents silent data loss
+- supports debugging and investigation
+- improves governance
+
+### Impact
+
+- rejected files stored in:
+  raw/reference/_rejected/load_date=YYYY-MM-DD/
+
+---
+
+## Decision 012 — Rejected Files Inside Domain
+
+### Decision
+
+Store rejected files within the reference domain.
+
+### Rationale
+
+- maintains context of origin
+- simplifies investigation
+- avoids centralized clutter
+
+### Impact
+
+- structure:
+  raw/reference/_rejected/
+
+---
+
+## Decision 013 — Email Notification for Rejected Files
+
+### Decision
+
+Send email alert when a file is rejected.
+
+### Rationale
+
+- ensures operational visibility
+- enables quick response to issues
+- prevents unnoticed ingestion failures
+
+### Impact
+
+- email sent to:
+  rm@rmdatasolutions.net
+- triggered by Logic App
+
+---
+
+## Decision 014 — Use of SMTP for Email Alerts
+
+### Decision
+
+Use SMTP with Gmail App Password for email notifications.
+
+### Rationale
+
+- avoids dependency on Outlook connector
+- works with existing Gmail account
+- simple and effective implementation
+
+### Impact
+
+- Logic App uses SMTP connector
+- authentication via App Password
+
+---
+
+## Decision 015 — Managed Identity for Storage Access
+
+### Decision
+
+Use Managed Identity for Logic App access to ADLS.
+
+### Rationale
+
+- avoids hardcoded credentials
+- improves security
+- aligns with Azure best practices
+
+### Impact
+
+- RBAC permissions required on storage account
+
+---
+
+## Decision 016 — Service Account for SharePoint
+
+### Decision
+
+Use dedicated service account for SharePoint access.
+
+### Rationale
+
+- avoids personal account usage
+- improves governance and auditability
+- supports production-grade design
+
+### Impact
+
+- account:
+  svc.sharepoint.ingestion@rmdatasolutions.net
+
+---
+
+## Decision 017 — Group-Based RBAC
+
+### Decision
+
+Use security groups to manage access permissions.
+
+### Rationale
+
+- simplifies permission management
+- improves scalability
+- aligns with enterprise governance
+
+### Impact
+
+- roles assigned to groups instead of individuals
+
+---
+
+## Decision 018 — Polling-Based Trigger Strategy
+
+### Decision
+
+Use polling trigger for SharePoint ingestion.
+
+### Rationale
+
+- SharePoint connector uses polling
+- acceptable due to low data volume
+
+### Impact
+
+- frequency configurable
+- cost controlled via interval tuning
+
+---
+
+## Decision 019 — No Overwrite in RAW
+
+### Decision
+
+Do not overwrite files even within the same day.
+
+### Rationale
+
+- preserves full ingestion history
+- avoids accidental data loss
+
+### Impact
+
+- timestamp mandatory in file name
+- multiple files per partition allowed
+
+---
+
+## Decision 020 — Implementation First, Code Later
+
+### Decision
+
+Build Logic App manually before converting to code.
+
+### Rationale
+
+- faster iteration
+- easier debugging
+- reduces complexity during design phase
+
+### Impact
+
+- workflow validated via UI
+- future export to JSON planned
+
+---
+
+## Decision 021 — Email Alert After Storage
+
+### Decision
+
+Send email only after rejected file is successfully stored.
+
+### Rationale
+
+- ensures traceability before notification
+- avoids alerts without persisted data
+
+### Impact
+
+- email step placed after rejected blob creation
+
+---
+
+## Decision 022 — Use of UTC Time Standard
+
+### Decision
+
+Standardize all timestamps in UTC.
+
+### Rationale
+
+- avoids timezone inconsistencies
+- aligns with global data practices
+
+### Impact
+
+- used in:
+  - file naming
+  - email notifications
+  - ingestion tracking
+
+---
+
+## Conclusion
+
+The decisions recorded in this document reflect a consistent effort to align the PT Frozen Foods platform with real-world enterprise data engineering practices.
+
+These decisions ensure:
+
+- data reliability
+- operational visibility
+- scalability
+- maintainability
+- governance and security
+
+This log should be continuously updated as the platform evolves.

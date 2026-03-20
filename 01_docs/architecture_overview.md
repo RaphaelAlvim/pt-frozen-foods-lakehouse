@@ -2,243 +2,294 @@
 
 ## Overview
 
-The PT Frozen Foods platform is designed following a **Lakehouse architecture** pattern implemented on Microsoft Azure.
+This document describes the architecture of the PT Frozen Foods data platform.
 
-The architecture separates ingestion, storage, processing, and consumption into clearly defined layers, ensuring scalability, maintainability, and alignment with enterprise data engineering practices.
+The platform is designed as a Lakehouse architecture built on Microsoft Azure, combining scalable storage, distributed processing, and orchestrated data pipelines.
+
+Although the project uses synthetic data and a fictional company name due to confidentiality constraints, the architecture, decisions, and implementation approach follow real-world enterprise standards.
 
 ---
 
-## Architecture Principles
+## Architectural Principles
 
-The platform follows these core principles:
+The platform is designed based on the following principles:
 
 - separation of concerns between ingestion, orchestration, and processing
-- centralized storage in a Data Lake
-- schema evolution handled in processing layers
-- reproducible and traceable data pipelines
-- Infrastructure as Code (IaC) for provisioning
-- modular and extensible design
+- scalability and modularity
+- data traceability and auditability
+- minimal coupling between services
+- Infrastructure as Code (IaC) as foundation
+- readiness for CI/CD integration
+- security-first approach using identity-based access
 
 ---
 
 ## High-Level Architecture
 
-The platform is composed of the following components:
+The architecture follows a layered Lakehouse model:
 
-### Data Sources
-
-- CRM (synthetic datasets)
-- ERP (synthetic datasets)
-- Weather API (synthetic dataset)
-- Web logs (synthetic dataset)
-- SharePoint (reference data)
-
----
-
-### Ingestion Layer
-
-The ingestion layer is responsible for landing data into the RAW layer.
-
-It follows a hybrid model:
-
-#### Manual ingestion
-
-- used for CRM, ERP, Web, and Weather datasets
-- represents real enterprise systems under confidentiality constraints
-
-#### Automated ingestion
-
-- implemented using SharePoint + Azure Logic Apps
-- used for reference datasets
-- event-driven ingestion based on file creation or modification
+Data Sources  
+→ Ingestion Layer  
+→ RAW (Data Lake)  
+→ Processing Layer (Databricks)  
+→ Bronze → Silver → Gold  
+→ Analytics / Machine Learning  
 
 ---
 
-## Automated Ingestion — SharePoint
+## Core Azure Services
 
-Reference data ingestion is implemented using SharePoint integrated with Azure Logic Apps.
+The platform uses the following Azure services:
 
-### Flow
+### Azure Data Lake Storage Gen2 (ADLS)
 
-SharePoint → Logic App → ADLS (RAW)
-
-### Source Configuration
-
-- tenant host: `rmdatascience.sharepoint.com`
-- site path: `/sites/PT-Frozen-Foods-Data`
-- document library: `Documents`
-- monitored folder: `reference`
-
-### Trigger Behavior
-
-The Logic App is triggered when a file is created or modified in the monitored folder.
-
-This ensures that both new files and updates to existing files are captured automatically.
-
-### Supported Files
-
-- reference_calendar.csv
-- reference_locations.csv
-- reference_sales_channels.csv
-
-### Routing Logic
-
-Files are routed based on file name to their corresponding RAW dataset paths.
-
-### RAW Storage Rules
-
-- files are stored using timestamp-based versioning
-- no overwrite is allowed
-- multiple versions can exist within the same load_date partition
-- ingestion date is based on UTC
-
-### Rejected Files Handling
-
-Files that do not match the expected naming contract are routed to a rejected zone.
-
-#### Structure
-
-raw/rejected/sharepoint_reference/load_date=YYYY-MM-DD/
-
-#### Behavior
-
-- files are preserved for audit and investigation
-- files are not processed downstream
-- ingestion events are logged
-- notification is sent to operational stakeholders
-
-### Notification
-
-Rejected files trigger an email notification to:
-
-rm@rmdatasolutions.net
-
-### Authentication
-
-- SharePoint access is performed using a dedicated service account
-- service account: svc.sharepoint.ingestion@rmdatasolutions.net
-- storage access is designed to use managed identity (planned)
-
-### Design Characteristics
-
-- event-driven ingestion
-- centralized ingestion logic
-- clear separation between ingestion and processing
-- high traceability and observability
-- aligned with enterprise data platform patterns
-
----
-
-## Storage Layer (ADLS Gen2)
-
-Azure Data Lake Storage Gen2 is the central storage of the platform.
-
-It is organized into the following layers:
-
-- RAW
-- Bronze
-- Silver
-- Gold
-
-### RAW Layer
-
-- stores data in original format
-- no transformations applied
-- append-only (no overwrite)
-- partitioned by ingestion date (UTC)
-- supports full traceability
-
----
-
-## Processing Layer
-
-### Azure Databricks
-
-Databricks is the primary processing engine.
-
-Responsibilities:
-
-- data exploration
-- parsing and schema definition
-- transformation (Bronze → Silver → Gold)
-- data enrichment and integration
-- preparation for analytics and ML
-
----
-
-## Orchestration Layer
+- central storage layer
+- stores RAW, Bronze, Silver, Gold data
+- hierarchical namespace enabled
+- supports large-scale data processing
 
 ### Azure Data Factory (ADF)
 
-ADF is used strictly as an orchestration layer.
+- orchestration layer
+- triggers and coordinates data pipelines
+- manages dependencies between processing steps
 
-Responsibilities:
+### Azure Databricks (DBX)
 
-- trigger Databricks notebooks
-- manage pipeline dependencies
-- coordinate processing flows
+- processing engine
+- performs transformations across Bronze, Silver, Gold layers
+- supports scalable distributed computation
+- used for both exploratory and production workloads
 
-ADF does not perform ingestion in this project.
+### Azure Logic Apps
 
----
+- ingestion automation layer (for selected sources)
+- integrates with SharePoint
+- performs validation and routing logic
+- triggers alerts for rejected data
 
-## Monitoring and Observability
+### Azure Key Vault
 
-Monitoring is implemented using:
+- secure storage for secrets and credentials
+- supports identity-based access
 
-- Azure Monitor
-- Log Analytics
+### Azure Monitor / Log Analytics
 
-Key capabilities:
-
-- pipeline monitoring
-- execution logs
-- error tracking
-- ingestion traceability
-
----
-
-## Security and Access
-
-### SharePoint
-
-- accessed via dedicated service account
-- read-only permissions
-- controlled and auditable access
-
-### Azure Storage
-
-- access designed to use managed identity
-- avoids hardcoded credentials
-- aligned with modern security practices
+- monitoring and observability
+- collects logs and metrics from platform components
 
 ---
 
 ## Infrastructure as Code
 
-The platform infrastructure is provisioned using Terraform.
+All infrastructure components are provisioned using Terraform.
 
-Provisioned resources include:
+### Benefits
 
-- Resource Group
-- ADLS Gen2
-- Azure Data Factory
-- Azure Databricks
-- Key Vault
-- Log Analytics
-- (planned) Logic App
+- reproducibility
+- version control
+- environment consistency
+- easier maintenance and scaling
+
+### Managed resources
+
+- resource group
+- storage account (ADLS Gen2)
+- containers (raw, bronze, silver, gold)
+- data factory
+- databricks workspace
+- key vault
+- monitoring workspace
+
+---
+
+## Ingestion Layer
+
+The ingestion layer is implemented using a hybrid approach:
+
+### Manual ingestion
+
+Used for:
+
+- CRM datasets
+- ERP datasets
+- weather data
+- web logs
+
+These datasets are manually uploaded to the RAW layer to simulate enterprise systems while preserving confidentiality.
+
+### Automated ingestion (Logic App)
+
+Used for:
+
+- reference datasets
+
+Process:
+
+SharePoint → Logic App → ADLS RAW
+
+Capabilities:
+
+- trigger on file creation or modification
+- file content retrieval
+- validation based on file name
+- routing to correct dataset path
+- rejected file handling
+- email alerting
+
+---
+
+## RAW Layer
+
+The RAW layer is the initial landing zone for all data.
+
+### Characteristics
+
+- stores data as received
+- no transformations applied
+- immutable (no overwrite)
+- timestamp-based versioning
+- partitioned by load_date
+
+### Structure
+
+raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
+
+### Rejected zone
+
+raw/reference/_rejected/load_date=YYYY-MM-DD/
+
+---
+
+## Processing Layer
+
+The processing layer is implemented in Azure Databricks.
+
+### Bronze
+
+- initial transformation
+- parsing and schema enforcement
+- conversion to Delta format
+
+### Silver
+
+- data cleaning
+- enrichment
+- deduplication
+- integration across sources
+
+### Gold
+
+- business-ready datasets
+- aggregation and modeling
+- support for analytics and ML
+
+---
+
+## Orchestration Layer
+
+Azure Data Factory orchestrates processing workflows.
+
+### Responsibilities
+
+- trigger Databricks notebooks
+- manage pipeline dependencies
+- coordinate execution flow
+- enable scheduling and monitoring
+
+ADF does not perform ingestion in this phase.
+
+---
+
+## Security and Access Control
+
+The platform follows identity-based security practices.
+
+### Managed Identity
+
+- used by Logic App for storage access
+- avoids credential exposure
+
+### Service Accounts
+
+- SharePoint ingestion uses dedicated service account:
+  svc.sharepoint.ingestion@rmdatasolutions.net
+
+### RBAC
+
+- access controlled via security groups
+- permissions assigned at resource level
+
+---
+
+## Data Governance
+
+The architecture enforces governance through:
+
+- strict RAW layer rules (no overwrite)
+- validation of incoming files
+- rejected data handling
+- email alerts for anomalies
+- naming conventions
+- partitioning standards
+
+---
+
+## Observability
+
+The platform includes monitoring and logging capabilities:
+
+- Logic App run history
+- Azure Monitor integration
+- Log Analytics workspace
+
+These components enable:
+
+- troubleshooting
+- performance tracking
+- operational visibility
+
+---
+
+## Current Implementation Status
+
+The following components are fully implemented:
+
+- infrastructure provisioned via Terraform
+- storage structure created
+- RAW layer defined and populated
+- manual ingestion completed
+- SharePoint ingestion via Logic App implemented
+- validation and rejected handling operational
+- email alerting configured
+- authentication and RBAC configured
 
 ---
 
 ## Future Evolution
 
-The architecture is designed to evolve into a fully automated enterprise platform.
+The architecture is designed to evolve with:
 
-Potential future improvements:
+- full CI/CD integration
+- Logic App workflow export and versioning
+- deeper monitoring and alerting
+- metadata-driven ingestion
+- advanced data quality checks
+- expansion of automated ingestion sources
+- integration with analytics and BI tools
 
-- expanded automated ingestion
-- event-driven architecture enhancements
-- metadata-driven pipelines
-- CI/CD integration
-- data quality and validation frameworks
-- advanced monitoring and alerting
+---
+
+## Conclusion
+
+The PT Frozen Foods platform architecture is aligned with enterprise-grade data engineering practices.
+
+It provides:
+
+- scalable and modular design
+- clear separation of responsibilities
+- robust ingestion layer
+- strong data governance
+- readiness for advanced analytics and machine learning
+
+This foundation enables the platform to evolve into a fully production-ready data ecosystem.
