@@ -1,0 +1,199 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_file_is_created_or_modified_(properties_only)": {
+        "type": "ApiConnection",
+        "description": "Event-driven ingestion for reference datasets (calendar, locations, sales channels) from SharePoint to ADLS RAW",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+            }
+          },
+          "method": "get",
+          "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://rmdatascience.sharepoint.com/sites/PT-Frozen-Foods-Data'))}/tables/@{encodeURIComponent(encodeURIComponent('af354271-5c71-4a1b-97b7-435ce0dd2ea2'))}/onupdatedfileitems",
+          "queries": {
+            "folderPath": "/reference"
+          }
+        },
+        "recurrence": {
+          "interval": 1,
+          "frequency": "Hour",
+          "timeZone": "GMT Standard Time"
+        },
+        "splitOn": "@triggerBody()?['value']"
+      }
+    },
+    "actions": {
+      "Get_file_content": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['sharepointonline-1']['connectionId']"
+            }
+          },
+          "method": "get",
+          "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://rmdatascience.sharepoint.com/sites/PT-Frozen-Foods-Data'))}/files/@{encodeURIComponent(triggerBody()?['{Identifier}'])}/content",
+          "queries": {
+            "inferContentType": false
+          }
+        },
+        "runAfter": {}
+      },
+      "Condition": {
+        "type": "If",
+        "expression": {
+          "or": [
+            {
+              "equals": [
+                "@triggerBody()?['{FilenameWithExtension}']",
+                "reference_calendar.csv"
+              ]
+            },
+            {
+              "equals": [
+                "@triggerBody()?['{FilenameWithExtension}']",
+                "reference_locations.csv"
+              ]
+            },
+            {
+              "equals": [
+                "@triggerBody()?['{FilenameWithExtension}']",
+                "reference_sales_channels.csv"
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Create_blob_(V2)": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['azureblob']['connectionId']"
+                }
+              },
+              "method": "post",
+              "body": "@body('Get_file_content')",
+              "headers": {
+                "ReadFileMetadataFromServer": true
+              },
+              "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('stptfrozenfoodsdevwe01'))}/files",
+              "queries": {
+                "folderPath": "raw",
+                "name": "@concat('reference/', replace(triggerBody()?['{FilenameWithExtension}'], '.csv', ''), '/load_date=', formatDateTime(utcNow(),'yyyy-MM-dd'), '/', replace(triggerBody()?['{FilenameWithExtension}'], '.csv', ''), '_', formatDateTime(utcNow(),'yyyyMMddTHHmmssZ'), '.csv')",
+                "queryParametersSingleEncoded": true
+              }
+            },
+            "runtimeConfiguration": {
+              "contentTransfer": {
+                "transferMode": "Chunked"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Create_blob_(V2)_1": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['azureblob']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "body": "@body('Get_file_content')",
+                "headers": {
+                  "ReadFileMetadataFromServer": true
+                },
+                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('stptfrozenfoodsdevwe01'))}/files",
+                "queries": {
+                  "folderPath": "raw",
+                  "name": "@concat('reference/_rejected/load_date=', formatDateTime(utcNow(),'yyyy-MM-dd'), '/', replace(triggerBody()?['{FilenameWithExtension}'], '.csv', ''), '_', formatDateTime(utcNow(),'yyyyMMddTHHmmssZ'), '.csv')",
+                  "queryParametersSingleEncoded": true
+                }
+              },
+              "runtimeConfiguration": {
+                "contentTransfer": {
+                  "transferMode": "Chunked"
+                }
+              }
+            },
+            "Send_Email_(V3)": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['smtp']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "body": {
+                  "To": "rm@rmdatasolutions.net",
+                  "Subject": "[PT Frozen Foods] Rejected file detected",
+                  "Body": "<p class=\"editor-paragraph\">Rejected file detected during SharePoint ingestion.<br><br>File: @{triggerBody()?['{FilenameWithExtension}']}<br>Time (UTC): @{utcNow()}<br>Location: raw/reference/_rejected/load_date=@{formatDateTime(utcNow(),'yyyy-MM-dd')}<br><br>Reason: File name not supported.</p>"
+                },
+                "path": "/SendEmailV3"
+              },
+              "runAfter": {
+                "Create_blob_(V2)_1": [
+                  "Succeeded"
+                ]
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "Get_file_content": [
+            "Succeeded"
+          ]
+        }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "type": "Object",
+      "value": {
+        "sharepointonline": {
+          "id": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/providers/Microsoft.Web/locations/westeurope/managedApis/sharepointonline",
+          "connectionId": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/resourceGroups/rg-ptfrozenfoods-dev-we/providers/Microsoft.Web/connections/sharepointonline",
+          "connectionName": "sharepointonline",
+          "connectionProperties": {}
+        },
+        "sharepointonline-1": {
+          "id": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/providers/Microsoft.Web/locations/westeurope/managedApis/sharepointonline",
+          "connectionId": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/resourceGroups/rg-ptfrozenfoods-dev-we/providers/Microsoft.Web/connections/sharepointonline",
+          "connectionName": "sharepointonline",
+          "connectionProperties": {}
+        },
+        "azureblob": {
+          "id": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/providers/Microsoft.Web/locations/westeurope/managedApis/azureblob",
+          "connectionId": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/resourceGroups/rg-ptfrozenfoods-dev-we/providers/Microsoft.Web/connections/azureblob",
+          "connectionName": "azureblob",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity"
+            }
+          }
+        },
+        "smtp": {
+          "id": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/providers/Microsoft.Web/locations/westeurope/managedApis/smtp",
+          "connectionId": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/resourceGroups/rg-ptfrozenfoods-dev-we/providers/Microsoft.Web/connections/smtp",
+          "connectionName": "smtp",
+          "connectionProperties": {}
+        }
+      }
+    }
+  }
+}
