@@ -65,6 +65,11 @@ variable "logic_app_name" {
   type        = string
 }
 
+variable "access_connector_name" {
+  description = "Name of the Azure Databricks Access Connector."
+  type        = string
+}
+
 variable "tags" {
   description = "Standard tags applied to all resources."
   type        = map(string)

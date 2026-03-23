@@ -16,7 +16,7 @@ module "storage_account" {
   location             = module.resource_group.location
   containers           = var.storage_containers
   tags                 = var.tags
-} 
+}
 
 module "key_vault" {
   source = "./modules/key_vault"
@@ -55,6 +55,22 @@ module "databricks_workspace" {
   sku                         = var.databricks_sku
   managed_resource_group_name = var.databricks_managed_resource_group_name
   tags                        = var.tags
+}
+
+module "access_connector" {
+  source = "./modules/access_connector"
+
+  access_connector_name = var.access_connector_name
+  resource_group_name   = module.resource_group.resource_group_name
+  location              = module.resource_group.location
+  tags                  = var.tags
+}
+
+module "role_assignments" {
+  source = "./modules/role_assignments"
+
+  storage_account_id = module.storage_account.storage_account_id
+  principal_id       = module.access_connector.access_connector_principal_id
 }
 
 module "logic_app" {

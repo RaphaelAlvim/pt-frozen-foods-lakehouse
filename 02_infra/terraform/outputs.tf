@@ -107,3 +107,28 @@ output "logic_app_tenant_id" {
   description = "Managed identity tenant ID of the Logic App"
   value       = module.logic_app.logic_app_tenant_id
 }
+
+output "access_connector_id" {
+  description = "ID of the created Azure Databricks Access Connector."
+  value       = module.access_connector.access_connector_id
+}
+
+output "access_connector_name" {
+  description = "Name of the created Azure Databricks Access Connector."
+  value       = module.access_connector.access_connector_name
+}
+
+output "access_connector_principal_id" {
+  description = "Principal ID of the managed identity created for the Access Connector."
+  value       = module.access_connector.access_connector_principal_id
+}
+
+output "access_connector_tenant_id" {
+  description = "Tenant ID of the managed identity created for the Access Connector."
+  value       = module.access_connector.access_connector_tenant_id
+}
+
+output "storage_blob_data_contributor_role_assignment_id" {
+  description = "ID of the Storage Blob Data Contributor role assignment granted to the Databricks Access Connector."
+  value       = module.role_assignments.storage_blob_data_contributor_role_assignment_id
+}

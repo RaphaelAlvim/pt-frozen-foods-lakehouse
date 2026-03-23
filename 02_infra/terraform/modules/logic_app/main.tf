@@ -8,4 +8,11 @@ resource "azurerm_logic_app_workflow" "this" {
   }
 
   tags = var.tags
+
+  lifecycle {
+    ignore_changes = [
+      parameters,
+      workflow_parameters
+    ]
+  }
 }
