@@ -431,6 +431,25 @@ Standardize all timestamps in UTC.
 
 ---
 
+## Decision 023 — Logic App Workflow Versioning Strategy
+
+### Decision
+
+Store Logic App workflow as versioned JSON in the repository without immediate Terraform integration.
+
+### Rationale
+
+- prioritize functional validation before IaC integration
+- reduce complexity related to connectors and authentication
+- align with real-world practices where workflows are often stabilized before full automation
+
+### Impact
+
+- workflow is versioned and documented
+- future integration with Terraform remains possible
+
+---
+
 ## Conclusion
 
 The decisions recorded in this document reflect a consistent effort to align the PT Frozen Foods platform with real-world enterprise data engineering practices.
