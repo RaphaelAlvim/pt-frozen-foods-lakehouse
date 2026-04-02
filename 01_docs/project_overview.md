@@ -2,68 +2,97 @@
 
 ## Overview
 
-PT Frozen Foods is a real data platform project based on a realistic business scenario involving a frozen food distribution company located in Northern Portugal.
+PT Frozen Foods is a data platform project based on a realistic business scenario involving a frozen food distribution company in Northern Portugal.
 
-Due to confidentiality constraints, the project uses a fictional company name and synthetic datasets. However, all architectural decisions, business rules, and technical implementations are designed to reflect a real production environment.
+Due to confidentiality constraints, the project uses a fictional company name and synthetic datasets. However, all architectural decisions and implementations reflect real-world enterprise standards.
 
-The purpose of this project is to implement a modern enterprise-grade data platform, demonstrating end-to-end data capabilities while operating under realistic constraints such as data confidentiality.
+The project aims to demonstrate the design and implementation of a modern, production-ready data platform.
+
+---
 
 ## Project Goals
 
 The main goals of the project are:
 
-- design and implement a modern Lakehouse-based data platform
-- represent realistic enterprise data flows using synthetic datasets
-- demonstrate modular cloud infrastructure using Terraform
+- design a Lakehouse-based data platform on Azure
+- simulate real enterprise data flows using synthetic data
+- implement scalable infrastructure using Terraform (IaC)
 - organize data into RAW, Bronze, Silver, and Gold layers
-- support analytics and machine learning use cases
-- reflect real-world data engineering practices
+- enable analytics and machine learning use cases
+- follow enterprise data engineering best practices
 
-## Core Capabilities Demonstrated
+---
 
-This project covers:
+## Core Capabilities
+
+The project demonstrates:
 
 - Data Engineering
-- Cloud Infrastructure
-- Infrastructure as Code (IaC)
-- Data Modeling
-- Data Orchestration
-- Data Transformation
-- Data Analytics
-- Machine Learning Preparation
+- Cloud Architecture (Azure)
+- Infrastructure as Code (Terraform)
+- Data Processing with Databricks
+- Data Governance with Unity Catalog
+- Data Orchestration with Azure Data Factory
+- Incremental ingestion using Auto Loader
+- Data modeling and analytics preparation
+
+---
 
 ## Platform Scope
 
-The platform is designed based on real enterprise environments where data originates from multiple business systems such as:
+The platform simulates enterprise data sources such as:
 
-- CRM platforms
+- CRM systems
 - ERP systems
-- APIs
-- web interaction systems
-- reference and external data sources
+- APIs (weather data)
+- web interaction logs
+- business-managed reference data
 
-Because real production data cannot be used, synthetic datasets are used while preserving structure, relationships, and behavior consistent with real systems.
+Synthetic datasets are used to replicate real structures and behaviors while ensuring confidentiality.
+
+---
 
 ## Architectural Direction
 
-The project follows a Lakehouse architecture implemented on Azure, combining:
+The platform follows a Lakehouse architecture using:
 
-- centralized storage in ADLS Gen2
-- orchestration through Azure Data Factory
-- data processing through Azure Databricks
-- secure secret management with Azure Key Vault
-- observability with Azure Monitor / Log Analytics
+- ADLS Gen2 as the storage layer
+- Azure Databricks as the processing engine
+- Unity Catalog as the governance layer
+- Azure Data Factory as the orchestration layer
+- Azure Logic Apps for automated ingestion
+- Azure Monitor for observability
 
-## Business Value Perspective
+Key characteristics:
 
-Although the data is synthetic, the platform is designed to support real business use cases, including:
+- separation of storage, processing, and governance
+- incremental data ingestion (Auto Loader)
+- schema evolution support
+- identity-based security model
+
+---
+
+## Business Value
+
+The platform is designed to support:
 
 - sales performance analysis
 - customer behavior analysis
-- digital interaction analysis
+- operational insights
 - demand forecasting
 - recommendation systems
 
+---
+
 ## Positioning
 
-This project represents a real-world data platform implementation developed under confidentiality constraints, using synthetic data to replicate enterprise environments without exposing sensitive information.
+This project represents a realistic enterprise data platform implementation.
+
+It combines:
+
+- modern cloud architecture
+- scalable data processing
+- strong governance practices
+- real-world design decisions
+
+All implemented under confidentiality constraints using synthetic data.

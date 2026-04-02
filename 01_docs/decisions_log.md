@@ -441,12 +441,149 @@ Store Logic App workflow as versioned JSON in the repository without immediate T
 
 - prioritize functional validation before IaC integration
 - reduce complexity related to connectors and authentication
-- align with real-world practices where workflows are often stabilized before full automation
+- align with real-world practices where workflows are stabilized before full automation
 
 ### Impact
 
 - workflow is versioned and documented
 - future integration with Terraform remains possible
+
+---
+
+## Decision 024 — Upgrade Databricks to Premium Tier
+
+### Decision
+
+Upgrade Azure Databricks workspace from Standard to Premium.
+
+### Rationale
+
+- required to enable Unity Catalog
+- enables modern access modes and governance features
+- aligns with enterprise-grade architecture
+
+### Impact
+
+- workspace upgraded without recreation
+- new features available for data governance and security
+
+---
+
+## Decision 025 — Adoption of Unity Catalog as Governance Layer
+
+### Decision
+
+Adopt Unity Catalog as the central governance layer for all data assets.
+
+### Rationale
+
+- centralized control of data access
+- improved security and auditability
+- standard for modern Databricks environments
+
+### Impact
+
+- creation of catalog and schemas (bronze, silver, gold)
+- tables registered under Unity Catalog
+- separation between storage and governance
+
+---
+
+## Decision 026 — Use of Managed Identity with Access Connector for Databricks
+
+### Decision
+
+Use Access Connector with Managed Identity for Databricks access to ADLS.
+
+### Rationale
+
+- eliminates need for secrets and credentials
+- improves security and maintainability
+- aligns with Azure best practices
+
+### Impact
+
+- RBAC permissions assigned to Managed Identity
+- Databricks accesses storage without secrets
+
+---
+
+## Decision 027 — Use of Storage Credential and External Locations
+
+### Decision
+
+Use Unity Catalog Storage Credentials and External Locations to access ADLS data.
+
+### Rationale
+
+- decouples storage access from compute logic
+- centralizes permission management
+- enables secure and scalable data access
+
+### Impact
+
+- creation of storage credential using Managed Identity
+- creation of external locations for RAW and Bronze
+- data access controlled via UC permissions
+
+---
+
+## Decision 028 — Use of Explicit Paths for Bronze Layer Storage
+
+### Decision
+
+Store Bronze datasets using explicit paths in ADLS instead of relying on managed table locations.
+
+### Rationale
+
+- improves visibility of data in storage
+- simplifies debugging and inspection
+- aligns with data lake organization principles
+
+### Impact
+
+- datasets stored in structured paths:
+  bronze/<domain>/<dataset>/
+- tables registered in UC using LOCATION
+
+---
+
+## Decision 029 — Use of Auto Loader for RAW to Bronze Ingestion
+
+### Decision
+
+Use Databricks Auto Loader for incremental ingestion from RAW to Bronze.
+
+### Rationale
+
+- supports scalable file ingestion
+- automatically detects new files
+- supports schema evolution
+
+### Impact
+
+- streaming ingestion pattern adopted
+- use of checkpoint and schema tracking locations
+- ingestion runs in batch mode using availableNow
+
+---
+
+## Decision 030 — Schema Evolution Enabled in Bronze Layer
+
+### Decision
+
+Allow schema evolution during RAW to Bronze ingestion.
+
+### Rationale
+
+- supports changes in source data structure
+- reduces ingestion failures
+- improves pipeline robustness
+
+### Impact
+
+- new columns automatically added
+- schema tracked in dedicated schema location
 
 ---
 

@@ -2,65 +2,95 @@
 
 ## Overview
 
-This document tracks the evolution of the PT Frozen Foods data platform.
+This document describes the evolution of the PT Frozen Foods data platform.
 
-The project is based on a real business scenario and evolved from analytical exploration into a structured cloud-based data platform.
+The project started as an analytical initiative and progressively evolved into a structured, cloud-based data platform aligned with enterprise practices.
+
+---
 
 ## Initial Stage
 
-The project began as a data initiative focused on understanding business data patterns and analytical needs.
+The project began with a focus on understanding the business and its data.
 
-Initial activities included:
+Key activities included:
 
 - dataset preparation
-- exploratory analysis
-- identification of business use cases
+- exploratory data analysis
+- identification of key business use cases
+
+This stage established the analytical foundation of the project.
+
+---
 
 ## Analytical Development
 
-The project evolved into deeper analytical work:
+The project evolved into deeper analytical work, including:
 
-- data validation
-- exploratory data analysis
-- sales and web behavior analysis
-- definition of analytical outputs
+- data validation and profiling
+- sales and customer behavior analysis
+- web interaction analysis
+- definition of initial analytical outputs
 
-This stage helped define the structure of the Gold layer.
+This phase helped shape the future Gold layer and business-oriented datasets.
+
+---
 
 ## Architectural Evolution
 
-The project then expanded into a full data platform architecture, introducing:
+As complexity increased, the project transitioned into a full data platform design.
 
-- cloud infrastructure design
-- modular Terraform setup
-- Azure-based services
-- Lakehouse architecture
+Key developments:
+
+- definition of a Lakehouse architecture
+- adoption of Azure as the cloud platform
+- introduction of Infrastructure as Code (Terraform)
+- separation of ingestion, processing, and orchestration layers
+
+---
 
 ## Infrastructure Foundation
 
-Infrastructure was established using Terraform:
+The platform infrastructure was provisioned using Terraform, including:
 
 - Resource Group
-- ADLS Gen2
-- storage layers (RAW, Bronze, Silver, Gold)
-- Key Vault
+- ADLS Gen2 with RAW, Bronze, Silver, Gold layers
+- Azure Data Factory
+- Azure Databricks workspace
+- Azure Key Vault
 - Log Analytics
-- Data Factory
+
+This established a scalable and reproducible foundation.
+
+---
 
 ## Ingestion Strategy
 
-A hybrid ingestion approach was defined:
+A hybrid ingestion model was implemented:
 
-- Logic Apps for automated ingestion scenarios
-- manual ingestion for controlled datasets representing enterprise systems
+- Azure Logic Apps for automated ingestion (SharePoint reference data)
+- manual ingestion for synthetic datasets representing enterprise systems
+
+This approach balances realism with confidentiality constraints.
+
+---
 
 ## Current State
 
-The project is now positioned as a real-world data platform implementation, designed to reflect enterprise architecture while operating under confidentiality constraints.
+The project is now structured as an enterprise-grade data platform with:
+
+- defined architecture and data layers
+- operational ingestion processes
+- standardized documentation
+- alignment with real-world data engineering practices
+
+---
 
 ## Next Steps
 
-- Databricks implementation
-- pipeline orchestration
-- transformation layers
-- advanced analytics and machine learning
+The next phase focuses on:
+
+- Bronze layer implementation in Databricks
+- Silver and Gold transformations
+- orchestration with Data Factory
+- data quality and validation
+- advanced analytics and machine learning use cases

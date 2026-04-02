@@ -2,43 +2,85 @@
 
 ## Overview
 
-This roadmap describes the evolution of the data platform.
+This roadmap outlines the planned evolution of the PT Frozen Foods data platform, from infrastructure foundation to advanced analytics and machine learning.
+
+---
 
 ## Phase 1 — Foundation (Completed)
 
-- Terraform infrastructure
-- ADLS Gen2
-- Key Vault
-- Log Analytics
-- Data Factory
+Establish the core cloud infrastructure using Infrastructure as Code.
 
-## Phase 2 — Processing (Next)
+- Terraform-based provisioning
+- Resource Group and ADLS Gen2 (RAW, Bronze, Silver, Gold)
+- Azure Key Vault for secrets management
+- Log Analytics for monitoring
+- Azure Data Factory for orchestration foundation
+- Azure Databricks workspace setup
 
-- Databricks setup
-- notebook structure
-- orchestration integration
+---
 
-## Phase 3 — Ingestion
+## Phase 2 — Ingestion (Completed)
 
-- Logic Apps workflows
-- RAW ingestion patterns
+Implement data ingestion into the RAW layer.
 
-## Phase 4 — Data Layers
+- manual ingestion for synthetic enterprise datasets
+- SharePoint + Logic Apps integration for reference data
+- file validation and routing
+- rejected data handling
+- timestamp-based versioning
+- email alerting for ingestion issues
 
-- Bronze, Silver, Gold implementation
+---
+
+## Phase 3 — Processing (In Progress)
+
+Develop the processing layer using Azure Databricks.
+
+- notebook standardization
+- Auto Loader ingestion (RAW → Bronze)
+- schema management and evolution
+- metadata enrichment (ingestion tracking, file lineage)
+- Unity Catalog integration and access control
+
+---
+
+## Phase 4 — Data Layers (Next)
+
+Implement structured data transformations.
+
+- Bronze layer standardization
+- Silver layer cleaning and integration
+- Gold layer analytical datasets
+- reusable data models aligned with business use cases
+
+---
 
 ## Phase 5 — Analytics
 
-- reporting datasets
-- analytical outputs
+Enable business insights and reporting.
+
+- curated analytical datasets
+- KPI definitions
+- support for dashboards (e.g., Power BI)
+- business performance analysis
+
+---
 
 ## Phase 6 — Machine Learning
 
-- forecasting
+Introduce advanced analytics capabilities.
+
+- demand forecasting
 - recommendation systems
+- feature engineering pipelines
+- model training and evaluation
 
-## Future
+---
 
-- CI/CD
-- monitoring enhancements
-- data governance
+## Future Enhancements
+
+- CI/CD implementation for infrastructure and notebooks
+- enhanced monitoring and observability
+- data quality frameworks and validation rules
+- metadata and data governance improvements
+- expansion of automated ingestion sources

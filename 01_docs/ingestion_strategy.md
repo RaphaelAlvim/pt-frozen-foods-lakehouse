@@ -4,9 +4,11 @@
 
 This document defines how data enters the PT Frozen Foods platform.
 
-The ingestion layer is designed to reflect a realistic enterprise architecture while operating under confidentiality constraints. Because the project uses synthetic datasets and a fictional company name, some data sources are manually loaded into the RAW zone, while selected sources are ingested through Azure Logic Apps integrated with SharePoint.
+The ingestion layer is designed to reflect a realistic enterprise architecture while operating under confidentiality constraints.
 
-This approach preserves architectural realism while keeping the implementation controlled, reproducible, and compatible with Infrastructure as Code and future CI/CD practices.
+Because the project uses synthetic datasets, some sources are manually uploaded, while others are ingested using Azure Logic Apps integrated with SharePoint.
+
+All data lands in RAW before any processing occurs.
 
 ---
 
@@ -14,273 +16,167 @@ This approach preserves architectural realism while keeping the implementation c
 
 The ingestion strategy follows these principles:
 
-- keep the landing process simple and controlled
-- separate ingestion from orchestration and processing
-- ensure all data first lands in the RAW layer
-- use automated ingestion only where it adds architectural value
-- use manual ingestion where synthetic data and confidentiality constraints make direct source integration unnecessary
-- preserve historical arrivals in RAW
-- avoid silent failures during ingestion
+- keep ingestion simple and controlled
+- separate ingestion from processing
+- ensure all data lands first in RAW
+- preserve all historical arrivals
+- avoid overwriting files
+- avoid silent failures
+- enable incremental downstream processing
 
 ---
 
 ## Ingestion Modes
 
-The platform uses two ingestion modes:
+The platform uses two ingestion modes.
 
-### 1. Manual upload to ADLS RAW
+### 1. Manual Upload to RAW
 
-Manual upload is used for datasets that represent enterprise operational systems but are implemented with synthetic data.
+Used for datasets that simulate enterprise systems.
 
-This applies to:
+Applies to:
 
-- CRM datasets
-- ERP datasets
+- CRM
+- ERP
 - weather data
-- web event data
+- web logs
 
-The goal is to represent business data arriving from systems such as CRM, ERP platforms, APIs, and operational logs without exposing or depending on real production systems.
+Purpose:
+
+- simulate real-world sources without external dependencies
+- keep ingestion controlled and reproducible
+
+---
 
 ### 2. SharePoint + Azure Logic Apps
 
-Azure Logic Apps integrated with SharePoint is used for selected reference datasets.
+Used for reference datasets.
 
-This applies to:
+Applies to:
 
 - reference_calendar
-- reference_sales_channels
 - reference_locations
+- reference_sales_channels
 
-These datasets are suitable for SharePoint-driven ingestion because they are smaller, more stable, and closer to business-managed reference files.
+Purpose:
+
+- simulate business-managed data sources
+- enable event-driven ingestion
+- introduce automation in a controlled scope
 
 ---
 
 ## Source Classification
 
-### Manual ingestion sources
+### Manual Sources
 
-#### CRM
-- crm_clients
-- crm_segmentation
-- crm_status
+- CRM:
+  - crm_clients
+  - crm_segmentation
+  - crm_status
 
-#### ERP
-- erp_suppliers
-- erp_order_items
-- erp_orders
-- erp_products
-- erp_salespersons
+- ERP:
+  - erp_orders
+  - erp_order_items
+  - erp_products
+  - erp_salespersons
+  - erp_suppliers
 
-#### Weather API
-- weather_porto_daily
+- Weather:
+  - weather_porto_daily
 
-#### Web
-- web_event_logs
+- Web:
+  - web_event_logs
 
-### Logic App + SharePoint sources
+---
 
-#### Reference
+### Automated Sources (Logic App)
+
 - reference_calendar
-- reference_sales_channels
 - reference_locations
+- reference_sales_channels
 
 ---
 
-## Role of the RAW Layer
+## Role of RAW Layer
 
-All data must first land in the RAW layer of ADLS Gen2.
+All data must land in RAW before processing.
 
-The RAW layer is the controlled landing zone of the platform and is responsible for:
+RAW is responsible for:
 
-- preserving the original structure of incoming files
+- preserving original files
 - isolating ingestion from transformation
-- enabling traceability of source arrivals
-- supporting repeatable Bronze processing
-- preserving historical versions of arrivals
+- enabling traceability
+- supporting reprocessing
 
-No business transformations should occur in the RAW layer.
-
----
-
-## Relationship with ADF and Databricks
-
-Azure Data Factory is not the primary ingestion engine in this project.
-
-ADF is used as the orchestration layer after data is already available in RAW.
-
-Its role is to:
-
-- trigger Databricks notebooks
-- coordinate processing across Bronze, Silver, and Gold
-- manage execution dependencies
-
-Azure Databricks is responsible for transformation and processing after ingestion is complete.
+No transformation occurs in RAW.
 
 ---
 
-## SharePoint + Logic App Design
+## RAW Structure
 
-The automated ingestion design for reference files is based on a SharePoint folder monitored by a single Azure Logic App.
+Data is organized as:
 
-### SharePoint source
+raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
 
-- tenant host: `rmdatascience.sharepoint.com`
-- site path: `/sites/PT-Frozen-Foods-Data`
-- site name: `PT-Frozen-Foods-Data`
-- document library: `Documents`
-- monitored folder: `reference`
+### Example
 
-### Files monitored
+raw/reference/reference_calendar/load_date=2026-03-19/
 
-- `reference_calendar.csv`
-- `reference_locations.csv`
-- `reference_sales_channels.csv`
+### File Naming
 
-### Trigger behavior
+<dataset>_yyyyMMddTHHmmssZ.csv
 
-The Logic App uses a trigger equivalent to:
+### Rules
 
-- when a file is created or modified in the monitored folder
-
-This ensures that both new files and updates to existing files are captured and ingested.
-
-### Trigger frequency
-
-The SharePoint trigger works with polling, not with native push events.
-
-For this project:
-
-- polling frequency can be adjusted depending on operational needs
-- lower frequency is acceptable because reference files are low volume
-- shorter polling intervals may be used temporarily during testing
-
-### Logic App design choice
-
-A single Logic App is used for all reference files.
-
-This design was chosen because it:
-
-- reduces operational complexity
-- centralizes the ingestion logic for reference data
-- improves maintainability
-- provides a cleaner architecture for portfolio and real-world implementation
+- no overwrite
+- append-only
+- multiple files allowed per day
+- full history preserved
 
 ---
 
-## File Validation Rule
+## File Validation (Logic App)
 
-The Logic App validates incoming files based on file name.
+Reference files are validated by name.
 
-### Accepted files
+### Accepted
 
 - reference_calendar.csv
 - reference_locations.csv
 - reference_sales_channels.csv
 
-### Validation logic
+### Behavior
 
-- if file name matches expected values → process normally
-- if file name does not match → route to rejected area
-
-This ensures that only known datasets are ingested into the official RAW structure.
+- valid → stored in RAW dataset path
+- invalid → stored in rejected zone
 
 ---
 
-## Landing Targets in RAW
+## Rejected Files
 
-Each valid file is routed to its corresponding dataset path in RAW using timestamp-based versioning:
-
-- `reference_calendar.csv`
-  -> `raw/reference/reference_calendar/load_date=YYYY-MM-DD/reference_calendar_<timestamp>.csv`
-
-- `reference_locations.csv`
-  -> `raw/reference/reference_locations/load_date=YYYY-MM-DD/reference_locations_<timestamp>.csv`
-
-- `reference_sales_channels.csv`
-  -> `raw/reference/reference_sales_channels/load_date=YYYY-MM-DD/reference_sales_channels_<timestamp>.csv`
-
-### Timestamp format
-
-The timestamp follows UTC standard:
-
-yyyyMMddTHHmmssZ
-
-Example:
-
-reference_calendar_20260319T151315Z.csv
-
-
----
-
-## Load Date Behavior
-
-The `load_date` partition represents the date of ingestion into the Data Lake, not necessarily the internal date of the file content.
-
-This preserves landing history and aligns with the platform convention already defined for RAW.
-
----
-
-## RAW Behavior Rules
-
-The RAW layer follows strict data preservation principles:
-
-- no file overwrite is allowed
-- every ingestion event generates a new file
-- files are versioned using timestamp
-- multiple files can exist for the same dataset within the same `load_date`
-- RAW must preserve all historical arrivals for traceability and reprocessing
-
----
-
-## Rejected Files Handling
-
-Files that do not match the expected naming contract must not be ingested into the official RAW dataset paths.
-
-### Rejected zone
-
-Invalid files are stored in a dedicated rejected area inside the reference domain:
+Invalid files are stored in:
 
 raw/reference/_rejected/load_date=YYYY-MM-DD/
 
-### Behavior
+### Rules
 
-When a file is rejected:
-
-- it is not written to the official RAW dataset path
-- it is stored in the rejected area with timestamp
-- the original file name is preserved as the base name
-- the event is logged through Logic App execution history
-- the file remains available for investigation and audit
-
-### Example
-
-raw/reference/_rejected/load_date=2026-03-19/reference_calender_20260319T151315Z.csv
-
+- never deleted
+- timestamped
+- visible for audit and debugging
 
 ---
 
 ## Notification
 
-Each rejected file triggers an operational notification to:
+Rejected files trigger email alerts.
 
-rm@rmdatasolutions.net
+### Content
 
-
-### Notification channel
-
-The current implementation uses SMTP-based email sending from the Logic App.
-
-### Notification content
-
-The alert includes:
-
-- rejected file name
-- detection timestamp in UTC
-- SharePoint source context
+- file name
+- timestamp (UTC)
 - rejection reason
-- target rejected path in ADLS
-
-This provides immediate operational visibility when unexpected files are placed in the SharePoint reference folder.
+- storage path
 
 ---
 
@@ -288,66 +184,87 @@ This provides immediate operational visibility when unexpected files are placed 
 
 ### SharePoint
 
-The SharePoint connection uses a dedicated service account:
+- uses dedicated service account
 
-svc.sharepoint.ingestion@rmdatasolutions.net
+### Storage
 
+- uses Managed Identity
 
-This account was created specifically for ingestion purposes and validated with read-only access to the SharePoint site and monitored folder.
+### Access Control
 
-### Azure Storage
-
-The Blob Storage connection uses the Logic App managed identity.
-
-This design avoids hardcoded credentials and aligns with modern Azure authentication practices.
-
-### RBAC approach
-
-Access to storage is granted through a security group-based RBAC strategy, improving maintainability and governance of permissions.
+- RBAC applied via security groups
 
 ---
 
-## Why This Strategy Was Chosen
+## Relationship with Processing (Databricks)
 
-This ingestion strategy reflects a practical balance between realism and confidentiality.
+Azure Databricks is responsible for processing after ingestion.
 
-The project is based on a real business scenario, but real production data cannot be used. As a result:
+### RAW → Bronze
 
-- manual ingestion is used to represent realistic enterprise sources with synthetic data
-- Logic Apps is used where event-driven or business-managed ingestion adds architectural value
-- ADF remains focused on orchestration rather than direct landing
-- RAW preserves all arrivals without overwrite
-- rejected files remain visible and auditable instead of being silently discarded
+- handled by Auto Loader
+- incremental ingestion
+- schema evolution enabled
+- data converted to Delta format
 
-This keeps the platform aligned with real-world data engineering practices while remaining safe from a confidentiality perspective.
+### Key Separation
+
+- ingestion (RAW) → handled outside DBX
+- processing (Bronze+) → handled inside DBX
 
 ---
 
-## Current Operational State
+## Relationship with ADF
 
-At the current stage of the project, the SharePoint reference ingestion flow is operational and validated end-to-end.
+ADF is used for orchestration only.
 
-Validated capabilities include:
+ADF:
 
-- detection of valid and invalid files in SharePoint
-- file content retrieval from SharePoint
-- whitelist-based validation of accepted file names
-- landing of valid files in the correct RAW dataset paths
-- landing of invalid files in `raw/reference/_rejected/`
+- triggers Databricks notebooks
+- manages execution flow
+
+ADF does not:
+
+- ingest data directly
+- perform transformations
+
+---
+
+## Why This Strategy
+
+This design balances realism and control.
+
+- manual ingestion simulates enterprise systems
+- Logic App introduces automation
+- RAW preserves all data
+- DBX handles scalable processing
+- ADF orchestrates execution
+
+---
+
+## Current State
+
+The ingestion flow is operational and validated.
+
+Validated capabilities:
+
+- SharePoint file detection
+- file validation
+- RAW ingestion
+- rejected file handling
+- email notification
 - timestamp-based versioning
-- email notification for rejected files
 
 ---
 
 ## Future Evolution
 
-This ingestion model can evolve in future iterations to include:
+Possible improvements:
 
-- workflow export and versioning as code
-- Terraform integration of Logic App workflow definition
-- stronger operational logging and observability
-- ingestion metadata tracking
-- CI/CD integration for ingestion-related artifacts
-- validation and reconciliation workflows after landing
-- standardized alerting patterns across other ingestion sources
+- export Logic App to code
+- integrate with Terraform
+- add ingestion monitoring
+- track ingestion metadata
+- implement CI/CD
+- add validation workflows after ingestion
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The RAW layer is responsible for storing data in its original form, preserving all ingested data without business transformation.
+The RAW layer stores data in its original form, preserving all ingested data without transformation.
 
 It acts as the controlled landing zone of the platform and guarantees traceability, reproducibility, and data integrity.
 
@@ -10,20 +10,20 @@ It acts as the controlled landing zone of the platform and guarantees traceabili
 
 ## Core Principles
 
-The RAW layer follows strict engineering principles:
+The RAW layer follows strict rules:
 
 - no data loss is allowed
 - no overwrite is allowed
 - all ingestion events must be preserved
 - data must remain in original format
 - ingestion must be fully traceable
-- RAW must be immutable from a business logic perspective
+- RAW must be immutable from a business perspective
 
 ---
 
 ## Folder Structure
 
-All datasets must follow a standardized structure:
+All datasets must follow:
 
 raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
 
@@ -35,18 +35,18 @@ raw/reference/reference_calendar/load_date=2026-03-18/
 
 ## Naming Conventions
 
-- all names must be in **snake_case**
-- no spaces allowed
-- all names must be in English
-- dataset names must be consistent with source systems
+- snake_case only
+- no spaces or special characters
+- names must be in English
+- dataset names must match source systems
 
 ---
 
-## File Naming Convention
+## File Naming
 
-Each file must include a timestamp to ensure versioning.
+Each file must include a timestamp.
 
-Pattern:
+### Pattern
 
 <dataset>_<timestamp>.csv
 
@@ -61,7 +61,7 @@ reference_calendar_20260318T101500Z.csv
 - format: yyyyMMddTHHmmssZ
 - timezone: UTC
 - generated at ingestion time
-- must not depend on file content
+- independent from file content
 
 ---
 
@@ -73,58 +73,46 @@ load_date=YYYY-MM-DD
 
 ### Rules
 
-- must use UTC date
-- represents ingestion time, not business date
-- multiple files can exist within the same partition
+- uses UTC date
+- represents ingestion time
+- multiple files allowed per partition
 
 ---
 
-## Versioning Strategy
+## Versioning
 
-The RAW layer uses append-only versioning.
+RAW follows an append-only model.
 
 ### Rules
 
-- no file overwrite is allowed
-- every ingestion creates a new file
-- multiple versions of the same dataset can coexist
-- versioning is controlled via timestamp in file name
-
-### Example
-
-raw/reference/reference_calendar/load_date=2026-03-18/
-- reference_calendar_20260318T091500Z.csv
-- reference_calendar_20260318T141000Z.csv
+- no overwrite
+- each ingestion creates a new file
+- multiple versions can coexist
+- versioning controlled by timestamp
 
 ---
 
 ## Rejected Zone
 
-The RAW layer includes a dedicated rejected area for invalid or unexpected files.
+Invalid files must be stored in a rejected area within the same domain.
 
 ### Structure
 
-raw/rejected/<source>/load_date=YYYY-MM-DD/
+raw/<domain>/_rejected/load_date=YYYY-MM-DD/
 
-### Current implementation
+### Example
 
-raw/rejected/sharepoint_reference/load_date=YYYY-MM-DD/
+raw/reference/_rejected/load_date=2026-03-18/
 
 ---
 
 ## Rejected Files Rules
 
-Rejected files must follow these rules:
-
-- must not be written into official dataset paths
-- must be preserved for audit and investigation
-- must include timestamp in file name
-- must follow the same partitioning logic (load_date)
+- must not be written to dataset paths
+- must be preserved for audit
+- must include timestamp
+- must follow partitioning rules
 - must not be processed downstream
-
-### Example
-
-raw/rejected/sharepoint_reference/load_date=2026-03-18/reference_calender_20260318T101500Z.csv
 
 ---
 
@@ -134,18 +122,18 @@ The RAW layer must preserve:
 
 - original schema
 - original column names
-- original data types (as received)
+- original data types
 - original file format
 
-No transformations are allowed in RAW.
+No transformations are allowed.
 
 ---
 
-## Relationship with Bronze Layer
+## Relationship with Bronze
 
-The RAW layer feeds the Bronze layer.
+RAW feeds the Bronze layer.
 
-### Responsibilities separation
+### Responsibility split
 
 RAW:
 - ingestion
@@ -154,7 +142,7 @@ RAW:
 
 Bronze:
 - parsing
-- schema normalization
+- schema handling
 - technical enrichment
 
 ---
@@ -163,8 +151,8 @@ Bronze:
 
 This design ensures:
 
-- full data traceability
-- safe reprocessing capability
-- auditability of ingestion events
-- separation between ingestion and transformation
-- alignment with enterprise Lakehouse best practices
+- full traceability
+- safe reprocessing
+- auditability
+- separation of concerns
+- alignment with enterprise Lakehouse standards

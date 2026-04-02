@@ -2,50 +2,58 @@
 
 ## Business Scenario
 
-PT Frozen Foods is based on a real frozen food distribution business scenario operating in Northern Portugal.
+PT Frozen Foods represents a frozen food distribution company operating in Northern Portugal.
 
-The company supplies products through multiple sales channels and depends on operational efficiency, sales visibility, customer understanding, and accurate planning to improve business performance.
+The business relies on multiple sales channels and requires strong operational efficiency, sales visibility, and customer understanding to improve performance and support growth.
 
-Due to confidentiality constraints, the company name is fictional and datasets are synthetic, while preserving realistic business logic and operational behavior.
+Due to confidentiality constraints, the company name is fictional and datasets are synthetic, while preserving realistic business behavior and data structures.
+
+---
 
 ## Business Challenges
 
-Typical challenges addressed by the platform include:
+The platform addresses typical enterprise challenges:
 
 - fragmented data across multiple operational systems
 - limited visibility into customer behavior
 - difficulty analyzing performance across channels
 - lack of integration between digital and transactional data
-- need for improved forecasting and planning
+- limited forecasting and planning capabilities
+
+---
 
 ## Role of the Data Platform
 
 The data platform is designed to:
 
-- centralize operational and analytical data
-- standardize data processing across systems
-- enable consistent reporting and analytics
+- centralize data from multiple sources
+- standardize data processing across domains
+- enable consistent analytics and reporting
 - support forecasting and machine learning use cases
+
+---
 
 ## Data Sources
 
-The platform represents enterprise data sources such as:
+The platform represents common enterprise data sources:
 
 - ERP systems (orders, products, suppliers)
-- CRM-related customer data
+- CRM data (customers, segmentation, status)
 - web interaction logs
 - reference datasets
-- external supporting data (e.g., weather)
+- external data (e.g., weather)
 
-These are implemented using synthetic datasets that preserve the structure and relationships of real systems.
+All sources are implemented using synthetic datasets that preserve real-world structure and relationships.
+
+---
 
 ## Business Use Cases
 
-The platform supports:
+The platform enables:
 
 - sales performance analysis
-- customer segmentation
-- product performance tracking
-- digital funnel analysis
-- forecasting
+- customer segmentation and profiling
+- product and channel performance tracking
+- digital behavior and funnel analysis
+- demand forecasting
 - recommendation systems

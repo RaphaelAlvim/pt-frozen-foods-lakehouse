@@ -4,9 +4,13 @@
 
 This document defines how notebooks are used in the PT Frozen Foods platform.
 
-The objective is to clearly separate exploratory work from operational transformation logic, while keeping development practical, versioned, and aligned with the architecture of the project.
+The objective is to clearly separate:
 
-The platform uses Azure Databricks as the primary execution environment for data processing, while GitHub is used for version control and long-term code management.
+- ingestion logic
+- transformation logic
+- development and validation activities
+
+The platform uses Azure Databricks as the execution environment and GitHub for version control.
 
 ---
 
@@ -14,194 +18,245 @@ The platform uses Azure Databricks as the primary execution environment for data
 
 Not all notebooks serve the same purpose.
 
-In this project, notebooks are divided into two main categories:
+In this project, notebooks are divided into:
 
-1. exploratory notebooks
-2. operational notebooks
+1. ingestion notebooks (Bronze)
+2. transformation notebooks (Silver and Gold)
+3. setup and governance notebooks
+4. development and debugging support (DEV ONLY)
 
-This separation is important to avoid mixing data discovery activities with repeatable transformation logic.
-
----
-
-## Exploratory Notebooks
-
-Exploratory notebooks are used to understand datasets before defining the final transformation logic.
-
-Their purpose is to:
-
-- inspect source files
-- understand schema and structure
-- validate data quality
-- test parsing logic
-- analyze field behavior
-- experiment with technical transformation ideas
-
-These notebooks are expected to be more flexible and iterative.
-
-They are not intended to be directly orchestrated by Azure Data Factory.
-
-### Typical examples
-
-- initial reading of RAW files
-- profiling and inspection of source fields
-- testing date parsing
-- validating delimiters, nulls, and data types
-- checking data volume and anomalies
-
-### Recommended location
-
-`04_notebooks/05_analytics/`
+This separation ensures clarity, maintainability, and alignment with enterprise practices.
 
 ---
 
-## Operational Notebooks
+## Bronze Notebooks (Ingestion Layer)
 
-Operational notebooks are used to execute standardized and repeatable transformations in the platform.
+Bronze notebooks are responsible for ingesting data from RAW into Delta format.
 
-Their purpose is to:
+### Purpose
 
-- read data from the expected source path
-- apply defined transformation logic
-- write structured outputs to the next layer
-- support orchestration by Azure Data Factory
+- read data from RAW
+- perform incremental ingestion using Auto Loader
+- handle schema evolution
+- apply minimal technical transformations
+- write data to Bronze layer in ADLS
+- register tables in Unity Catalog
 
-These notebooks must be cleaner, more stable, and more predictable than exploratory notebooks.
+### Rules
 
-They should reflect logic that has already been validated.
+- one notebook per dataset
+- ingestion must be incremental
+- use Auto Loader (cloudFiles)
+- use explicit storage paths in ADLS
+- schema evolution must be enabled
+- no business logic allowed
+- only technical transformations
 
-### Typical examples
+### Typical Structure
 
-- RAW to Bronze transformations
-- Bronze to Silver transformations
-- Silver to Gold transformations
+Each Bronze notebook should include:
 
-### Recommended locations
+1. context setup (catalog and schema)
+2. path definitions (source, checkpoint, schema, target)
+3. pre-checks (access, permissions, environment)
+4. Auto Loader ingestion logic
+5. minimal transformations:
+   - column normalization
+   - metadata columns
+6. write to Delta (explicit path)
+7. table registration in Unity Catalog
+8. optional DEV validation section
 
-- `04_notebooks/02_bronze/`
-- `04_notebooks/03_silver/`
-- `04_notebooks/04_gold/`
+---
+
+## Silver Notebooks (Processing Layer)
+
+Silver notebooks are responsible for cleaning and integrating data.
+
+### Purpose
+
+- clean data
+- standardize business fields
+- apply validation rules
+- integrate datasets
+- prepare reusable datasets
+
+### Rules
+
+- business-aware transformations allowed
+- joins across datasets allowed
+- deduplication allowed
+- null handling required
+- outputs must be reusable
+
+---
+
+## Gold Notebooks (Analytics Layer)
+
+Gold notebooks deliver business-ready datasets.
+
+### Purpose
+
+- create analytical tables
+- provide datasets for BI and ML
+- expose metrics and aggregations
+
+### Rules
+
+- outputs must be stable
+- logic must be business-oriented
+- datasets must be documented
+
+---
+
+## Setup and Governance Notebooks
+
+These notebooks configure the environment and governance.
+
+### Examples
+
+- create catalog
+- create schemas
+- manage permissions
+- audit external locations
+
+### Rules
+
+- executed manually or during setup
+- not part of orchestration pipelines
+- must be versioned
+
+---
+
+## DEV ONLY / DEBUG Section
+
+Some notebooks may include a DEV section for validation.
+
+### Purpose
+
+- inspect results
+- validate schema
+- debug ingestion issues
+
+### Examples
+
+- preview data
+- count rows
+- inspect schema
+- check duplicates
+- stop streaming queries
+
+### Rules
+
+- must be clearly marked as DEV ONLY
+- must not affect production logic
+- should be removed or disabled in production
 
 ---
 
 ## Execution Environment
 
-Azure Databricks is the primary environment used to:
+Azure Databricks is used to:
 
-- access the Data Lake
-- explore datasets
-- test parsing logic
-- execute operational transformations
+- access ADLS
+- execute ingestion and transformations
+- test and validate pipelines
 
-This means exploratory work is normally performed directly in Databricks, where the data is already available and Spark can be used natively.
+Clusters can be:
+
+- interactive (for development)
+- job clusters (for production)
 
 ---
 
 ## Role of GitHub and VS Code
 
-GitHub is the version control system of the project.
+GitHub is used for version control.
 
-VS Code is the preferred local development environment for organizing and maintaining project artifacts outside the Databricks execution context.
+VS Code is used for organizing and reviewing code locally.
 
-In practice:
+### Workflow
 
-- Databricks is used to explore and validate transformations with real platform data
-- GitHub stores the notebooks and documentation as versioned artifacts
-- VS Code is used to organize, review, and maintain project code and structure
-
-The objective is not to force all development to happen locally, but to ensure that what becomes part of the platform is eventually versioned and documented.
+- develop and test notebooks in Databricks
+- export and version notebooks in GitHub
+- organize project structure in VS Code
 
 ---
 
 ## Recommended Workflow
 
-The recommended notebook workflow is:
+1. define dataset ingestion (Bronze)
+2. implement Auto Loader notebook
+3. validate ingestion in Databricks
+4. version notebook in GitHub
+5. orchestrate with ADF when required
 
-1. explore the dataset in Azure Databricks
-2. validate parsing and technical logic
-3. define the intended Bronze, Silver, or Gold behavior
-4. consolidate the logic into a cleaner operational notebook
-5. version the notebook in GitHub
-6. use Azure Data Factory to orchestrate the operational notebook when needed
+For Silver and Gold:
 
-This approach balances agility with maintainability.
+1. define transformation logic
+2. implement notebook
+3. validate outputs
+4. version in GitHub
+5. orchestrate with ADF
 
 ---
 
 ## Relationship with ADF
 
-Azure Data Factory is responsible for orchestration, not exploration.
+ADF is responsible for orchestration.
 
-This means:
+ADF should:
 
-- exploratory notebooks are used during design and validation
-- operational notebooks are the ones expected to be triggered by ADF
+- trigger Bronze ingestion notebooks
+- trigger Silver transformations
+- trigger Gold pipelines
 
-ADF should only call notebooks that are stable, intentional, and properly aligned with the transformation layer they belong to.
+ADF should not:
+
+- perform transformations directly
+- be used for exploration
 
 ---
 
 ## Layer Alignment
 
-The notebook strategy follows the same layer philosophy of the platform:
+The notebook strategy follows the platform layers:
 
 ### RAW
-No notebook should transform and persist business-ready data directly from RAW to Gold.
+- no transformation notebooks
 
 ### Bronze
-Bronze notebooks perform the first technical transformation after ingestion.
-
-Typical Bronze responsibilities include:
-
-- reading RAW files
-- handling parsing
-- applying initial schema logic
-- converting files into Delta format
-- adding technical metadata
+- ingestion notebooks only
+- Auto Loader
+- Delta conversion
 
 ### Silver
-Silver notebooks perform cleaning, integration, and enrichment.
-
-Typical Silver responsibilities include:
-
-- joining related datasets
-- handling duplicates
-- cleaning fields
-- applying business-aware validation
-- producing reusable curated datasets
+- cleaning and integration notebooks
 
 ### Gold
-Gold notebooks create analytical delivery outputs.
-
-Typical Gold responsibilities include:
-
-- aggregations
-- business-level analytical tables
-- outputs for dashboards
-- outputs for machine learning preparation
+- analytical notebooks
 
 ---
 
 ## Versioning Principle
 
-All notebooks that become part of the platform logic should eventually be versioned.
+All production notebooks must be versioned.
 
-This applies especially to:
+This includes:
 
 - Bronze notebooks
 - Silver notebooks
 - Gold notebooks
-- reusable exploration notebooks that document important design logic
+- setup notebooks
 
-Temporary or disposable exploration notebooks do not need to be preserved indefinitely, but any notebook that influences the final architecture or transformation rules should be committed to the repository.
+Temporary notebooks do not need to be preserved.
 
 ---
 
 ## Practical Rule
 
-A simple practical rule for this project is:
+- use Databricks to build and validate
+- use GitHub to version and document
+- use ADF to orchestrate
 
-- use Databricks to discover and validate
-- use GitHub to preserve and version
-- use ADF to orchestrate what has already been defined
-
-This keeps the project realistic, organized, and aligned with enterprise data engineering practices.
+This ensures a clean, scalable, and enterprise-ready platform.

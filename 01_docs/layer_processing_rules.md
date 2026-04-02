@@ -2,9 +2,14 @@
 
 ## Overview
 
-This document defines the role and expected responsibilities of each data layer in the PT Frozen Foods Lakehouse architecture.
+This document defines the role and responsibilities of each data layer in the PT Frozen Foods Lakehouse architecture.
 
-The objective is to clearly separate landing, technical structuring, business transformation, and analytical delivery.
+The objective is to clearly separate:
+
+- data landing
+- technical structuring
+- business transformation
+- analytical delivery
 
 ---
 
@@ -12,53 +17,71 @@ The objective is to clearly separate landing, technical structuring, business tr
 
 The RAW layer is the landing zone of the platform.
 
-Its purpose is to:
+### Purpose
 
 - receive incoming files exactly as they arrive
 - preserve original file format and structure
 - isolate ingestion from transformation
 - support traceability and reprocessing
 
-Rules for RAW:
+### Rules
 
-- files remain in their original format
-- no business transformation is applied
-- no analytical modeling is performed
-- no conversion to Delta Lake happens in RAW
+- files remain in original format
+- no transformation is applied
+- no schema changes are applied
+- no conversion to Delta Lake
+- ingestion must be append-only (no overwrite)
 
-Examples:
-- csv remains csv
-- source-aligned file naming is preserved
-- files are organized by source domain, dataset, and load_date
+### Structure
+
+- organized by domain, dataset, and load_date
+- example:
+  raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
 
 ---
 
 ## Bronze Layer
 
-The Bronze layer is the first transformation layer after RAW.
+The Bronze layer is the first processing layer after RAW.
 
-Its purpose is to:
+### Purpose
 
-- read incoming files from RAW
+- ingest data incrementally from RAW
 - apply technical standardization
-- perform initial schema handling
-- convert the data into Delta Lake format
+- handle schema evolution
+- convert data to Delta Lake
 - preserve source-level granularity
 
-Rules for Bronze:
+### Rules
 
-- data is converted to Delta Lake
-- initial typing may be applied
-- ingestion metadata may be added
-- source structure is preserved as much as possible
-- business logic should remain minimal
+- ingestion is performed using Auto Loader
+- data is stored in Delta format
+- schema evolution is enabled
+- minimal transformations only
+- business logic is not applied
+- data is stored using explicit paths in ADLS
+- tables are registered in Unity Catalog using LOCATION
 
-Typical Bronze activities:
+### Structure
 
-- read csv/json files from RAW
-- standardize column names if required
-- add technical columns such as load_date or ingestion_timestamp
-- write output as Delta tables/files
+- storage path:
+  bronze/<domain>/<dataset>/
+
+- control paths:
+  _checkpoints/<domain>/<dataset>/
+  _schemas/<domain>/<dataset>/
+
+### Typical Activities
+
+- read files from RAW using Auto Loader
+- infer and evolve schema automatically
+- standardize column names (technical format)
+- apply minimal data type adjustments if required
+- add technical metadata columns:
+  - ingestion_timestamp
+  - source_file
+- write data as Delta files to ADLS
+- register table in Unity Catalog
 
 ---
 
@@ -66,29 +89,29 @@ Typical Bronze activities:
 
 The Silver layer is the cleaned and integrated layer.
 
-Its purpose is to:
+### Purpose
 
 - clean and validate data
-- resolve structural inconsistencies
-- enrich datasets
-- integrate data across sources
-- prepare reusable business-ready intermediate datasets
-
-Rules for Silver:
-
-- data is stored in Delta Lake format
-- transformations become business-aware
-- joins across datasets are allowed
-- duplicate handling and null treatment may occur
-- reusable curated tables are produced
-
-Typical Silver activities:
-
 - standardize business fields
-- apply deduplication rules
-- perform joins between transactional and reference data
-- enrich transactional data with descriptive dimensions
-- create stable datasets for Gold and feature engineering
+- integrate datasets
+- enrich data with reference information
+- create reusable intermediate datasets
+
+### Rules
+
+- data is stored in Delta format
+- transformations are business-aware
+- joins across datasets are allowed
+- duplicates and null values are handled
+- outputs must be reusable
+
+### Typical Activities
+
+- apply data quality rules
+- deduplicate records
+- normalize values
+- join transactional and reference data
+- create curated datasets for downstream use
 
 ---
 
@@ -96,39 +119,44 @@ Typical Silver activities:
 
 The Gold layer is the analytical delivery layer.
 
-Its purpose is to:
+### Purpose
 
-- provide curated datasets for reporting and analytics
-- support machine learning preparation
-- expose business-friendly tables and aggregates
+- provide datasets ready for BI and analytics
+- support machine learning use cases
+- expose business-level metrics
 
-Rules for Gold:
+### Rules
 
-- data remains in Delta Lake format
-- datasets must be ready for consumption
+- data remains in Delta format
+- datasets must be stable and documented
 - transformations are business-oriented
-- outputs must be stable and clearly documented
 
-Typical Gold activities:
+### Typical Activities
 
-- create aggregated analytical tables
-- create customer-level analytical views
-- create product/channel performance outputs
-- prepare datasets for recommendation and forecasting
+- create aggregated tables
+- build analytical views
+- prepare datasets for dashboards
+- support forecasting and recommendation models
 
 ---
 
 ## Processing Philosophy
 
-The processing flow follows this logic:
+The processing flow follows:
 
 RAW -> Bronze -> Silver -> Gold
 
-This means:
+### Layer Responsibilities
 
-- RAW preserves arrival
-- Bronze standardizes technically and converts to Delta
-- Silver cleans and integrates
-- Gold delivers business-ready outputs
+- RAW: preserves data as received
+- Bronze: performs technical ingestion and standardization
+- Silver: performs cleaning and integration
+- Gold: delivers business-ready data
 
-This separation improves maintainability, traceability, and reusability across the platform.
+### Key Principles
+
+- clear separation of concerns
+- traceability across layers
+- incremental processing
+- scalable architecture
+- alignment with enterprise data platform standards

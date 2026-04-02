@@ -4,150 +4,163 @@
 
 This document describes the architecture of the PT Frozen Foods data platform.
 
-The platform is designed as a Lakehouse architecture built on Microsoft Azure, combining scalable storage, distributed processing, and orchestrated data pipelines.
+The platform follows a Lakehouse architecture built on Microsoft Azure, combining scalable storage, distributed processing, and governed data access.
 
-Although the project uses synthetic data and a fictional company name due to confidentiality constraints, the architecture, decisions, and implementation approach follow real-world enterprise standards.
+Although the project uses synthetic data, the architecture and implementation follow real-world enterprise standards.
 
 ---
 
 ## Architectural Principles
 
-The platform is designed based on the following principles:
+The platform is designed based on:
 
-- separation of concerns between ingestion, orchestration, and processing
+- separation of concerns (ingestion, processing, orchestration, governance)
 - scalability and modularity
 - data traceability and auditability
 - minimal coupling between services
-- Infrastructure as Code (IaC) as foundation
-- readiness for CI/CD integration
+- Infrastructure as Code (IaC)
+- readiness for CI/CD
 - security-first approach using identity-based access
 
 ---
 
 ## High-Level Architecture
 
-The architecture follows a layered Lakehouse model:
-
 Data Sources  
 → Ingestion Layer  
-→ RAW (Data Lake)  
-→ Processing Layer (Databricks)  
+→ RAW (ADLS)  
+→ Processing (Databricks)  
 → Bronze → Silver → Gold  
 → Analytics / Machine Learning  
+
+Governance Layer (Unity Catalog) spans across all processed data.
 
 ---
 
 ## Core Azure Services
-
-The platform uses the following Azure services:
 
 ### Azure Data Lake Storage Gen2 (ADLS)
 
 - central storage layer
 - stores RAW, Bronze, Silver, Gold data
 - hierarchical namespace enabled
-- supports large-scale data processing
+- data remains physically in ADLS
 
-### Azure Data Factory (ADF)
-
-- orchestration layer
-- triggers and coordinates data pipelines
-- manages dependencies between processing steps
+---
 
 ### Azure Databricks (DBX)
 
 - processing engine
-- performs transformations across Bronze, Silver, Gold layers
-- supports scalable distributed computation
-- used for both exploratory and production workloads
+- executes transformations across all layers
+- supports Auto Loader for ingestion
+- integrates with Unity Catalog for governance
+
+---
+
+### Unity Catalog (UC)
+
+- centralized governance layer
+- manages catalogs, schemas, tables, and permissions
+- controls access to data stored in ADLS
+- separates storage from access control
+
+---
+
+### Azure Data Factory (ADF)
+
+- orchestration layer
+- triggers Databricks notebooks
+- manages execution flow and dependencies
+
+---
 
 ### Azure Logic Apps
 
-- ingestion automation layer (for selected sources)
+- ingestion automation for reference data
 - integrates with SharePoint
-- performs validation and routing logic
-- triggers alerts for rejected data
+- validates and routes files to RAW
+- handles rejected files and notifications
+
+---
 
 ### Azure Key Vault
 
-- secure storage for secrets and credentials
+- secure storage for secrets (when needed)
 - supports identity-based access
+
+---
 
 ### Azure Monitor / Log Analytics
 
 - monitoring and observability
-- collects logs and metrics from platform components
+- collects logs and execution metrics
 
 ---
 
 ## Infrastructure as Code
 
-All infrastructure components are provisioned using Terraform.
+Infrastructure is provisioned using Terraform.
 
-### Benefits
-
-- reproducibility
-- version control
-- environment consistency
-- easier maintenance and scaling
-
-### Managed resources
+### Managed Resources
 
 - resource group
-- storage account (ADLS Gen2)
+- ADLS storage account
 - containers (raw, bronze, silver, gold)
-- data factory
-- databricks workspace
-- key vault
+- Databricks workspace
+- Data Factory
+- Logic App
+- Key Vault
 - monitoring workspace
+- Databricks Access Connector
 
 ---
 
 ## Ingestion Layer
 
-The ingestion layer is implemented using a hybrid approach:
+The ingestion layer uses a hybrid model.
 
-### Manual ingestion
+### Manual Ingestion
 
 Used for:
 
-- CRM datasets
-- ERP datasets
+- CRM
+- ERP
 - weather data
 - web logs
 
-These datasets are manually uploaded to the RAW layer to simulate enterprise systems while preserving confidentiality.
+Files are uploaded directly to RAW.
 
-### Automated ingestion (Logic App)
+---
+
+### Automated Ingestion (Logic App)
 
 Used for:
 
 - reference datasets
 
-Process:
+Flow:
 
 SharePoint → Logic App → ADLS RAW
 
 Capabilities:
 
-- trigger on file creation or modification
-- file content retrieval
-- validation based on file name
-- routing to correct dataset path
+- file detection
+- validation
+- routing
 - rejected file handling
-- email alerting
+- email notification
 
 ---
 
 ## RAW Layer
 
-The RAW layer is the initial landing zone for all data.
+The RAW layer is the landing zone.
 
 ### Characteristics
 
-- stores data as received
-- no transformations applied
-- immutable (no overwrite)
+- data stored as received
+- no transformation
+- append-only
 - timestamp-based versioning
 - partitioned by load_date
 
@@ -155,141 +168,160 @@ The RAW layer is the initial landing zone for all data.
 
 raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
 
-### Rejected zone
+---
 
-raw/reference/_rejected/load_date=YYYY-MM-DD/
+## Processing Layer (Databricks)
+
+Processing is performed in Azure Databricks.
 
 ---
 
-## Processing Layer
+### Bronze Layer
 
-The processing layer is implemented in Azure Databricks.
+- ingestion from RAW using Auto Loader
+- incremental processing
+- schema evolution enabled
+- minimal transformations
+- data stored in Delta format
+- data written to explicit ADLS paths
+- tables registered in Unity Catalog
 
-### Bronze
+---
 
-- initial transformation
-- parsing and schema enforcement
-- conversion to Delta format
+### Silver Layer
 
-### Silver
+- data cleaning and validation
+- business-aware transformations
+- joins and enrichment
+- reusable datasets
 
-- data cleaning
-- enrichment
-- deduplication
-- integration across sources
+---
 
-### Gold
+### Gold Layer
 
-- business-ready datasets
-- aggregation and modeling
-- support for analytics and ML
+- analytical datasets
+- aggregations and metrics
+- BI and ML-ready outputs
+
+---
+
+## Governance and Data Access
+
+Data access is controlled by Unity Catalog.
+
+### Storage Access
+
+- Databricks accesses ADLS via Access Connector
+- Managed Identity is used (no secrets)
+
+---
+
+### External Locations
+
+- define access to ADLS paths
+- linked to storage credentials
+- used for RAW and Bronze access
+
+---
+
+### Permissions
+
+- managed via UC (GRANTS)
+- applied to users or groups
+- examples:
+  - READ FILES
+  - WRITE FILES
 
 ---
 
 ## Orchestration Layer
 
-Azure Data Factory orchestrates processing workflows.
+ADF is responsible for orchestration.
 
 ### Responsibilities
 
 - trigger Databricks notebooks
-- manage pipeline dependencies
-- coordinate execution flow
-- enable scheduling and monitoring
+- manage execution order
+- schedule pipelines
 
-ADF does not perform ingestion in this phase.
+ADF does not perform ingestion or transformation.
 
 ---
 
-## Security and Access Control
+## Security Model
 
-The platform follows identity-based security practices.
+The platform uses identity-based access.
 
 ### Managed Identity
 
-- used by Logic App for storage access
-- avoids credential exposure
-
-### Service Accounts
-
-- SharePoint ingestion uses dedicated service account:
-  svc.sharepoint.ingestion@rmdatasolutions.net
-
-### RBAC
-
-- access controlled via security groups
-- permissions assigned at resource level
+- used for storage access
+- avoids credentials
 
 ---
 
-## Data Governance
+### RBAC
 
-The architecture enforces governance through:
+- applied at storage level
+- managed via Azure roles
 
-- strict RAW layer rules (no overwrite)
-- validation of incoming files
-- rejected data handling
-- email alerts for anomalies
-- naming conventions
-- partitioning standards
+---
+
+### Service Accounts
+
+- used for SharePoint ingestion
+- improves governance and auditability
 
 ---
 
 ## Observability
 
-The platform includes monitoring and logging capabilities:
+Monitoring includes:
 
-- Logic App run history
-- Azure Monitor integration
-- Log Analytics workspace
-
-These components enable:
-
-- troubleshooting
-- performance tracking
-- operational visibility
+- Logic App execution logs
+- Databricks job monitoring
+- Azure Monitor and Log Analytics
 
 ---
 
 ## Current Implementation Status
 
-The following components are fully implemented:
+Implemented:
 
-- infrastructure provisioned via Terraform
-- storage structure created
-- RAW layer defined and populated
-- manual ingestion completed
-- SharePoint ingestion via Logic App implemented
-- validation and rejected handling operational
-- email alerting configured
-- authentication and RBAC configured
+- infrastructure via Terraform
+- ADLS structure (RAW, Bronze, Silver, Gold)
+- Databricks workspace (Premium)
+- Unity Catalog configured
+- Access Connector and RBAC configured
+- External Locations and permissions defined
+- ingestion via Logic App operational
+- RAW layer populated
+- Bronze ingestion with Auto Loader implemented
 
 ---
 
 ## Future Evolution
 
-The architecture is designed to evolve with:
+Planned improvements:
 
-- full CI/CD integration
-- Logic App workflow export and versioning
-- deeper monitoring and alerting
-- metadata-driven ingestion
-- advanced data quality checks
-- expansion of automated ingestion sources
-- integration with analytics and BI tools
+- CI/CD integration
+- Terraform expansion for governance
+- monitoring enhancements
+- data quality framework
+- metadata-driven pipelines
+- BI and ML integration
 
 ---
 
 ## Conclusion
 
-The PT Frozen Foods platform architecture is aligned with enterprise-grade data engineering practices.
+The PT Frozen Foods platform follows enterprise data architecture standards.
 
 It provides:
 
-- scalable and modular design
+- scalable storage and processing
+- strong governance with Unity Catalog
 - clear separation of responsibilities
-- robust ingestion layer
-- strong data governance
-- readiness for advanced analytics and machine learning
+- secure and auditable data access
+- readiness for advanced analytics
 
-This foundation enables the platform to evolve into a fully production-ready data ecosystem.
+This foundation supports the evolution into a fully production-ready data platform.
