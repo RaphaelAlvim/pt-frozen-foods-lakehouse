@@ -202,10 +202,20 @@ Azure Databricks is responsible for processing after ingestion.
 
 ### RAW → Bronze
 
-- handled by Auto Loader
+- handled by Auto Loader (cloudFiles)
 - incremental ingestion
-- schema evolution enabled
+- schema inference and evolution enabled
 - data converted to Delta format
+- checkpointing ensures exactly-once processing
+
+### Bronze Characteristics
+
+- one notebook per dataset
+- configuration-driven ingestion
+- standardized structure across all domains
+- technical columns added:
+  - ingestion_timestamp
+  - source_file
 
 ### Key Separation
 
@@ -244,7 +254,7 @@ This design balances realism and control.
 
 ## Current State
 
-The ingestion flow is operational and validated.
+The ingestion and Bronze layers are fully implemented and validated.
 
 Validated capabilities:
 
@@ -254,6 +264,17 @@ Validated capabilities:
 - rejected file handling
 - email notification
 - timestamp-based versioning
+- Auto Loader ingestion across all datasets
+- Delta Lake storage in Bronze
+- Unity Catalog table registration
+
+Covered domains:
+
+- CRM
+- ERP
+- Reference
+- Weather API
+- Web
 
 ---
 
@@ -267,4 +288,4 @@ Possible improvements:
 - track ingestion metadata
 - implement CI/CD
 - add validation workflows after ingestion
-
+- implement data quality checks in SILVER layer

@@ -52,20 +52,37 @@ Bronze notebooks are responsible for ingesting data from RAW into Delta format.
 - no business logic allowed
 - only technical transformations
 
+### Naming Convention
+
+bronze_<domain>_<dataset>_autoloader
+
+### Examples
+
+- bronze_crm_clients_autoloader
+- bronze_erp_orders_autoloader
+- bronze_reference_locations_autoloader
+- bronze_weather_api_weather_porto_daily_autoloader
+- bronze_web_web_event_logs_autoloader
+
 ### Typical Structure
 
 Each Bronze notebook should include:
 
-1. context setup (catalog and schema)
-2. path definitions (source, checkpoint, schema, target)
-3. pre-checks (access, permissions, environment)
-4. Auto Loader ingestion logic
-5. minimal transformations:
-   - column normalization
-   - metadata columns
-6. write to Delta (explicit path)
-7. table registration in Unity Catalog
-8. optional DEV validation section
+1. configuration (centralized at the top)
+2. context setup (catalog and schema)
+3. configuration summary (logs)
+4. pre-checks (paths and access)
+5. Auto Loader ingestion logic
+6. technical columns:
+   - ingestion_timestamp
+   - source_file
+7. write to Delta (explicit path)
+8. table registration in Unity Catalog
+9. final execution status
+
+### Current Status
+
+The Bronze layer is fully implemented and standardized across all domains.
 
 ---
 
@@ -88,6 +105,7 @@ Silver notebooks are responsible for cleaning and integrating data.
 - deduplication allowed
 - null handling required
 - outputs must be reusable
+- schema must be controlled
 
 ---
 
@@ -164,8 +182,8 @@ Azure Databricks is used to:
 
 Clusters can be:
 
-- interactive (for development)
-- job clusters (for production)
+- interactive (development)
+- job clusters (production)
 
 ---
 
@@ -185,13 +203,15 @@ VS Code is used for organizing and reviewing code locally.
 
 ## Recommended Workflow
 
-1. define dataset ingestion (Bronze)
+### Bronze
+
+1. define dataset ingestion
 2. implement Auto Loader notebook
 3. validate ingestion in Databricks
 4. version notebook in GitHub
 5. orchestrate with ADF when required
 
-For Silver and Gold:
+### Silver and Gold
 
 1. define transformation logic
 2. implement notebook

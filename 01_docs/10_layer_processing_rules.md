@@ -54,13 +54,14 @@ The Bronze layer is the first processing layer after RAW.
 
 ### Rules
 
-- ingestion is performed using Auto Loader
+- ingestion is performed using Auto Loader (cloudFiles)
 - data is stored in Delta format
 - schema evolution is enabled
 - minimal transformations only
 - business logic is not applied
 - data is stored using explicit paths in ADLS
 - tables are registered in Unity Catalog using LOCATION
+- ingestion must be idempotent and incremental
 
 ### Structure
 
@@ -75,13 +76,22 @@ The Bronze layer is the first processing layer after RAW.
 
 - read files from RAW using Auto Loader
 - infer and evolve schema automatically
-- standardize column names (technical format)
-- apply minimal data type adjustments if required
+- apply minimal technical normalization if required
 - add technical metadata columns:
   - ingestion_timestamp
   - source_file
 - write data as Delta files to ADLS
 - register table in Unity Catalog
+
+### Current Status
+
+The Bronze layer is fully implemented across all domains:
+
+- CRM
+- ERP
+- Reference
+- Weather API
+- Web
 
 ---
 
@@ -103,13 +113,15 @@ The Silver layer is the cleaned and integrated layer.
 - transformations are business-aware
 - joins across datasets are allowed
 - duplicates and null values are handled
-- outputs must be reusable
+- outputs must be reusable and stable
+- schema must be controlled and explicit
 
 ### Typical Activities
 
 - apply data quality rules
 - deduplicate records
 - normalize values
+- cast data types
 - join transactional and reference data
 - create curated datasets for downstream use
 
@@ -130,6 +142,7 @@ The Gold layer is the analytical delivery layer.
 - data remains in Delta format
 - datasets must be stable and documented
 - transformations are business-oriented
+- outputs should be optimized for consumption
 
 ### Typical Activities
 
@@ -149,9 +162,9 @@ RAW -> Bronze -> Silver -> Gold
 ### Layer Responsibilities
 
 - RAW: preserves data as received
-- Bronze: performs technical ingestion and standardization
-- Silver: performs cleaning and integration
-- Gold: delivers business-ready data
+- Bronze: performs technical ingestion and structuring
+- Silver: performs cleaning, validation, and integration
+- Gold: delivers business-ready datasets
 
 ### Key Principles
 
