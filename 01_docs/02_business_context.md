@@ -24,7 +24,7 @@ The platform addresses typical enterprise challenges:
 
 ## Role of the Data Platform
 
-The data platform is designed to:
+The Lakehouse-based data platform is designed to:
 
 - centralize data from multiple sources
 - standardize data processing across domains
@@ -39,7 +39,7 @@ The platform represents common enterprise data sources:
 
 - ERP systems (orders, products, suppliers)
 - CRM data (customers, segmentation, status)
-- web interaction logs
+- Web interaction logs
 - reference datasets
 - external data (e.g., weather)
 

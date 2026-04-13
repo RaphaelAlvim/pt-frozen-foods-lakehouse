@@ -4,7 +4,7 @@
 
 The RAW layer stores data in its original form, preserving all ingested data without transformation.
 
-It acts as the controlled landing zone of the platform and guarantees traceability, reproducibility, and data integrity.
+It acts as the controlled landing zone of the platform and guarantees traceability, reproducibility, and data integrity. Data is stored in Azure Data Lake Storage Gen2 (ADLS).
 
 ---
 
@@ -133,7 +133,7 @@ No transformations are allowed.
 
 RAW feeds the Bronze layer.
 
-### Responsibility split
+### Responsibility Split
 
 RAW:
 - ingestion

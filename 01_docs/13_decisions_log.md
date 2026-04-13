@@ -600,3 +600,112 @@ These decisions ensure:
 - governance and security
 
 This log should be continuously updated as the platform evolves.
+
+---
+
+## Decision 031 — Adoption of External Tables Across the Lakehouse
+
+### Decision
+Adopt external Delta tables stored in Azure Data Lake Storage Gen2 across Bronze, Silver, and Gold layers.
+
+### Rationale
+- ensures separation between storage and compute
+- improves interoperability with Azure services
+- aligns with modern Lakehouse architecture
+- enhances data visibility and governance
+
+### Impact
+- data stored directly in ADLS Gen2
+- tables registered in Unity Catalog using explicit LOCATION paths
+- improved portability and maintainability
+
+---
+
+## Decision 032 — Implementation of the Silver Integration Layer
+
+### Decision
+Introduce a dedicated Silver Integration layer to consolidate curated datasets from multiple domains.
+
+### Rationale
+- enables cross-domain analytics
+- prepares integrated datasets for the Gold layer
+- improves data consistency and reusability
+- aligns with enterprise Medallion Architecture practices
+
+### Impact
+- integration of ERP and CRM datasets
+- creation of the `silver_orders_customers` dataset
+- standardized integration logic within the Silver layer
+
+---
+
+## Decision 033 — Deduplication Strategy for ERP Orders
+
+### Decision
+Implement deterministic deduplication for ERP order headers based on `pedido_id`.
+
+### Rationale
+- ensures a single record per order
+- resolves duplicates caused by multiple updates from source systems
+- preserves the correct dataset grain
+
+### Impact
+- duplicates removed using the latest ingestion timestamp
+- improved data quality and consistency
+- accurate downstream analytics and reporting
+
+---
+
+## Decision 034 — Adoption of Liquid Clustering for Performance Optimization
+
+### Decision
+Adopt Liquid Clustering for optimizing Delta tables in the Silver and Gold layers.
+
+### Rationale
+- improves query performance
+- eliminates rigid partitioning strategies
+- adapts dynamically to data access patterns
+- aligns with modern Databricks best practices
+
+### Impact
+- clustering applied to high-value analytical datasets
+- initial clustering keys:
+  - data_pedido
+  - cliente_id
+- enhanced performance for BI and analytical workloads
+
+---
+
+## Decision 035 — Adoption of Auto Optimize for Delta Tables
+
+### Decision
+Enable Auto Optimize for Delta tables in the processing layers.
+
+### Rationale
+- improves write performance
+- reduces small file issues
+- simplifies maintenance
+- enhances overall query efficiency
+
+### Impact
+- optimizeWrite enabled
+- autoCompact enabled
+- reduced need for manual optimization operations
+
+---
+
+## Decision 036 — Standardized Logging for Processing Notebooks
+
+### Decision
+Adopt standardized logging for all production notebooks.
+
+### Rationale
+- improves observability and traceability
+- standardizes execution outputs
+- facilitates debugging and monitoring
+
+### Impact
+- consistent execution logs across Bronze, Silver, and Gold notebooks
+- clear visibility into processing steps and results
+- improved operational reliability
+

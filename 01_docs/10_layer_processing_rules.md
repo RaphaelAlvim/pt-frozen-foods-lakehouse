@@ -59,9 +59,10 @@ The Bronze layer is the first processing layer after RAW.
 - schema evolution is enabled
 - minimal transformations only
 - business logic is not applied
-- data is stored using explicit paths in ADLS
+- data is stored using explicit paths in ADLS Gen2
 - tables are registered in Unity Catalog using LOCATION
 - ingestion must be idempotent and incremental
+- tables are implemented as external Delta tables
 
 ### Structure
 
@@ -81,7 +82,7 @@ The Bronze layer is the first processing layer after RAW.
   - ingestion_timestamp
   - source_file
 - write data as Delta files to ADLS
-- register table in Unity Catalog
+- register tables in Unity Catalog
 
 ### Current Status
 
@@ -97,24 +98,40 @@ The Bronze layer is fully implemented across all domains:
 
 ## Silver Layer
 
-The Silver layer is the cleaned and integrated layer.
+The Silver layer is the cleaned, standardized, and integrated layer.
 
 ### Purpose
 
 - clean and validate data
 - standardize business fields
-- integrate datasets
+- integrate datasets across domains
 - enrich data with reference information
 - create reusable intermediate datasets
 
 ### Rules
 
 - data is stored in Delta format
+- tables are implemented as external Delta tables
 - transformations are business-aware
 - joins across datasets are allowed
 - duplicates and null values are handled
 - outputs must be reusable and stable
 - schema must be controlled and explicit
+- datasets must be governed by Unity Catalog
+
+### Silver Sub-Layers
+
+#### Curated Silver
+- standardized datasets derived from a single source
+- prepared for integration and reuse
+
+#### Silver Integration
+- integrates datasets from multiple domains
+- supports cross-functional analytics
+- serves as the foundation for the Gold layer
+
+Example:
+- `silver_orders_customers` (ERP + CRM integration)
 
 ### Typical Activities
 
@@ -123,7 +140,22 @@ The Silver layer is the cleaned and integrated layer.
 - normalize values
 - cast data types
 - join transactional and reference data
-- create curated datasets for downstream use
+- create curated and integrated datasets
+- implement performance optimizations
+
+### Optimization Standards
+
+- Delta Lake storage format
+- external tables on ADLS Gen2
+- Liquid Clustering for optimized data layout
+- Auto Optimize for efficient writes and compaction
+- Photon engine acceleration
+- Adaptive Query Execution (AQE)
+- column pruning and optimized join strategies
+
+### Current Status
+
+The Silver layer is implemented and includes curated and integrated datasets aligned with business requirements.
 
 ---
 
@@ -140,12 +172,16 @@ The Gold layer is the analytical delivery layer.
 ### Rules
 
 - data remains in Delta format
-- datasets must be stable and documented
+- datasets must be stable, documented, and governed
 - transformations are business-oriented
 - outputs should be optimized for consumption
+- tables follow dimensional modeling principles
+- datasets are optimized for query performance
 
 ### Typical Activities
 
+- create fact and dimension tables
+- implement star and snowflake schemas
 - create aggregated tables
 - build analytical views
 - prepare datasets for dashboards
@@ -157,19 +193,21 @@ The Gold layer is the analytical delivery layer.
 
 The processing flow follows:
 
-RAW -> Bronze -> Silver -> Gold
+RAW → Bronze → Silver → Gold
 
 ### Layer Responsibilities
 
-- RAW: preserves data as received
-- Bronze: performs technical ingestion and structuring
-- Silver: performs cleaning, validation, and integration
-- Gold: delivers business-ready datasets
+- **RAW:** preserves data as received
+- **Bronze:** performs technical ingestion and structuring
+- **Silver:** performs cleaning, validation, and integration
+- **Gold:** delivers business-ready datasets
 
 ### Key Principles
 
 - clear separation of concerns
 - traceability across layers
 - incremental processing
-- scalable architecture
-- alignment with enterprise data platform standards
+- scalable and modular architecture
+- governed data access through Unity Catalog
+- alignment with enterprise Lakehouse standards
+- optimization for performance and scalability

@@ -30,7 +30,7 @@ Data Sources
 → Ingestion Layer  
 → RAW (ADLS)  
 → Processing (Databricks)  
-→ Bronze → Silver → Gold  
+→ Bronze → Silver (Curated & Integration) → Gold  
 → Analytics / Machine Learning  
 
 Governance Layer (Unity Catalog) spans across all processed data.
@@ -42,7 +42,7 @@ Governance Layer (Unity Catalog) spans across all processed data.
 ### Azure Data Lake Storage Gen2 (ADLS)
 
 - central storage layer
-- stores RAW, Bronze, Silver, Gold data
+- stores RAW, Bronze, Silver, and Gold data
 - hierarchical namespace enabled
 - data remains physically in ADLS
 
@@ -54,6 +54,7 @@ Governance Layer (Unity Catalog) spans across all processed data.
 - executes transformations across all layers
 - supports Auto Loader for ingestion
 - integrates with Unity Catalog for governance
+- enables Delta Lake optimizations and Liquid Clustering
 
 ---
 
@@ -162,7 +163,7 @@ The RAW layer is the landing zone.
 - no transformation
 - append-only
 - timestamp-based versioning
-- partitioned by load_date
+- partitioned by `load_date`
 
 ### Structure
 
@@ -172,9 +173,7 @@ raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
 
 ## Processing Layer (Databricks)
 
-Processing is performed in Azure Databricks.
-
----
+Processing is performed in Azure Databricks following the Medallion Architecture.
 
 ### Bronze Layer
 
@@ -194,14 +193,33 @@ Processing is performed in Azure Databricks.
 - business-aware transformations
 - joins and enrichment
 - reusable datasets
+- integration of curated datasets across domains (e.g., ERP and CRM)
+- preparation of analytics-ready datasets for the Gold layer
+
+This layer includes both **Curated** and **Integration** datasets.
 
 ---
 
 ### Gold Layer
 
 - analytical datasets
-- aggregations and metrics
-- BI and ML-ready outputs
+- aggregations and business metrics
+- dimensional models and data marts
+- BI and machine learning-ready outputs
+
+---
+
+### Optimization Standards
+
+To ensure performance and scalability, the platform adopts modern Lakehouse optimizations:
+
+- Delta Lake as the storage format
+- external tables stored in ADLS Gen2
+- Liquid Clustering for optimized data layout
+- Auto Optimize for efficient writes and compaction
+- Photon engine for accelerated query performance
+- Adaptive Query Execution (AQE)
+- column pruning and optimized join strategies
 
 ---
 
@@ -220,23 +238,25 @@ Data access is controlled by Unity Catalog.
 
 - define access to ADLS paths
 - linked to storage credentials
-- used for RAW and Bronze access
+- used for RAW, Bronze, and Silver access
 
 ---
 
 ### Permissions
 
-- managed via UC (GRANTS)
+- managed via Unity Catalog (GRANTS)
 - applied to users or groups
 - examples:
   - READ FILES
   - WRITE FILES
+  - SELECT
+  - MODIFY
 
 ---
 
 ## Orchestration Layer
 
-ADF is responsible for orchestration.
+Azure Data Factory (ADF) is responsible for orchestration.
 
 ### Responsibilities
 
@@ -296,6 +316,8 @@ Implemented:
 - ingestion via Logic App operational
 - RAW layer populated
 - Bronze ingestion with Auto Loader implemented
+- Silver layer transformations implemented
+- Silver integration datasets created and optimized using Delta Lake and Liquid Clustering
 
 ---
 

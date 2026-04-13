@@ -53,7 +53,7 @@ Key developments:
 The platform infrastructure was provisioned using Terraform, including:
 
 - Resource Group
-- ADLS Gen2 with RAW, Bronze, Silver, Gold layers
+- ADLS Gen2 with RAW, Bronze, Silver, and Gold layers
 - Azure Data Factory
 - Azure Databricks workspace
 - Azure Key Vault
@@ -74,23 +74,65 @@ This approach balances realism with confidentiality constraints.
 
 ---
 
+## Processing and Data Standardization
+
+With the ingestion layer established, the project advanced to data processing and standardization using Azure Databricks.
+
+Key achievements include:
+
+- implementation of the Bronze layer using Auto Loader
+- schema evolution and incremental ingestion
+- integration with Unity Catalog for governance and access control
+- adoption of Delta Lake as the standard storage format
+- use of external tables stored in Azure Data Lake Storage Gen2
+- development of exploratory notebooks for data validation and analysis
+- establishment of standardized processing notebooks for production workloads
+
+---
+
+## Silver Layer Implementation
+
+The Silver layer was implemented to provide curated, business-ready datasets.
+
+Key accomplishments:
+
+- data cleansing and validation
+- enrichment of datasets with business context
+- integration of ERP and CRM data
+- implementation of the Silver Integration layer
+- creation of the `silver_orders_customers` dataset
+- deterministic deduplication of ERP orders
+- application of modern optimization techniques such as Liquid Clustering
+- performance tuning using Delta Lake best practices
+
+This phase ensured the delivery of reliable and analytics-ready datasets.
+
+---
+
 ## Current State
 
 The project is now structured as an enterprise-grade data platform with:
 
-- defined architecture and data layers
-- operational ingestion processes
-- standardized documentation
-- alignment with real-world data engineering practices
+- a fully defined Lakehouse architecture on Microsoft Azure
+- operational ingestion processes for synthetic enterprise datasets
+- Bronze and Silver layers implemented and governed by Unity Catalog
+- Silver Integration datasets optimized using Delta Lake and Liquid Clustering
+- standardized exploratory and processing notebooks
+- infrastructure provisioned via Terraform
+- external Delta tables stored in Azure Data Lake Storage Gen2
+- comprehensive and well-structured documentation
+- alignment with real-world data engineering best practices
 
 ---
 
 ## Next Steps
 
-The next phase focuses on:
+The next phase focuses on expanding analytical capabilities and enabling advanced data consumption:
 
-- Bronze layer implementation in Databricks
-- Silver and Gold transformations
-- orchestration with Data Factory
-- data quality and validation
-- advanced analytics and machine learning use cases
+- development of the Gold layer with dimensional models and business metrics
+- implementation of data marts for analytics and reporting
+- orchestration of end-to-end pipelines using Azure Data Factory
+- integration with Power BI for dashboards and business insights
+- implementation of data quality and validation frameworks
+- enablement of advanced analytics and machine learning use cases
+- adoption of CI/CD practices for infrastructure and notebooks

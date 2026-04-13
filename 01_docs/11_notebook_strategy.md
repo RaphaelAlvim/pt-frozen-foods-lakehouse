@@ -23,7 +23,7 @@ In this project, notebooks are divided into:
 1. ingestion notebooks (Bronze)
 2. transformation notebooks (Silver and Gold)
 3. setup and governance notebooks
-4. development and debugging support (DEV ONLY)
+4. exploratory, development, and debugging support (DEV ONLY)
 
 This separation ensures clarity, maintainability, and alignment with enterprise practices.
 
@@ -39,7 +39,7 @@ Bronze notebooks are responsible for ingesting data from RAW into Delta format.
 - perform incremental ingestion using Auto Loader
 - handle schema evolution
 - apply minimal technical transformations
-- write data to Bronze layer in ADLS
+- write data to the Bronze layer in ADLS
 - register tables in Unity Catalog
 
 ### Rules
@@ -51,6 +51,7 @@ Bronze notebooks are responsible for ingesting data from RAW into Delta format.
 - schema evolution must be enabled
 - no business logic allowed
 - only technical transformations
+- tables must be created as external Delta tables
 
 ### Naming Convention
 
@@ -88,7 +89,7 @@ The Bronze layer is fully implemented and standardized across all domains.
 
 ## Silver Notebooks (Processing Layer)
 
-Silver notebooks are responsible for cleaning and integrating data.
+Silver notebooks are responsible for cleaning, standardizing, and integrating data.
 
 ### Purpose
 
@@ -100,12 +101,51 @@ Silver notebooks are responsible for cleaning and integrating data.
 
 ### Rules
 
-- business-aware transformations allowed
-- joins across datasets allowed
-- deduplication allowed
-- null handling required
-- outputs must be reusable
-- schema must be controlled
+- business-aware transformations are allowed
+- joins across datasets are permitted
+- deduplication and null handling are required
+- outputs must be reusable and stable
+- schemas must be controlled and explicit
+- data must be stored in Delta format
+- tables must be created as external Delta tables
+- datasets must be governed by Unity Catalog
+
+### Silver Sub-Layers
+
+#### Curated Silver
+- standardized datasets derived from a single source
+- prepared for reuse and integration
+
+#### Silver Integration
+- integrates datasets from multiple domains
+- supports cross-functional analytics
+- serves as the foundation for the Gold layer
+
+### Naming Conventions
+
+- Curated Silver:
+  silver_<domain>_<dataset>
+
+- Silver Integration:
+  silver_integration_<dataset>
+
+### Example
+
+- silver_erp_orders
+- silver_crm_clients
+- silver_integration_orders_customers
+
+### Optimization Standards
+
+Silver notebooks may implement modern Lakehouse optimizations:
+
+- Delta Lake format
+- column pruning
+- optimized join strategies
+- broadcast joins for small datasets
+- Auto Optimize (optimizeWrite and autoCompact)
+- Liquid Clustering for performance optimization
+- Photon engine acceleration
 
 ---
 
@@ -118,12 +158,23 @@ Gold notebooks deliver business-ready datasets.
 - create analytical tables
 - provide datasets for BI and ML
 - expose metrics and aggregations
+- implement dimensional models
 
 ### Rules
 
-- outputs must be stable
+- outputs must be stable and documented
 - logic must be business-oriented
-- datasets must be documented
+- datasets must follow dimensional modeling principles
+- tables must be optimized for query performance
+- data must remain in Delta format
+
+### Typical Outputs
+
+- fact tables
+- dimension tables
+- aggregated datasets
+- KPI models
+- semantic-ready datasets for Power BI
 
 ---
 
@@ -137,12 +188,41 @@ These notebooks configure the environment and governance.
 - create schemas
 - manage permissions
 - audit external locations
+- configure storage credentials
 
 ### Rules
 
 - executed manually or during setup
 - not part of orchestration pipelines
 - must be versioned
+
+---
+
+## Exploratory Notebooks (DEV ONLY)
+
+Exploratory notebooks are used for data understanding and validation.
+
+### Purpose
+
+- perform data profiling and analysis
+- validate schemas and joins
+- detect anomalies and duplicates
+- support processing design decisions
+
+### Naming Convention
+
+exploratory_<layer>_<dataset>
+
+### Example
+
+- exploratory_silver_orders_customers
+
+### Rules
+
+- must not be orchestrated
+- must not write production data
+- used only during development
+- must be versioned for traceability
 
 ---
 
@@ -153,7 +233,7 @@ Some notebooks may include a DEV section for validation.
 ### Purpose
 
 - inspect results
-- validate schema
+- validate schemas
 - debug ingestion issues
 
 ### Examples
@@ -182,8 +262,9 @@ Azure Databricks is used to:
 
 Clusters can be:
 
-- interactive (development)
+- interactive clusters (development)
 - job clusters (production)
+- serverless compute (when available)
 
 ---
 
@@ -209,7 +290,7 @@ VS Code is used for organizing and reviewing code locally.
 2. implement Auto Loader notebook
 3. validate ingestion in Databricks
 4. version notebook in GitHub
-5. orchestrate with ADF when required
+5. orchestrate with Azure Data Factory when required
 
 ### Silver and Gold
 
@@ -217,11 +298,11 @@ VS Code is used for organizing and reviewing code locally.
 2. implement notebook
 3. validate outputs
 4. version in GitHub
-5. orchestrate with ADF
+5. orchestrate with Azure Data Factory
 
 ---
 
-## Relationship with ADF
+## Relationship with Azure Data Factory (ADF)
 
 ADF is responsible for orchestration.
 
@@ -267,7 +348,8 @@ This includes:
 - Bronze notebooks
 - Silver notebooks
 - Gold notebooks
-- setup notebooks
+- setup and governance notebooks
+- exploratory notebooks supporting design decisions
 
 Temporary notebooks do not need to be preserved.
 
@@ -277,6 +359,6 @@ Temporary notebooks do not need to be preserved.
 
 - use Databricks to build and validate
 - use GitHub to version and document
-- use ADF to orchestrate
+- use Azure Data Factory to orchestrate
 
 This ensures a clean, scalable, and enterprise-ready platform.

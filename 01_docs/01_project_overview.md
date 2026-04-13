@@ -6,7 +6,7 @@ PT Frozen Foods is a data platform project based on a realistic business scenari
 
 Due to confidentiality constraints, the project uses a fictional company name and synthetic datasets. However, all architectural decisions and implementations reflect real-world enterprise standards.
 
-The project aims to demonstrate the design and implementation of a modern, production-ready data platform.
+The project aims to demonstrate the design and implementation of a modern, enterprise-grade, production-ready data platform.
 
 ---
 
@@ -17,7 +17,7 @@ The main goals of the project are:
 - design a Lakehouse-based data platform on Azure
 - simulate real enterprise data flows using synthetic data
 - implement scalable infrastructure using Terraform (IaC)
-- organize data into RAW, Bronze, Silver, and Gold layers
+- organize data into RAW, Bronze, Silver, and Gold layers following the Medallion architecture
 - enable analytics and machine learning use cases
 - follow enterprise data engineering best practices
 
@@ -45,8 +45,8 @@ The platform simulates enterprise data sources such as:
 - CRM systems
 - ERP systems
 - APIs (weather data)
-- web interaction logs
-- business-managed reference data
+- Web interaction logs
+- Business-managed reference data
 
 Synthetic datasets are used to replicate real structures and behaviors while ensuring confidentiality.
 

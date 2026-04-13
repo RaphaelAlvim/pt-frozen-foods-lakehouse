@@ -32,7 +32,7 @@ Implement data ingestion into the RAW layer.
 
 ---
 
-## Phase 3 — Processing (In Progress)
+## Phase 3 — Processing (Completed)
 
 Develop the processing layer using Azure Databricks.
 
@@ -41,15 +41,19 @@ Develop the processing layer using Azure Databricks.
 - schema management and evolution
 - metadata enrichment (ingestion tracking, file lineage)
 - Unity Catalog integration and access control
+- implementation of the Silver layer
+- development of Silver Integration datasets
+- performance optimization using Delta Lake and Liquid Clustering
 
 ---
 
-## Phase 4 — Data Layers (Next)
+## Phase 4 — Data Layers (In Progress)
 
-Implement structured data transformations.
+Implement structured data transformations aligned with business requirements.
 
 - Bronze layer standardization
 - Silver layer cleaning and integration
+- Silver Integration datasets (ERP and CRM)
 - Gold layer analytical datasets
 - reusable data models aligned with business use cases
 

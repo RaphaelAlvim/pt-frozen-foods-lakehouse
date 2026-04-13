@@ -8,7 +8,7 @@ The ingestion layer is designed to reflect a realistic enterprise architecture w
 
 Because the project uses synthetic datasets, some sources are manually uploaded, while others are ingested using Azure Logic Apps integrated with SharePoint.
 
-All data lands in RAW before any processing occurs.
+All data lands in the RAW layer before any processing occurs.
 
 ---
 
@@ -38,8 +38,8 @@ Applies to:
 
 - CRM
 - ERP
-- weather data
-- web logs
+- Weather data
+- Web logs
 
 Purpose:
 
@@ -70,23 +70,23 @@ Purpose:
 
 ### Manual Sources
 
-- CRM:
-  - crm_clients
-  - crm_segmentation
-  - crm_status
+**CRM**
+- crm_clients
+- crm_segmentation
+- crm_status
 
-- ERP:
-  - erp_orders
-  - erp_order_items
-  - erp_products
-  - erp_salespersons
-  - erp_suppliers
+**ERP**
+- erp_orders
+- erp_order_items
+- erp_products
+- erp_salespersons
+- erp_suppliers
 
-- Weather:
-  - weather_porto_daily
+**Weather**
+- weather_porto_daily
 
-- Web:
-  - web_event_logs
+**Web**
+- web_event_logs
 
 ---
 
@@ -98,7 +98,7 @@ Purpose:
 
 ---
 
-## Role of RAW Layer
+## Role of the RAW Layer
 
 All data must land in RAW before processing.
 
@@ -123,7 +123,7 @@ raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
 
 raw/reference/reference_calendar/load_date=2026-03-19/
 
-### File Naming
+### File Naming Convention
 
 <dataset>_yyyyMMddTHHmmssZ.csv
 
@@ -148,8 +148,8 @@ Reference files are validated by name.
 
 ### Behavior
 
-- valid → stored in RAW dataset path
-- invalid → stored in rejected zone
+- valid files → stored in RAW dataset path
+- invalid files → stored in the rejected zone
 
 ---
 
@@ -184,7 +184,7 @@ Rejected files trigger email alerts.
 
 ### SharePoint
 
-- uses dedicated service account
+- uses a dedicated service account
 
 ### Storage
 
@@ -219,19 +219,20 @@ Azure Databricks is responsible for processing after ingestion.
 
 ### Key Separation
 
-- ingestion (RAW) → handled outside DBX
-- processing (Bronze+) → handled inside DBX
+- ingestion (RAW) → handled outside Databricks
+- processing (Bronze and beyond) → handled inside Databricks
 
 ---
 
-## Relationship with ADF
+## Relationship with Azure Data Factory (ADF)
 
 ADF is used for orchestration only.
 
-ADF:
+### Responsibilities
 
 - triggers Databricks notebooks
 - manages execution flow
+- schedules pipelines
 
 ADF does not:
 
@@ -245,10 +246,10 @@ ADF does not:
 This design balances realism and control.
 
 - manual ingestion simulates enterprise systems
-- Logic App introduces automation
+- Logic Apps introduce automation
 - RAW preserves all data
-- DBX handles scalable processing
-- ADF orchestrates execution
+- Databricks handles scalable processing
+- Azure Data Factory orchestrates execution
 
 ---
 
@@ -256,7 +257,7 @@ This design balances realism and control.
 
 The ingestion and Bronze layers are fully implemented and validated.
 
-Validated capabilities:
+### Validated Capabilities
 
 - SharePoint file detection
 - file validation
@@ -268,24 +269,24 @@ Validated capabilities:
 - Delta Lake storage in Bronze
 - Unity Catalog table registration
 
-Covered domains:
+### Covered Domains
 
 - CRM
 - ERP
 - Reference
-- Weather API
+- Weather
 - Web
 
 ---
 
 ## Future Evolution
 
-Possible improvements:
+Possible improvements include:
 
-- export Logic App to code
-- integrate with Terraform
-- add ingestion monitoring
-- track ingestion metadata
-- implement CI/CD
-- add validation workflows after ingestion
-- implement data quality checks in SILVER layer
+- exporting Logic Apps to code
+- integrating Logic Apps with Terraform
+- enhancing ingestion monitoring
+- tracking ingestion metadata
+- implementing CI/CD pipelines
+- adding validation workflows after ingestion
+- implementing data quality checks in the Silver layer
