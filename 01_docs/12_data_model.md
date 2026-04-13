@@ -130,7 +130,7 @@ Represents transactional sales data derived from ERP order items.
 
 Supports analysis across product, customer, channel, and time.
 
-**Typical measures:**
+**Typical Measures:**
 
 - quantity_sold
 - gross_sales_amount
@@ -138,6 +138,10 @@ Supports analysis across product, customer, channel, and time.
 - order_count
 - line_count
 - average_order_value
+
+**Primary Key:**
+
+- item_pedido_id — Unique identifier for each order line item.
 
 **Foreign Keys:**
 
