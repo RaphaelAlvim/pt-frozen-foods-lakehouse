@@ -147,6 +147,10 @@ Supports analysis across product, customer, channel, and time.
 - sales_channel_id
 - date
 
+**Grain:**
+
+- One record per order item (`item_pedido_id`).
+
 ---
 
 ### fact_web_events
