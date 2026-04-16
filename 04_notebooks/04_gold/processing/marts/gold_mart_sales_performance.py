@@ -1,8 +1,4 @@
 # Databricks notebook source
-print("hello world")
-
-# COMMAND ----------
-
 # ========================================
 # GOLD PROCESSING NOTEBOOK
 # DATASET: mart_sales_performance
