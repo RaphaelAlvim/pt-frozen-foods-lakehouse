@@ -1,0 +1,126 @@
+{
+	"name": "pl_ptfrozenfoods_master",
+	"properties": {
+		"description": "Master pipeline for end-to-end orchestration of PT Frozen Foods data platform from Bronze to Gold marts",
+		"activities": [
+			{
+				"name": "exec_bronze_ingestion",
+				"description": "Execute Bronze ingestion pipelines for all source systems (CRM, ERP, Reference, Weather, Web)",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_bronze_ingestion",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "exec_silver_standardization",
+				"description": "Silver layer standardization pipeline for all source systems",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exec_bronze_ingestion",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "exec_silver_integration",
+				"description": "Silver integration pipeline combining datasets such as orders and customers",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exec_silver_standardization",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "exec_gold_dimensions",
+				"description": "Gold layer dimension pipelines (calendar, customer, product, supplier, sales channel, weather)",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exec_silver_integration",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "exec_gold_fact",
+				"description": "Gold fact pipeline responsible for building fact_sales",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exec_gold_dimensions",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "exec_gold_marts",
+				"description": "Gold marts pipeline for analytical tables and business consumption",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exec_gold_fact",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"annotations": []
+	}
+}
