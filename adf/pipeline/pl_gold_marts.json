@@ -1,0 +1,86 @@
+{
+	"name": "pl_gold_marts",
+	"properties": {
+		"description": "Gold marts pipeline for analytical tables and business consumption",
+		"activities": [
+			{
+				"name": "nb_gold_mart_sales_performance",
+				"description": "Run Gold mart notebook for sales performance analysis",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/marts/gold_mart_sales_performance"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "nb_gold_mart_customer_sales",
+				"description": "Run Gold mart notebook for customer sales analysis",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "nb_gold_mart_sales_performance",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/marts/gold_mart_customer_sales"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "nb_gold_mart_customer_product_mix",
+				"description": "Run Gold mart notebook for customer product mix analysis",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "nb_gold_mart_customer_sales",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/marts/gold_mart_customer_product_mix"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": []
+	}
+}

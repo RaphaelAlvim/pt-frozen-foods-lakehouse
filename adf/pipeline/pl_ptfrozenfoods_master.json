@@ -133,6 +133,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_gold_marts",
+						"type": "PipelineReference"
+					},
 					"waitOnCompletion": true
 				}
 			}
