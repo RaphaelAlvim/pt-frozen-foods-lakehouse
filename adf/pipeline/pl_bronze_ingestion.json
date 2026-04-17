@@ -297,7 +297,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "nb_bronze_reference_sales_channels"
+					"notebookPath": "/pt_frozen_foods_251201/02_bronze/ingestion/reference/bronze_reference_sales_channels_autoloader"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
