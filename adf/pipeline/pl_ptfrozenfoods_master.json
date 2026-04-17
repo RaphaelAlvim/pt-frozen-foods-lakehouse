@@ -37,6 +37,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_silver_standardization",
+						"type": "PipelineReference"
+					},
 					"waitOnCompletion": true
 				}
 			},
