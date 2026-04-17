@@ -1,0 +1,170 @@
+{
+	"name": "pl_gold_dimensions",
+	"properties": {
+		"description": "Gold layer dimension pipelines (calendar, customer, product, supplier, sales channel, weather)",
+		"activities": [
+			{
+				"name": "nb_gold_dim_calendar",
+				"description": "Run Gold dimension notebook for calendar",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_calendar"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "nb_gold_dim_customer",
+				"description": "Run Gold dimension notebook for customer",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "nb_gold_dim_calendar",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_customer"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "nb_gold_dim_product",
+				"description": "Run Gold dimension notebook for product",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "nb_gold_dim_customer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_product"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "nb_gold_dim_supplier",
+				"description": "Run Gold dimension notebook for supplier",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "nb_gold_dim_product",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_supplier"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "nb_gold_dim_sales_channel",
+				"description": "Run Gold dimension notebook for sales channel",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "nb_gold_dim_supplier",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_sales_channel"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "nb_gold_dim_weather",
+				"description": "Run Gold dimension notebook for weather",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "nb_gold_dim_sales_channel",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_weather"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": []
+	}
+}
