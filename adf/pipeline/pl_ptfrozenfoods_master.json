@@ -61,6 +61,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_silver_integration",
+						"type": "PipelineReference"
+					},
 					"waitOnCompletion": true
 				}
 			},

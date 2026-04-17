@@ -1,0 +1,30 @@
+{
+	"name": "pl_silver_integration",
+	"properties": {
+		"description": "Silver integration pipeline combining datasets such as orders and customers",
+		"activities": [
+			{
+				"name": "nb_silver_integration_orders_customers",
+				"description": "Run Silver integration notebook combining orders and customers datasets",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/integration/silver_integration_orders_customers"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": []
+	}
+}
