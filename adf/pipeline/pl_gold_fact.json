@@ -1,0 +1,30 @@
+{
+	"name": "pl_gold_fact",
+	"properties": {
+		"description": "Gold fact pipeline responsible for building fact_sales",
+		"activities": [
+			{
+				"name": "nb_gold_fact_sales",
+				"description": "Run Gold fact notebook for fact_sales",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/facts/gold_fact_sales"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": []
+	}
+}

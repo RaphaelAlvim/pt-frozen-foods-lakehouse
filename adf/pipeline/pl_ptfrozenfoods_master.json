@@ -109,6 +109,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_gold_fact",
+						"type": "PipelineReference"
+					},
 					"waitOnCompletion": true
 				}
 			},
