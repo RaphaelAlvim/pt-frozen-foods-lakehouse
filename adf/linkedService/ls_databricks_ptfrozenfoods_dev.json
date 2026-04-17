@@ -1,0 +1,14 @@
+{
+	"name": "ls_databricks_ptfrozenfoods_dev",
+	"properties": {
+		"description": "Linked service between ADF and Databricks for PT Frozen Foods project",
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405616723982428.8.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/resourceGroups/rg-ptfrozenfoods-dev-we/providers/Microsoft.Databricks/workspaces/dbw-ptfrozenfoods-rmds-dev-we",
+			"existingClusterId": "0324-000715-9cgtztf6"
+		}
+	}
+}
