@@ -141,18 +141,18 @@ print("[INFO] Applied base string standardization (trim + empty -> null)")
 df_silver = df_silver.withColumn(
     "data_admissao",
     F.coalesce(
-        F.expr("try_to_date(data_admissao, 'yyyy-MM-dd')"),
-        F.expr("try_to_date(data_admissao, 'dd-MM-yyyy')"),
-        F.expr("try_to_date(data_admissao, 'dd/MM/yyyy')")
+        F.to_date(F.col("data_admissao"), "yyyy-MM-dd"),
+        F.to_date(F.col("data_admissao"), "dd-MM-yyyy"),
+        F.to_date(F.col("data_admissao"), "dd/MM/yyyy")
     )
 )
 
 df_silver = df_silver.withColumn(
     "data_saida",
     F.coalesce(
-        F.expr("try_to_date(data_saida, 'yyyy-MM-dd')"),
-        F.expr("try_to_date(data_saida, 'dd-MM-yyyy')"),
-        F.expr("try_to_date(data_saida, 'dd/MM/yyyy')")
+        F.to_date(F.col("data_saida"), "yyyy-MM-dd"),
+        F.to_date(F.col("data_saida"), "dd-MM-yyyy"),
+        F.to_date(F.col("data_saida"), "dd/MM/yyyy")
     )
 )
 
