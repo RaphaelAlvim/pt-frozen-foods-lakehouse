@@ -1,0 +1,1298 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-ptfrozenfoods-rmds-dev-we"
+		},
+		"ls_databricks_ptfrozenfoods_dev_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0324-000715-9cgtztf6"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_databricks_ptfrozenfoods_dev')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Linked service between ADF and Databricks for PT Frozen Foods project",
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-7405616723982428.8.azuredatabricks.net",
+					"authentication": "MSI",
+					"workspaceResourceId": "/subscriptions/22adfbc3-12e5-4a19-9e07-8150254079c1/resourceGroups/rg-ptfrozenfoods-dev-we/providers/Microsoft.Databricks/workspaces/dbw-ptfrozenfoods-rmds-dev-we",
+					"existingClusterId": "[parameters('ls_databricks_ptfrozenfoods_dev_properties_typeProperties_existingClusterId')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_bronze_ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Bronze layer ingestion pipeline for all source systems (CRM, ERP, Reference, Weather, Web)",
+				"activities": [
+					{
+						"name": "nb_bronze_crm_clients",
+						"description": "Run Bronze ingestion notebook for CRM clients",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/crm/bronze_crm_clients_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_crm_segmentation",
+						"description": "Run Bronze ingestion notebook for CRM segmentation",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_crm_clients",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/crm/bronze_crm_segmentation_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_crm_status",
+						"description": "Run Bronze ingestion notebook for CRM status",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_crm_segmentation",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/crm/bronze_crm_status_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_erp_orders",
+						"description": "Run Bronze ingestion notebook for ERP orders",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_crm_status",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/erp/bronze_erp_orders_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_erp_order_items",
+						"description": "Run Bronze ingestion notebook for ERP order items",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_erp_orders",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/erp/bronze_erp_order_items_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_erp_products",
+						"description": "Run Bronze ingestion notebook for ERP products",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_erp_order_items",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/erp/bronze_erp_products_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_erp_salespersons",
+						"description": "Run Bronze ingestion notebook for ERP salespersons",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_erp_products",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/erp/bronze_erp_salespersons_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_erp_suppliers",
+						"description": "Run Bronze ingestion notebook for ERP suppliers",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_erp_salespersons",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/erp/bronze_erp_suppliers_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_reference_calendar",
+						"description": "Run Bronze ingestion notebook for reference calendar",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_erp_suppliers",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/reference/bronze_reference_calendar_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_reference_locations",
+						"description": "Run Bronze ingestion notebook for reference locations",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_reference_calendar",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/reference/bronze_reference_locations_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_reference_sales_channels",
+						"description": "Run Bronze ingestion notebook for reference sales channels",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_reference_locations",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/reference/bronze_reference_sales_channels_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_weather_porto_daily",
+						"description": "Run Bronze ingestion notebook for Porto daily weather data",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_reference_sales_channels",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/weather_api/bronze_weather_api_weather_porto_daily_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_bronze_web_event_logs",
+						"description": "Run Bronze ingestion notebook for web event logs",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_bronze_weather_porto_daily",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/02_bronze/ingestion/web/bronze_web_web_event_logs_autoloader"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_ptfrozenfoods_dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_gold_dimensions')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Gold layer dimension pipelines (calendar, customer, product, supplier, sales channel, weather)",
+				"activities": [
+					{
+						"name": "nb_gold_dim_calendar",
+						"description": "Run Gold dimension notebook for calendar",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_calendar"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_gold_dim_customer",
+						"description": "Run Gold dimension notebook for customer",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_gold_dim_calendar",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_customer"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_gold_dim_product",
+						"description": "Run Gold dimension notebook for product",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_gold_dim_customer",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_product"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_gold_dim_supplier",
+						"description": "Run Gold dimension notebook for supplier",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_gold_dim_product",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_supplier"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_gold_dim_sales_channel",
+						"description": "Run Gold dimension notebook for sales channel",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_gold_dim_supplier",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_sales_channel"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_gold_dim_weather",
+						"description": "Run Gold dimension notebook for weather",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_gold_dim_sales_channel",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_weather"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_ptfrozenfoods_dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_gold_fact')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Gold fact pipeline responsible for building fact_sales",
+				"activities": [
+					{
+						"name": "nb_gold_fact_sales",
+						"description": "Run Gold fact notebook for fact_sales",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/facts/gold_fact_sales"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_ptfrozenfoods_dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_gold_marts')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Gold marts pipeline for analytical tables and business consumption",
+				"activities": [
+					{
+						"name": "nb_gold_mart_sales_performance",
+						"description": "Run Gold mart notebook for sales performance analysis",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/marts/gold_mart_sales_performance"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_gold_mart_customer_sales",
+						"description": "Run Gold mart notebook for customer sales analysis",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_gold_mart_sales_performance",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/marts/gold_mart_customer_sales"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_gold_mart_customer_product_mix",
+						"description": "Run Gold mart notebook for customer product mix analysis",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_gold_mart_customer_sales",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/marts/gold_mart_customer_product_mix"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_ptfrozenfoods_dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_silver_integration')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Silver integration pipeline combining datasets such as orders and customers",
+				"activities": [
+					{
+						"name": "nb_silver_integration_orders_customers",
+						"description": "Run Silver integration notebook combining orders and customers datasets",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/integration/silver_integration_orders_customers"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_ptfrozenfoods_dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_silver_standardization')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Silver layer standardization pipeline for all source systems (CRM, ERP, Reference, Weather, Web)",
+				"activities": [
+					{
+						"name": "nb_silver_crm_clients",
+						"description": "Run Silver standardization notebook for CRM clients",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/crm/silver_crm_clients"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_crm_segmentation",
+						"description": "Run Silver standardization notebook for CRM segmentation",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_crm_clients",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/crm/silver_crm_segmentation"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_crm_status",
+						"description": "Run Silver standardization notebook for CRM status",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_crm_segmentation",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/crm/silver_crm_status"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_erp_orders",
+						"description": "Run Silver standardization notebook for ERP orders",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_crm_status",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_orders"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_erp_order_items",
+						"description": "Run Silver standardization notebook for ERP order items",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_erp_orders",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_order_items"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_erp_products",
+						"description": "Run Silver standardization notebook for ERP products",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_erp_order_items",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_products"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_erp_salespersons",
+						"description": "Run Silver standardization notebook for ERP salespersons",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_erp_products",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_salespersons"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_erp_suppliers",
+						"description": "Run Silver standardization notebook for ERP suppliers",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_erp_salespersons",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_suppliers"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_reference_calendar",
+						"description": "Run Silver standardization notebook for reference calendar",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_erp_suppliers",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/reference/silver_reference_calendar"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_reference_locations",
+						"description": "Run Silver standardization notebook for reference locations",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_reference_calendar",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/reference/silver_reference_locations"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_reference_sales_channels",
+						"description": "Run Silver standardization notebook for reference sales channels",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_reference_locations",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/reference/silver_reference_sales_channels"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_weather_porto_daily",
+						"description": "Run Silver standardization notebook for Porto daily weather data",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_reference_sales_channels",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/weather_api/silver_weather_api_weather_porto_daily"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "nb_silver_web_event_logs",
+						"description": "Run Silver standardization notebook for web event logs",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "nb_silver_weather_porto_daily",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/web/silver_web_web_event_logs"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_ptfrozenfoods_dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_ptfrozenfoods_master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Master pipeline for end-to-end orchestration of PT Frozen Foods data platform from Bronze to Gold marts",
+				"activities": [
+					{
+						"name": "exec_bronze_ingestion",
+						"description": "Execute Bronze ingestion pipelines for all source systems (CRM, ERP, Reference, Weather, Web)",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_bronze_ingestion",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "exec_silver_standardization",
+						"description": "Silver layer standardization pipeline for all source systems",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exec_bronze_ingestion",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_silver_standardization",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "exec_silver_integration",
+						"description": "Silver integration pipeline combining datasets such as orders and customers",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exec_silver_standardization",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_silver_integration",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "exec_gold_dimensions",
+						"description": "Gold layer dimension pipelines (calendar, customer, product, supplier, sales channel, weather)",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exec_silver_integration",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_gold_dimensions",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "exec_gold_fact",
+						"description": "Gold fact pipeline responsible for building fact_sales",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exec_gold_dimensions",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_gold_fact",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "exec_gold_marts",
+						"description": "Gold marts pipeline for analytical tables and business consumption",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exec_gold_fact",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_gold_marts",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_bronze_ingestion')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_silver_standardization')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_silver_integration')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_gold_dimensions')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_gold_fact')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_gold_marts')]"
+			]
+		}
+	]
+}
