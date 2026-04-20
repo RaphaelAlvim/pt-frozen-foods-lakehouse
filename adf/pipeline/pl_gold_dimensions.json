@@ -17,7 +17,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_calendar"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_calendar"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -45,7 +45,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_customer"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_customer"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -73,7 +73,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_product"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_product"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -101,7 +101,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_supplier"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_supplier"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -129,7 +129,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_sales_channel"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_sales_channel"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -157,7 +157,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/dimensions/gold_dim_weather"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/dimensions/gold_dim_weather"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
