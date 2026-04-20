@@ -17,7 +17,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/crm/silver_crm_clients"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/crm/silver_crm_clients"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -45,7 +45,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/crm/silver_crm_segmentation"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/crm/silver_crm_segmentation"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -73,7 +73,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/crm/silver_crm_status"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/crm/silver_crm_status"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -101,7 +101,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/erp/silver_erp_orders"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_orders"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -129,7 +129,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/erp/silver_erp_order_items"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_order_items"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -157,7 +157,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/erp/silver_erp_products"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_products"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -185,7 +185,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/erp/silver_erp_salespersons"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_salespersons"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -213,7 +213,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/erp/silver_erp_suppliers"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/erp/silver_erp_suppliers"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -241,7 +241,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/reference/silver_reference_calendar"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/reference/silver_reference_calendar"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -269,7 +269,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/reference/silver_reference_locations"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/reference/silver_reference_locations"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -297,7 +297,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/reference/silver_reference_sales_channels"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/reference/silver_reference_sales_channels"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -325,7 +325,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/weather_api/silver_weather_api_weather_porto_daily"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/weather_api/silver_weather_api_weather_porto_daily"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -353,7 +353,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/web/silver_web_web_event_logs"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/web/silver_web_web_event_logs"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
