@@ -17,7 +17,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/facts/gold_fact_sales"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/facts/gold_fact_sales"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
