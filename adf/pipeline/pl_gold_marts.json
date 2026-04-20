@@ -17,7 +17,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/marts/gold_mart_sales_performance"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/marts/gold_mart_sales_performance"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -45,7 +45,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/marts/gold_mart_customer_sales"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/marts/gold_mart_customer_sales"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
@@ -73,7 +73,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/04_gold/processing/marts/gold_mart_customer_product_mix"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/04_gold/processing/marts/gold_mart_customer_product_mix"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
