@@ -17,7 +17,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/pt_frozen_foods_251201/03_silver/processing/integration/silver_integration_orders_customers"
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/03_silver/processing/integration/silver_integration_orders_customers"
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_databricks_ptfrozenfoods_dev",
