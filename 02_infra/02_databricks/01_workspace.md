@@ -1,111 +1,100 @@
-# Azure Databricks Workspace
+### Databricks Workspace — PT Frozen Foods
 
-## Overview
+#### Overview
 
-This document describes the Azure Databricks Workspace configured for the **PT Frozen Foods** project. The environment was provisioned following enterprise best practices for security, governance, and scalability within Microsoft Azure.
+This document describes the Azure Databricks Workspace used in the PT Frozen Foods data platform.
+
+The workspace is the central execution environment for data processing, integrated with Unity Catalog for governance and Azure Data Factory for orchestration.
 
 ---
 
-## Workspace Details
+#### Workspace Configuration
 
 | Property | Value |
 |----------|-------|
-| Status | Active |
 | Workspace Name | ptfrozenfoods-dbx-dev |
 | Resource Group | rg-ptfrozenfoods-dev-we |
 | Location | West Europe |
 | Subscription | rmds-ptfrozenfoods-dev |
-| Subscription ID | xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx |
-| Workspace Type | Hybrid |
-| Managed Resource Group | rg-ptfrozenfoods-rmds-db-managed-dev-we |
-| Workspace URL | https://adb-xxxxxxxxxxxxxxxx.x.azuredatabricks.net |
 | Pricing Tier | Premium |
-| Role-Based Access Control (RBAC) | Enabled |
-| No Public IP (NPIP) | Enabled |
+| Managed Resource Group | rg-ptfrozenfoods-rmds-db-managed-dev-we |
 
 ---
 
-## Security and Governance
+#### Key Capabilities
 
-The workspace is configured with advanced security and governance features:
-
-- **Premium Tier**: Supports Role-Based Access Control (RBAC) and Unity Catalog.
-- **No Public IP (NPIP)**: Prevents direct exposure to the public internet.
-- **Managed Resource Group**: Automatically managed by Azure Databricks.
-- **Azure Active Directory Integration**: Ensures secure identity and access management.
-- **Unity Catalog Compatibility**: Enables centralized data governance and access control.
-- **Secure Cluster Connectivity**: Enhances network security.
+- Execution of data processing notebooks (Bronze, Silver, Gold)
+- Integration with Unity Catalog for data governance
+- Delta Lake processing with optimized storage and performance
+- Orchestration via Azure Data Factory (ADF)
+- Central compute layer for analytics and data transformation
 
 ---
 
-## Networking Configuration
+#### Security and Governance
 
-| Configuration | Status |
-|---------------|--------|
-| Public IP Access | Disabled |
-| Secure Cluster Connectivity | Enabled |
-| Private Networking | Enabled |
-| Managed Identity | Configured via Azure Databricks Access Connector |
-
----
-
-## Integration with Azure Services
-
-| Service | Purpose |
-|---------|---------|
-| Azure Data Lake Storage Gen2 | Data storage |
-| Azure Databricks | Data processing and analytics |
-| Azure Data Factory | Pipeline orchestration |
-| Azure Key Vault | Secrets management |
-| Azure Log Analytics | Monitoring and observability |
-| Unity Catalog | Data governance and access control |
-| Terraform | Infrastructure provisioning (IaC) |
-| Power BI | Business intelligence and data visualization |
+- Unity Catalog enabled for centralized governance
+- RBAC enabled at workspace level
+- Managed Identity used for secure access to storage
+- External Locations configured for controlled data access
+- Permissions managed via SQL scripts (`00_setup`)
 
 ---
 
-## Role in the PT Frozen Foods Architecture
+#### Networking
 
-Azure Databricks plays a central role in the project's Lakehouse architecture:
-
-- Processing and transforming data.
-- Implementing the Medallion Architecture (Bronze, Silver, and Gold layers).
-- Executing analytical notebooks and data pipelines.
-- Creating and managing Delta Lake tables.
-- Preparing curated datasets for Business Intelligence and Machine Learning.
+- No Public IP (NPIP) enabled
+- Secure cluster connectivity enabled
+- Private networking enforced
 
 ---
 
-## Architectural Context
+#### Integration in the Architecture
 
-```
-Azure Data Factory
-        │
-        ▼
-Azure Databricks
-        │
-        ▼
-Unity Catalog
-        │
-        ▼
-Azure Data Lake Storage Gen2
-        │
-        ▼
-Power BI
-```
+The Databricks Workspace operates as the compute layer in the Lakehouse architecture:
+
+- ADF triggers execution of notebooks
+- Databricks processes and transforms data
+- Unity Catalog governs access to data assets
+- Data is stored in Azure Data Lake (ADLS Gen2)
+- Outputs are consumed by BI and future ML workloads
 
 ---
 
-## Notes
+#### Repository Integration
 
-- Sensitive information has been masked for public portfolio publication.
-- No credentials or confidential identifiers are exposed in this document.
-- The environment follows Microsoft best practices for secure and scalable analytics solutions.
+The workspace is integrated with the GitHub repository using Databricks Git folders.
+
+Key principles:
+
+- The repository is the **single source of truth**
+- The workspace reflects the repository structure
+- All production notebooks are executed from Git-aligned paths
+- No official notebooks exist outside the Git folder
 
 ---
 
-## References
+#### Role in the Project
 
-- https://learn.microsoft.com/azure/databricks/
-- https://learn.microsoft.com/azure/databricks/unity-catalog/
-- https://learn.microsoft.com/azure/architecture/
+Databricks is responsible for:
+
+- Implementing the Medallion Architecture (Bronze, Silver, Gold)
+- Building dimensional models and marts
+- Executing production-grade processing notebooks
+- Preparing datasets for BI and ML consumption
+
+---
+
+#### Notes
+
+- Sensitive identifiers are masked for portfolio purposes
+- Infrastructure is provisioned via Terraform where applicable
+- Permissions and environment setup are defined in `02_infra/02_databricks/00_setup`
+
+---
+
+#### Conclusion
+
+The Databricks Workspace is not a source of logic or configuration.
+
+It is an execution environment fully aligned with the repository, ensuring consistency, reproducibility, and maintainability across the data platform.

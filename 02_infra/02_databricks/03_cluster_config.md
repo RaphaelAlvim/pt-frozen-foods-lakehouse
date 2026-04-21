@@ -1,152 +1,147 @@
-# Azure Databricks Cluster Configuration
+### Databricks Cluster Configuration — PT Frozen Foods
 
-## Overview
+#### Overview
 
-This document describes the cluster configuration for the **PT Frozen Foods** project. Azure Databricks compute resources are designed to support scalable, secure, and high-performance data processing workloads following Microsoft and Databricks best practices.
+This document describes the compute configuration used in the PT Frozen Foods data platform.
 
-The configuration aligns with the Lakehouse architecture and supports data engineering, analytics, and machine learning workloads.
+Databricks clusters are used as the execution engine for data processing pipelines orchestrated by Azure Data Factory (ADF).
 
 ---
 
-## Compute Configuration
+#### Current Cluster Configuration
 
 | Property | Value |
 |----------|-------|
-| Workspace | ptfrozenfoods-dbx-dev |
-| Compute Type | All-Purpose Compute / Job Compute |
+| Cluster Name | dbx-ptfrozenfoods-dev-bronze |
+| Runtime | Databricks Runtime 14.3 LTS |
+| Spark Version | Apache Spark 3.5.0 |
+| Node Type | Standard_D4ds_v4 (16 GB, 4 cores) |
+| Mode | Single Node |
 | Access Mode | Standard |
-| Unity Catalog Compatibility | Enabled |
-| Databricks Runtime | Latest supported Long-Term Support (LTS) version |
-| Photon Acceleration | Enabled |
-| Autoscaling | Enabled |
-| Auto Termination | Enabled |
-| Cloud Provider | Microsoft Azure |
-| Region | West Europe |
-| Pricing Tier | Premium |
+| Photon | Enabled |
+| Auto Termination | 15 minutes |
+| Policy | Unrestricted |
 
 ---
 
-## Node Configuration
+#### Tags
 
-| Property | Value |
-|----------|-------|
-| Driver Node Type | To be defined based on workload requirements |
-| Worker Node Type | To be defined based on workload requirements |
-| Minimum Workers | To be defined |
-| Maximum Workers | To be defined |
-| Virtual Machine Provider | Azure Virtual Machines |
-
-> **Note:** Node types and scaling parameters will be finalized based on performance and cost optimization requirements.
+| Key | Value |
+|-----|------|
+| project_name | pt_frozen_foods_251201 |
+| layer | bronze |
+| env | dev |
 
 ---
 
-## Security Configuration
+#### Cluster Strategy
 
-| Feature | Status |
-|---------|--------|
-| Unity Catalog Enabled | Yes |
-| Managed Identity Authentication | Yes |
-| Azure Databricks Access Connector | Enabled |
-| Role-Based Access Control (RBAC) | Enabled |
-| Secure Cluster Connectivity (No Public IP) | Enabled |
-| Data Encryption at Rest | Enabled |
-| Data Encryption in Transit | Enabled |
+At the current stage:
 
----
+- A **single-node cluster** is used
+- Designed for:
+  - development
+  - ADF pipeline execution
+- Optimized for:
+  - low cost
+  - simplicity
+  - controlled workloads
 
-## Performance Optimization
-
-The following optimizations are applied to ensure efficient data processing:
-
-- **Photon Engine** for accelerated query execution.
-- **Delta Lake** for reliable and performant data storage.
-- **Auto Optimize** to improve file sizes during writes.
-- **Auto Compaction** to mitigate the small files problem.
-- **Liquid Clustering** for improved query performance.
-- **Caching** for frequently accessed datasets.
-- **Autoscaling** for dynamic workload adaptation.
+This configuration is sufficient for the current scale of the project.
 
 ---
 
-## Supported Workloads
+#### Key Technical Considerations
 
-| Workload | Description |
-|----------|-------------|
-| Data Ingestion | Incremental ingestion using Auto Loader |
-| Data Transformation | ETL/ELT pipelines across Bronze, Silver, and Gold layers |
-| Data Modeling | Creation of fact and dimension tables |
-| Data Quality | Validation and standardization processes |
-| Analytics | Preparation of datasets for Power BI |
-| Machine Learning | Model development and experimentation |
+##### Execution Environment Consistency
 
----
+The cluster used by ADF is the **reference execution environment**.
 
-## Integration with Azure Services
+Important observation:
 
-| Service | Purpose |
-|---------|---------|
-| Azure Data Lake Storage Gen2 | Data storage |
-| Azure Data Factory | Pipeline orchestration |
-| Unity Catalog | Data governance and access control |
-| Azure Key Vault | Secrets management |
-| Azure Log Analytics | Monitoring and observability |
-| Terraform | Infrastructure provisioning (IaC) |
-| Power BI | Business intelligence and reporting |
+- Differences were identified between:
+  - serverless execution
+  - cluster execution
+
+Example:
+- `try_to_date` worked in serverless
+- failed in cluster (ADF execution)
+
+Conclusion:
+- All notebooks must be validated against this cluster
+- Serverless is not used as a reference environment
 
 ---
 
-## Role in the PT Frozen Foods Architecture
+##### Unity Catalog Integration
 
-Azure Databricks clusters serve as the computational engine of the platform, enabling scalable and secure data processing within the Lakehouse architecture.
-
-## Architectural Context
-
-```
-Azure Data Factory
-        │
-        ▼
-Azure Databricks Clusters
-        │
-        ▼
-Unity Catalog
-        │
-        ▼
-Azure Data Lake Storage Gen2
-        │
-        ▼
-Power BI
-```
+- Cluster operates with Unity Catalog enabled
+- All data access is governed via:
+  - catalog
+  - schemas
+  - external locations
 
 ---
 
-## Governance and Best Practices
+##### Performance Configuration
 
-- Use **Job Compute** for production workloads.
-- Use **All-Purpose Compute** for development and testing.
-- Enable **Photon Acceleration** for performance optimization.
-- Enforce **Unity Catalog** for centralized governance.
-- Apply the **Principle of Least Privilege** for access control.
-- Enable **Auto Termination** to optimize costs.
-- Use **Autoscaling** for workload elasticity.
-- Monitor compute usage through Azure Log Analytics.
-- Manage infrastructure using Terraform.
+- Photon enabled for query acceleration
+- Delta Lake used as storage format
+- Auto Optimize enabled
+- Auto Compaction enabled
+- Liquid Clustering applied in Gold layer
 
 ---
 
-## Notes
+#### Workload Usage
 
-- Configurations may evolve as the project scales.
-- Sensitive information has been excluded for security purposes.
-- All settings follow Microsoft Azure and Databricks best practices.
-- Cluster-specific parameters will be updated once production compute is fully provisioned.
+The cluster is used for:
+
+- Bronze ingestion (Auto Loader)
+- Silver transformations and integration
+- Gold modeling (dimensions, facts, marts)
+- ADF pipeline execution
 
 ---
 
-## References
+#### Integration with ADF
 
-- https://learn.microsoft.com/azure/databricks/compute/configure
-- https://learn.microsoft.com/azure/databricks/clusters
-- https://learn.microsoft.com/azure/databricks/runtime
-- https://learn.microsoft.com/azure/databricks/photon
-- https://learn.microsoft.com/azure/databricks/unity-catalog
-- https://learn.microsoft.com/azure/databricks/lakehouse
+- ADF uses this cluster via Linked Service
+- Notebooks are executed through Databricks Notebook Activities
+- Execution depends on:
+  - cluster availability
+  - Unity Catalog permissions
+
+---
+
+#### Governance
+
+- Access controlled via Unity Catalog
+- Storage access via External Locations
+- Permissions granted to:
+  - user
+  - ADF service principal
+
+---
+
+#### Future Evolution
+
+- Introduce Job Clusters for production workloads
+- Separate environments (DEV / TEST / PROD)
+- Scale compute based on workload growth
+
+---
+
+#### Notes
+
+- Current configuration prioritizes simplicity and cost-efficiency
+- Suitable for development and controlled execution scenarios
+- Not intended for high-scale production workloads
+
+---
+
+#### Conclusion
+
+The Databricks cluster is the core execution layer of the platform.
+
+It is tightly integrated with ADF and Unity Catalog and represents the authoritative runtime environment for all data processing workloads.

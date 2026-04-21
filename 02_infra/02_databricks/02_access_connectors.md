@@ -1,124 +1,111 @@
-# Azure Databricks Access Connector
+### Databricks Access Connector — PT Frozen Foods
 
-## Overview
+#### Overview
 
-This document describes the Azure Databricks Access Connector configured for the **PT Frozen Foods** project. The Access Connector enables secure and seamless connectivity between Azure Databricks and Azure Data Lake Storage Gen2 (ADLS Gen2) using Managed Identity, eliminating the need for secrets or storage keys.
+This document describes the Azure Databricks Access Connector used in the PT Frozen Foods data platform.
+
+The Access Connector enables secure access from Databricks to Azure Data Lake Storage (ADLS Gen2) using Managed Identity, supporting Unity Catalog governance and eliminating the need for secrets.
 
 ---
 
-## Access Connector Details
+#### Configuration
 
 | Property | Value |
 |----------|-------|
-| Access Connector Name | ac-ptfrozenfoods-rmds-dev-we |
+| Name | ac-ptfrozenfoods-rmds-dev-we |
 | Resource Group | rg-ptfrozenfoods-dev-we |
 | Location | West Europe |
 | Subscription | rmds-ptfrozenfoods-dev |
-| Subscription ID | xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx |
-| State | Succeeded |
-| Resource ID | /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/rg-ptfrozenfoods-dev-we/providers/Microsoft.Databricks/accessConnectors/ac-ptfrozenfoods-rmds-dev-we |
-| Managed Identity Type | System-Assigned |
-| Managed Identity Principal ID | xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx |
+| Identity Type | System-Assigned |
 
 ---
 
-## Security and Access Control
+#### Authentication Model
 
-The Access Connector uses a system-assigned Managed Identity to securely authenticate with Azure services.
+The Access Connector uses a **system-assigned Managed Identity** to authenticate Databricks access to storage.
 
-### Role-Based Access Control (RBAC)
+Key characteristics:
 
-| Role | Scope | Purpose |
-|------|-------|---------|
-| Storage Blob Data Contributor | Azure Data Lake Storage Gen2 | Enables read and write access to data in storage containers. |
-
-This role ensures that Azure Databricks can securely access and manage data stored in ADLS Gen2.
+- No secrets or keys are required
+- Authentication is handled by Azure
+- Identity is automatically managed
 
 ---
 
-## Integration with Azure Databricks
+#### Storage Access
 
-The Access Connector is linked to the Azure Databricks Workspace and is used to authenticate access to external storage resources.
+The Managed Identity is granted access to the Data Lake via RBAC:
 
-### Supported Use Cases
+| Role | Scope |
+|------|-------|
+| Storage Blob Data Contributor | ADLS Gen2 |
 
-- Secure access to Azure Data Lake Storage Gen2.
-- Integration with Unity Catalog.
-- Creation of Storage Credentials.
-- Configuration of External Locations.
-- Governance and fine-grained access control.
-- Secure data ingestion and transformation.
+This allows Databricks to:
 
----
-
-## Integration with Unity Catalog
-
-The Access Connector plays a critical role in enabling data governance through Unity Catalog.
-
-### Functional Architecture
-
-```
-Azure Databricks
-        │
-        ▼
-Access Connector (Managed Identity)
-        │
-        ▼
-Storage Credential (Unity Catalog)
-        │
-        ▼
-External Location (Unity Catalog)
-        │
-        ▼
-Azure Data Lake Storage Gen2
-```
+- Read and write data
+- Create and manage Delta tables
+- Support ingestion and transformations
 
 ---
 
-## Storage Scope
+#### Integration with Unity Catalog
 
-The Access Connector provides secure access to the project's Data Lake containers:
+The Access Connector is used indirectly through Unity Catalog:
 
-- **raw**
-- **bronze**
-- **silver**
-- **gold**
+- It backs the **Storage Credential**
+- Storage Credentials are used by **External Locations**
+- External Locations map to ADLS paths
 
-These containers support the Medallion Architecture implemented in the PT Frozen Foods platform.
+Logical flow:
 
----
-
-## Provisioning and Governance
-
-| Component | Configuration |
-|-----------|--------------|
-| Provisioning Method | Terraform (Infrastructure as Code) |
-| Authentication Method | Managed Identity |
-| Secrets Management | Not Required |
-| Governance Model | Unity Catalog |
-| Compliance | Azure Security Best Practices |
+Databricks → Access Connector → Storage Credential → External Location → ADLS
 
 ---
 
-## Role in the PT Frozen Foods Architecture
+#### External Locations
 
-The Access Connector ensures secure, scalable, and governed access between Azure Databricks and Azure Storage. It supports enterprise-grade data governance and aligns with Microsoft best practices.
+The following External Locations are configured using this connector:
 
-### Key Benefits
+- el-ptfrozenfoods-dev
+- el-ptfrozenfoods-bronze-dev
+- el-ptfrozenfoods-silver-dev
+- el-ptfrozenfoods-gold-dev
 
-- Eliminates the need for storage keys and secrets.
-- Enhances security through Managed Identity.
-- Enables seamless integration with Unity Catalog.
-- Supports centralized access control using RBAC.
-- Aligns with Zero Trust security principles.
-- Facilitates scalable and maintainable data architectures.
+These locations correspond to the Medallion layers.
 
 ---
 
-## References
+#### Role in the Architecture
 
-- https://learn.microsoft.com/azure/databricks/connect/unity-catalog/cloud-storage/azure-managed-identities
-- https://learn.microsoft.com/azure/databricks/data-governance/unity-catalog/azure-managed-identities
-- https://learn.microsoft.com/azure/role-based-access-control/
-- https://learn.microsoft.com/azure/storage/blobs/data-lake-storage-introduction
-- https://learn.microsoft.com/azure/databricks/
+The Access Connector enables:
+
+- Secure access to ADLS from Databricks
+- Integration with Unity Catalog governance
+- Execution of Bronze, Silver and Gold pipelines
+- Controlled access via GRANTs on External Locations
+
+---
+
+#### Provisioning
+
+- Provisioned via Terraform
+- No manual credential configuration required
+- Fully aligned with Infrastructure as Code principles
+
+---
+
+#### Notes
+
+- All access to storage is mediated by Unity Catalog
+- Permissions are enforced via:
+  - GRANT statements
+  - External Location privileges
+- Direct access to storage is not used in the project
+
+---
+
+#### Conclusion
+
+The Access Connector is a foundational component that enables secure, governed, and scalable data access between Databricks and ADLS.
+
+It ensures that all data interactions follow Unity Catalog governance and Azure security best practices.

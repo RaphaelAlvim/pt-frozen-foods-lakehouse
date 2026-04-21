@@ -1,181 +1,158 @@
-# Unity Catalog Configuration
+### Unity Catalog Configuration — PT Frozen Foods
 
-## Overview
+#### Overview
 
-This document describes the Unity Catalog configuration for the **PT Frozen Foods** project. Unity Catalog provides centralized governance, fine-grained access control, and data lineage across the Azure Databricks environment.
+This document describes the Unity Catalog configuration used in the PT Frozen Foods data platform.
 
-It ensures secure, scalable, and compliant management of data assets within the Lakehouse architecture implemented on Microsoft Azure.
+Unity Catalog is responsible for centralized data governance, access control, and storage abstraction across the Lakehouse architecture.
 
 ---
 
-## Metastore Information
+#### Metastore
 
 | Property | Value |
 |----------|-------|
-| Metastore Name | metastore-ptfrozenfoods-dev |
+| Name | metastore-ptfrozenfoods-dev |
 | Region | West Europe |
-| Cloud Provider | Microsoft Azure |
 | Status | Active |
-| Metastore ID | xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx |
-| Metastore Root Storage | abfss://<container>@<storage-account>.dfs.core.windows.net/ |
 
-> **Note:** Sensitive identifiers have been masked for security purposes.
+The metastore is linked to the Databricks workspace and governs all data access.
 
 ---
 
-## Catalog Configuration
+#### Catalog
 
-| Catalog Name | Purpose |
-|--------------|---------|
-| ptfrozenfoods_dev | Development environment for the PT Frozen Foods data platform |
+| Catalog | Purpose |
+|---------|--------|
+| ptfrozenfoods_dev | Development environment |
 
 ---
 
-## Schema Organization
-
-The catalog is structured according to the Medallion Architecture.
+#### Schemas
 
 | Schema | Description |
 |--------|-------------|
-| bronze | Raw structured data ingested from source systems |
-| silver | Cleansed, standardized, and integrated datasets |
-| gold | Curated and analytics-ready data models |
-| default | Default schema automatically created by Databricks |
-| information_schema | System schema containing metadata and governance information |
+| bronze | Raw structured ingestion layer |
+| silver | Cleansed and integrated data |
+| gold | Analytical and curated datasets |
+
+System schemas:
+- default
+- information_schema
 
 ---
 
-## Data Governance Hierarchy
+#### Data Hierarchy
 
-Unity Catalog organizes data using a three-level namespace:
+Unity Catalog follows a 3-level structure:
 
-```
-Catalog → Schema → Table/View
-```
+Catalog → Schema → Table
 
-### Example
+Example:
 
-```
 ptfrozenfoods_dev.gold.fact_sales
-```
 
 ---
 
-## Storage Credential
-
-The Unity Catalog uses a Managed Identity through the Azure Databricks Access Connector to securely access Azure Data Lake Storage Gen2.
+#### Storage Credential
 
 | Property | Value |
 |----------|-------|
-| Storage Credential Name | sc-ptfrozenfoods-dev |
-| Authentication Type | Managed Identity |
+| Name | sc-ptfrozenfoods-dev |
+| Type | Managed Identity |
 | Access Connector | ac-ptfrozenfoods-rmds-dev-we |
-| Cloud Storage | Azure Data Lake Storage Gen2 |
+
+Used to authenticate access to ADLS via the Access Connector.
 
 ---
 
-## External Locations
+#### External Locations
 
-External locations provide secure access to data stored in ADLS Gen2.
+| Name | Layer | Purpose |
+|------|------|--------|
+| el-ptfrozenfoods-dev | raw | raw ingestion |
+| el-ptfrozenfoods-bronze-dev | bronze | bronze storage |
+| el-ptfrozenfoods-silver-dev | silver | silver storage |
+| el-ptfrozenfoods-gold-dev | gold | gold storage |
 
-| External Location | Storage Credential | Storage Path |
-|-------------------|-------------------|--------------|
-| el-ptfrozenfoods-dev | sc-ptfrozenfoods-dev | abfss://raw@<storage-account>.dfs.core.windows.net/ |
-| el-ptfrozenfoods-bronze-dev | sc-ptfrozenfoods-dev | abfss://bronze@<storage-account>.dfs.core.windows.net/ |
-| el-ptfrozenfoods-silver-dev | sc-ptfrozenfoods-dev | abfss://silver@<storage-account>.dfs.core.windows.net/ |
-| el-ptfrozenfoods-gold-dev | sc-ptfrozenfoods-dev | abfss://gold@<storage-account>.dfs.core.windows.net/ |
-
----
-
-## Unity Catalog Managed Storage
-
-The root storage location for the Unity Catalog metastore is configured as follows:
-
-| Property | Value |
-|----------|-------|
-| External Location Name | metastore_root_location |
-| Storage Credential ID | xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx |
-| Storage Path | abfss://dbx-uc@<storage-account>.dfs.core.windows.net/|
-| Description | Auto-created external location for Unity Catalog managed storage |
+External Locations are mapped directly to ADLS containers.
 
 ---
 
-## Security and Access Control
+#### Governance Model
 
-Unity Catalog enables centralized and fine-grained data governance.
+Access is controlled via:
 
-| Feature | Status |
-|---------|--------|
-| Centralized Governance | Enabled |
-| Role-Based Access Control (RBAC) | Enabled |
-| Fine-Grained Permissions | Enabled |
-| Data Lineage | Enabled |
-| Data Auditing | Enabled |
-| Managed Identity Authentication | Enabled |
-| External Data Access | Enabled |
+- GRANT statements
+- Schema-level permissions
+- External Location permissions
 
----
+Key permissions used:
 
-## Supported Data Layers
-
-The Unity Catalog supports the Medallion Architecture implemented in the PT Frozen Foods platform.
-
-| Layer | Container | Purpose |
-|-------|-----------|---------|
-| RAW | raw | Raw data ingestion |
-| Bronze | bronze | Incrementally ingested structured data |
-| Silver | silver | Cleansed and standardized data |
-| Gold | gold | Curated, analytics-ready datasets |
+- USE CATALOG
+- USE SCHEMA
+- SELECT
+- MODIFY
+- CREATE TABLE
+- READ FILES
+- WRITE FILES
+- CREATE EXTERNAL TABLE
+- MANAGE (required for DROP/ALTER operations)
 
 ---
 
-## Architectural Context
+#### ADF Integration
 
-```text
-Azure Databricks
-        │
-        ▼
-Unity Catalog
-        │
-        ▼
-Storage Credentials
-        │
-        ▼
-External Locations
-        │
-        ▼
-Azure Data Lake Storage Gen2
-```
+ADF executes notebooks using a service principal:
+
+- Name: adf-ptfrozenfoods-rmds-dev-we
+- Identification: GUID (required for GRANTs)
+
+Important behavior:
+
+- Principal must be referenced using **Application ID (GUID)**
+- Friendly name does not work in GRANT statements
 
 ---
 
-## Best Practices Implemented
+#### Critical Learnings
 
-- Centralized governance using Unity Catalog.
-- Secure authentication via Managed Identity.
-- Use of Azure Databricks Access Connector.
-- Fine-grained access control through RBAC.
-- External locations mapped to Medallion Architecture layers.
-- Separation of environments and data domains.
-- Compliance with Microsoft and Databricks security standards.
-- Infrastructure managed using Terraform (IaC).
-- Alignment with Lakehouse architectural principles.
-
----
-
-## Notes
-
-- Sensitive identifiers such as Metastore IDs and Credential IDs have been masked.
-- The configuration follows Microsoft Azure and Databricks best practices.
-- This setup supports a scalable, secure, and enterprise-grade data platform.
-- All resources are deployed in the West Europe region.
+- Unity Catalog requires both:
+  - logical permissions (catalog/schema)
+  - physical permissions (external locations)
+- Missing permissions lead to execution failures in ADF
+- MANAGE permission is required for:
+  - DROP TABLE
+  - ALTER TABLE
+- External Locations must include:
+  - READ FILES
+  - WRITE FILES
+  - CREATE EXTERNAL TABLE
 
 ---
 
-## References
+#### Role in the Architecture
 
-- https://learn.microsoft.com/azure/databricks/data-governance/unity-catalog/
-- https://learn.microsoft.com/azure/databricks/connect/unity-catalog/cloud-storage/
-- https://learn.microsoft.com/azure/databricks/data-governance/unity-catalog/azure-managed-identities/
-- https://learn.microsoft.com/azure/databricks/lakehouse/
-- https://learn.microsoft.com/azure/architecture/
+Unity Catalog acts as the governance layer:
+
+Databricks → Unity Catalog → External Locations → ADLS
+
+It ensures:
+
+- controlled data access
+- environment consistency
+- secure integration with ADF
+
+---
+
+#### Notes
+
+- All permissions are defined in `02_infra/02_databricks/00_setup`
+- Access is fully governed through Unity Catalog
+- Direct storage access is not used in the project
+
+---
+
+#### Conclusion
+
+Unity Catalog is a critical component of the platform, enabling secure, governed, and scalable data access across all layers of the architecture.

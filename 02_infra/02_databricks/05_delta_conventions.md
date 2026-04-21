@@ -1,246 +1,144 @@
-# Delta Lake Conventions
+### Delta Lake Conventions — PT Frozen Foods
 
-## Overview
+#### Overview
 
-> **Note:** This document outlines the standard Delta Lake conventions adopted in the PT Frozen Foods project. It provides general guidelines aligned with industry best practices and may be adapted as the platform evolves.
+This document defines the Delta Lake conventions adopted in the PT Frozen Foods data platform.
 
-This document defines the Delta Lake standards adopted in the **PT Frozen Foods** project. These conventions ensure data reliability, performance, scalability, and governance across the Lakehouse architecture implemented on Azure Databricks.
-
-Delta Lake serves as the foundational storage layer for all processed data within the Bronze, Silver, and Gold layers.
+Delta Lake is the standard storage format used across all layers (Bronze, Silver, Gold), ensuring consistency, performance, and governance within the Lakehouse architecture.
 
 ---
 
-## Objectives
+#### Core Principles
 
-The primary objectives of these conventions are:
-
-- Ensure data consistency and integrity.
-- Enable scalable and reliable data processing.
-- Improve query performance and optimization.
-- Support data governance through Unity Catalog.
-- Facilitate auditing and time travel capabilities.
-- Standardize data engineering practices across the platform.
+- All datasets are stored in Delta format
+- Unity Catalog is used for table access and governance
+- Direct storage path access is avoided in production logic
+- Tables are managed through catalog and schema definitions
 
 ---
 
-## Delta Lake Architecture
+#### Layer Standards
 
-| Layer | Format | Description |
-|-------|--------|-------------|
-| Bronze | Delta | Raw structured data ingested from source systems |
-| Silver | Delta | Cleansed, standardized, and integrated datasets |
-| Gold | Delta | Curated, analytics-ready data models |
-
-All datasets are stored in Delta format to support ACID transactions and advanced data management capabilities.
+| Layer | Format | Purpose |
+|-------|--------|--------|
+| Bronze | Delta | Raw structured ingestion |
+| Silver | Delta | Cleansed and integrated data |
+| Gold | Delta | Analytical models and marts |
 
 ---
 
-## Table Naming Conventions
+#### Naming Conventions
 
-| Layer | Naming Pattern | Example |
-|-------|----------------|---------|
-| Bronze | `bronze_<source>_<entity>` | `bronze_erp_orders` |
-| Silver | `silver_<source>_<entity>` | `silver_crm_clients` |
-| Gold (Dimensions) | `dim_<entity>` | `dim_customer` |
-| Gold (Facts) | `fact_<entity>` | `fact_sales` |
-| Gold (Marts) | `mart_<domain>` | `mart_sales_performance` |
+| Layer | Pattern | Example |
+|------|--------|--------|
+| Bronze | bronze_<source>_<entity> | bronze_erp_orders |
+| Silver | silver_<source>_<entity> | silver_crm_clients |
+| Gold Dimensions | dim_<entity> | dim_customer |
+| Gold Facts | fact_<entity> | fact_sales |
+| Gold Marts | mart_<domain> | mart_sales_performance |
 
 ---
 
-## Catalog and Schema Standards
+#### Catalog and Schema
 
 | Layer | Catalog | Schema |
-|-------|---------|--------|
+|------|---------|--------|
 | Bronze | ptfrozenfoods_dev | bronze |
 | Silver | ptfrozenfoods_dev | silver |
 | Gold | ptfrozenfoods_dev | gold |
 
-### Example
+Example:
 
-```sql
-SELECT *
-FROM ptfrozenfoods_dev.gold.fact_sales;
-```
+SELECT * FROM ptfrozenfoods_dev.gold.fact_sales;
 
 ---
 
-## Delta Table Properties
+#### Table Configuration
 
-| Property | Purpose |
-|----------|---------|
-| delta.autoOptimize.optimizeWrite | Optimizes file sizes during writes |
-| delta.autoOptimize.autoCompact | Reduces small file issues |
-| delta.enableChangeDataFeed | Enables Change Data Feed (optional) |
-| delta.columnMapping.mode | Supports schema evolution |
+The following Delta properties are applied:
 
-### Example Configuration
+- delta.autoOptimize.optimizeWrite = true
+- delta.autoOptimize.autoCompact = true
 
-```sql
-ALTER TABLE ptfrozenfoods_dev.gold.fact_sales
-SET TBLPROPERTIES (
-  'delta.autoOptimize.optimizeWrite' = 'true',
-  'delta.autoOptimize.autoCompact' = 'true'
-);
-```
+These settings ensure efficient file sizes and reduce small file issues.
 
 ---
 
-## Data Optimization Standards
+#### Optimization Strategy
 
-### Auto Optimize and Auto Compaction
+##### Auto Optimization
 
-These features are enabled to improve performance and reduce maintenance.
+Enabled at table level to improve write performance and storage layout.
 
-```sql
-SET spark.databricks.delta.optimizeWrite.enabled = true;
-SET spark.databricks.delta.autoCompact.enabled = true;
-```
+##### Liquid Clustering
 
----
+Used in analytical tables (Gold layer) to improve query performance.
 
-### Liquid Clustering
+Example:
 
-Liquid Clustering is adopted to enhance performance and scalability.
-
-| Table | Clustering Columns |
-|-------|--------------------|
-| fact_sales | order_date, product_id |
-| dim_weather | weather_date |
-
-```sql
 ALTER TABLE ptfrozenfoods_dev.gold.fact_sales
 CLUSTER BY (order_date, product_id);
-```
 
 ---
 
-## Schema Evolution
+#### Write Patterns
 
-Delta Lake supports schema evolution to accommodate changes in data structures.
-
-```python
-df.write \
-  .format("delta") \
-  .mode("append") \
-  .option("mergeSchema", "true") \
-  .saveAsTable("ptfrozenfoods_dev.silver.silver_erp_orders")
-```
+- Tables are written using Delta format
+- Overwrite is used for full refresh datasets
+- Append is used for incremental ingestion where applicable
+- Schema evolution is controlled and used only when necessary
 
 ---
 
-## Time Travel and Versioning
+#### Data Access
 
-Delta Lake enables historical data access and auditing.
-
-```sql
-SELECT *
-FROM ptfrozenfoods_dev.gold.fact_sales
-VERSION AS OF 1;
-```
-
-```sql
-SELECT *
-FROM ptfrozenfoods_dev.gold.fact_sales
-TIMESTAMP AS OF '2026-01-01';
-```
+- All access is done through Unity Catalog tables
+- Direct ABFSS paths are not used in production notebooks
+- Access control is enforced via GRANT statements
 
 ---
 
-## Change Data Feed (Optional)
+#### Performance Considerations
 
-```sql
-ALTER TABLE ptfrozenfoods_dev.silver.silver_erp_orders
-SET TBLPROPERTIES (
-  'delta.enableChangeDataFeed' = 'true'
-);
-```
+- Avoid unnecessary full scans
+- Minimize expensive operations in processing notebooks
+- Use clustering strategically in large tables
+- Keep processing logic optimized for cost and performance
 
 ---
 
-## Data Quality and Constraints
+#### Maintenance
 
-Delta Lake supports data quality enforcement through constraints.
+Basic maintenance operations may be applied when needed:
 
-```sql
-ALTER TABLE ptfrozenfoods_dev.gold.fact_sales
-ADD CONSTRAINT valid_quantity CHECK (quantity_sold >= 0);
-```
-
----
-
-## Maintenance Operations
-
-### Optimize Tables
-
-```sql
 OPTIMIZE ptfrozenfoods_dev.gold.fact_sales;
-```
 
-### Vacuum Obsolete Files
-
-```sql
-VACUUM ptfrozenfoods_dev.gold.fact_sales RETAIN 168 HOURS;
-```
+VACUUM operations are not automated at this stage.
 
 ---
 
-## Access Best Practices
+#### Role in the Architecture
 
-- Use Unity Catalog tables instead of direct storage paths.
-- Avoid referencing raw ABFSS paths in production workloads.
-- Use `saveAsTable()` for managed governance.
-- Enforce least-privilege access controls.
+Delta Lake is the storage foundation of the platform:
 
----
+Bronze → Silver → Gold → BI / ML
 
-## Role in the PT Frozen Foods Architecture
+It enables:
 
-Delta Lake is the core storage layer of the Lakehouse architecture.
-
-```
-Data Sources
-      │
-      ▼
-Bronze (Delta)
-      │
-      ▼
-Silver (Delta)
-      │
-      ▼
-Gold (Delta)
-      │
-      ▼
-Power BI and Machine Learning
-```
+- reliable data processing
+- versioned storage
+- consistent table management
 
 ---
 
-## Best Practices Implemented
+#### Notes
 
-- ACID-compliant transactions.
-- Schema enforcement and evolution.
-- Centralized governance via Unity Catalog.
-- Performance optimization with Liquid Clustering.
-- Automated file optimization.
-- Time travel and auditing capabilities.
-- Secure data access using Managed Identity.
-- Scalable design aligned with the Medallion Architecture.
+- Not all Delta features are used in this project
+- The focus is on practical and production-relevant configurations
+- Conventions may evolve as the platform matures
 
 ---
 
-## Notes
+#### Conclusion
 
-- All datasets are stored in Delta format.
-- Sensitive information is not exposed in this document.
-- Configurations follow Microsoft and Databricks best practices.
-- Standards may evolve as the platform scales.
-
----
-
-## References
-
-- https://learn.microsoft.com/azure/databricks/delta/
-- https://learn.microsoft.com/azure/databricks/delta/optimization/
-- https://learn.microsoft.com/azure/databricks/delta/clustering/
-- https://learn.microsoft.com/azure/databricks/lakehouse/
-- https://docs.delta.io/latest/index.html
+Delta Lake conventions ensure consistency, performance, and maintainability across the platform, supporting a scalable and production-ready data architecture.
