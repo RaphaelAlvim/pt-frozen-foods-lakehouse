@@ -1,2 +1,0 @@
--- Validation queries
--- To be implemented later
