@@ -1,102 +1,121 @@
-# SharePoint Reference Ingestion Logic App
+### Logic App — SharePoint Reference Ingestion
 
-## Purpose
+#### Purpose
 
-This folder stores the Azure Logic App workflow artifacts related to the automated ingestion of reference datasets from SharePoint into the RAW layer of the PT Frozen Foods platform.
+This folder contains the Azure Logic App workflow responsible for ingesting reference datasets from SharePoint into the RAW layer of the PT Frozen Foods platform.
+
+---
+
+#### Responsibilities
 
 The workflow is responsible for:
 
-- monitoring the SharePoint `reference` folder
-- retrieving file content
-- validating accepted file names
-- storing valid files in RAW
-- storing invalid files in `_rejected`
-- sending email alerts for rejected files
+- monitoring the SharePoint reference folder  
+- retrieving file content  
+- validating accepted file names  
+- storing valid files in RAW  
+- storing invalid files in _rejected  
+- sending email alerts for rejected files  
 
 ---
 
-## Files
+#### Files
 
-### `workflow_exported.json`
+workflow_exported.json
 
-Raw export taken from the Azure portal.
+- raw export from Azure portal  
+- represents the exact deployed workflow  
+- preserved as source reference  
 
-This file represents the workflow exactly as exported from the running Logic App and should be preserved as the original reference artifact.
+workflow.json
 
-### `workflow.json`
-
-Curated version of the Logic App workflow.
-
-This file is the preferred base for repository versioning, review, and future integration with Terraform or other deployment automation.
-
-It may include small cleanups such as:
-
-- corrected email subject
-- removal of unused actions
-- formatting improvements
+- curated version for repository usage  
+- used for versioning and future automation  
+- may include cleanup and formatting improvements  
 
 ---
 
-## Current Behavior
+#### Current Behavior
 
-### Valid files
+Valid files
 
 Accepted files:
 
-- `reference_calendar.csv`
-- `reference_locations.csv`
-- `reference_sales_channels.csv`
+- reference_calendar.csv  
+- reference_locations.csv  
+- reference_sales_channels.csv  
 
-Stored at:
+Storage path:
 
-- `raw/reference/<dataset>/load_date=YYYY-MM-DD/<dataset>_<timestamp>.csv`
-
-### Rejected files
-
-Any other file name is stored at:
-
-- `raw/reference/_rejected/load_date=YYYY-MM-DD/<filename>_<timestamp>.csv`
-
-Rejected files also trigger an email notification to:
-
-- `rm@rmdatasolutions.net`
+    raw/reference/<dataset>/load_date=YYYY-MM-DD/<dataset>_<timestamp>.csv  
 
 ---
 
-## Authentication
+Rejected files
 
-### SharePoint
+Any non-matching file is stored at:
 
-- dedicated service account:
-  `svc.sharepoint.ingestion@rmdatasolutions.net`
+    raw/reference/_rejected/load_date=YYYY-MM-DD/<filename>_<timestamp>.csv  
 
-### Blob Storage
+Rejected files trigger an email notification to:
 
-- Logic App managed identity
-
-### Email
-
-- SMTP connection configured for operational alerts
+- rm@rmdatasolutions.net  
 
 ---
 
-## Repository Role
+#### Authentication
 
-This folder separates workflow artifacts from Terraform infrastructure code.
+SharePoint
 
-This helps maintain a clean project structure by distinguishing:
+- service account: svc.sharepoint.ingestion@rmdatasolutions.net  
 
-- infrastructure provisioning
-- workflow logic
-- exported operational artifacts
+Storage
+
+- Logic App managed identity  
+
+Email
+
+- SMTP connection configured for alerts  
 
 ---
 
-## Future Evolution
+#### Role in Architecture
 
-Planned next steps:
+The Logic App is responsible for reference data ingestion.
 
-- evaluate integration of workflow JSON into Terraform deployment
-- standardize connection handling
-- improve environment parameterization
-- extend version-controlled automation for Logic Apps
+    SharePoint
+        │
+        ▼
+    Logic App
+        │
+        ▼
+    RAW (ADLS)
+
+This complements the ADF orchestration layer.
+
+---
+
+#### Repository Role
+
+This folder separates:
+
+- infrastructure provisioning (Terraform)  
+- workflow logic (Logic App)  
+- operational artifacts (exports)  
+
+---
+
+#### Future Evolution
+
+- integrate workflow deployment with Terraform  
+- standardize connection handling  
+- introduce parameterization  
+- extend automation and CI/CD support  
+
+---
+
+#### Notes
+
+- workflow is currently stable and operational  
+- supports ingestion of reference datasets  
+- aligned with the overall Lakehouse architecture  
