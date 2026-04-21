@@ -29,6 +29,53 @@ The platform uses:
 
 ---
 
+#### Logic App Monitoring
+
+The Logic App responsible for SharePoint ingestion includes built-in monitoring and alerting mechanisms.
+
+This includes:
+
+- validation of file names  
+- segregation of invalid files into _rejected folder  
+- email notifications for rejected files  
+
+---
+
+#### Role in Monitoring Strategy
+
+The Logic App acts as the first validation layer in the data ingestion process.
+
+    SharePoint
+        │
+        ▼
+    Logic App (validation + alerting)
+        │
+        ▼
+    RAW Layer
+
+This ensures:
+
+- early detection of data issues  
+- prevention of invalid data entering the pipeline  
+- immediate notification of ingestion problems  
+
+---
+
+#### Monitoring Scope
+
+- ingestion success/failure  
+- rejected files tracking  
+- alert notifications  
+
+---
+
+#### Notes
+
+- Logic App monitoring complements ADF and Databricks monitoring  
+- focuses on ingestion validation rather than processing  
+
+---
+
 #### Architecture
 
     Data Factory
