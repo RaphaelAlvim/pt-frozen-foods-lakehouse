@@ -129,6 +129,22 @@ External Sources
 
 ---
 
+#### RAW Data Origin
+
+In this project, RAW data is generated using synthetic data scripts located in:
+
+    05_src/
+
+This simulates real-world source systems such as:
+
+- ERP systems  
+- CRM systems  
+- external APIs  
+
+The CSV files stored in the repository represent initial datasets used for development and testing purposes.
+
+---
+
 #### Notes
 
 - raw data is stored in original format  
