@@ -82,12 +82,11 @@ override.tf.json
 # ============================================================
 # Large / local data (adjust if needed)
 # ============================================================
-# Uncomment below if you do NOT want local raw/bronze/silver/gold data in git
-03_data/raw/**
+# Raw data is kept in the repository because it is synthetic
+# and part of the reproducible project setup.
 03_data/bronze/**
 03_data/silver/**
 03_data/gold/**
-!03_data/raw/**/.gitkeep
 !03_data/bronze/**/.gitkeep
 !03_data/silver/**/.gitkeep
 !03_data/gold/**/.gitkeep

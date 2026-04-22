@@ -1,0 +1,13 @@
+vendedor_id,nome_vendedor,idade,estado_civil,tem_filhos,cidade_morada,data_admissao,data_saida,status_vendedor,equipa,senioridade,performance_score,nota_interna,telefone_extensao
+VEND001,João Moreira,48,Casado,1,Vila Nova de Gaia,21-09-2020,2022-06-02,Inativo,Inside Sales,Júnior,0.682,,941
+VEND002,Ana Ribeiro,51,Solteiro,0,Valongo,11/10/2021,,Ativo,Grande Porto,Sénior,1.118,,868
+VEND003,Pedro Costa,26,Casado,0,Matosinhos,10/11/2022,,Ativo,Grande Porto,Pleno,0.931,,193
+VEND004,Carla Martins,49,Casado,1,Matosinhos,2021-06-19,,Ativo,Norte Litoral,Sénior,1.24,,910
+VEND005,Miguel Sousa,31,União de facto,0,Vila Nova de Gaia,2022-10-22,,Ativo,Grande Porto,Pleno,0.99,,953
+VEND006,Rita Ferreira,32,Solteiro,1,Matosinhos,2024-03-02,,Ativo,Grande Porto,Sénior,1.295,carteira premium,780
+VEND007,Tiago Lopes,54,Casado,0,Porto,21-03-2022,,Ativo,Norte Litoral,Pleno,0.997,,347
+VEND008,Mariana Silva,27,Casado,0,Vila Nova de Gaia,24-09-2020,,Ativo,Inside Sales,Pleno,1.119,,702
+VEND009,Bruno Almeida,32,Casado,0,Vila Nova de Gaia,23-10-2022,05/09/2024,Inativo,Inside Sales,Pleno,1.07,carteira premium,880
+VEND010,Inês Carvalho,36,Solteiro,0,Porto,03/11/2024,,Ativo,Inside Sales,Sénior,1.373,,833
+VEND011,Ricardo Pinto,29,União de facto,1,Porto,2020-12-09,,Ativo,Inside Sales,Pleno,0.931,,487
+VEND012,Sara Mendes,30,Casado,1,Matosinhos,22-04-2022,,Ativo,Norte Litoral,Sénior,1.336,,736

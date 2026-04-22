@@ -1,0 +1,322 @@
+cliente_id,status_cliente,data_status,motivo_status
+C0001,Ativo,28/02/2026,
+C0002,Dormante,28/02/2026,sem compra recente
+C0003,Ativo,2026-02-28,
+C0004,Ativo,28/02/2026,
+C0005,Inativo,2023-01-13,
+C0006,Inativo,2024/05/24,
+C0007,Inativo,2024-10-30,
+C0008,Ativo,2026/02/28,
+C0009,Inativo,2025-02-12,sem compra recente
+C0010,Ativo,28/02/2026,sem compra recente
+C0011,Inativo,2022-08-28,
+C0012,Ativo,28/02/2026,sem compra recente
+C0013,Dormante,2026-02-28,
+C0014,Ativo,2026-02-28,
+C0015,Inativo,18/05/2022,
+C0016,Ativo,2026-02-28,encerramento
+C0017,Ativo,28/02/2026,mudança de fornecedor
+C0018,Inativo,2025-07-15,
+C0019,Ativo,28/02/2026,
+C0020,Ativo,2026-02-28,
+C0021,Ativo,2026-02-28,sem compra recente
+C0022,Ativo,2026-02-28,mudança de fornecedor
+C0023,Ativo,28/02/2026,
+C0024,Inativo,12/06/2024,
+C0025,Inativo,2023-10-27,
+C0026,Dormante,2026-02-28,sem compra recente
+C0027,Inativo,26/11/2022,
+C0028,Ativo,2026-02-28,
+C0029,Inativo,2022/05/16,
+C0030,Ativo,2026-02-28,baixo volume
+C0031,Ativo,2026-02-28,
+C0032,Ativo,2026-02-28,
+C0033,Ativo,28/02/2026,
+C0034,Ativo,28/02/2026,sem compra recente
+C0035,Inativo,23/07/2024,
+C0036,Dormante,2026-02-28,sem compra recente
+C0037,Ativo,2026/02/28,
+C0038,Ativo,28/02/2026,
+C0039,Ativo,2026/02/28,
+C0040,Ativo,28/02/2026,sem compra recente
+C0041,Ativo,28/02/2026,mudança de fornecedor
+C0042,Ativo,2026-02-28,
+C0043,Ativo,28/02/2026,sem compra recente
+C0044,Ativo,28/02/2026,
+C0045,Ativo,28/02/2026,
+C0046,Ativo,2026-02-28,
+C0047,Ativo,28/02/2026,sem compra recente
+C0048,Ativo,2026-02-28,
+C0049,Ativo,2026-02-28,
+C0050,Ativo,28/02/2026,
+C0051,Ativo,28/02/2026,
+C0052,Ativo,2026/02/28,
+C0053,Inativo,23/02/2026,
+C0054,Inativo,06/01/2023,
+C0055,Ativo,28/02/2026,
+C0056,Ativo,28/02/2026,encerramento
+C0057,Ativo,2026/02/28,
+C0058,Ativo,28/02/2026,
+C0059,Ativo,2026-02-28,sem compra recente
+C0060,Ativo,2026-02-28,
+C0061,Ativo,2026-02-28,mudança de fornecedor
+C0062,Ativo,2026-02-28,
+C0063,Inativo,2024-07-23,sem compra recente
+C0064,Inativo,2024-12-20,
+C0065,Ativo,28/02/2026,
+C0066,Inativo,28/02/2026,
+C0067,Dormante,2026-02-28,
+C0068,Ativo,2026/02/28,mudança de fornecedor
+C0069,Ativo,2026-02-28,
+C0070,Ativo,2026-02-28,mudança de fornecedor
+C0071,Dormante,28/02/2026,sem compra recente
+C0072,Ativo,28/02/2026,
+C0073,Ativo,28/02/2026,sem compra recente
+C0074,Ativo,28/02/2026,
+C0075,Ativo,2026-02-28,
+C0076,Ativo,28/02/2026,
+C0077,Ativo,2026-02-28,mudança de fornecedor
+C0078,Ativo,28/02/2026,
+C0079,Inativo,2025-12-01,sem compra recente
+C0080,Ativo,2026/02/28,
+C0081,Inativo,25/02/2025,
+C0082,Dormante,2026-02-28,
+C0083,Ativo,28/02/2026,
+C0084,Ativo,28/02/2026,sem compra recente
+C0085,Ativo,2026-02-28,
+C0086,Ativo,2026/02/28,
+C0087,Ativo,2026-02-28,
+C0088,Inativo,2025-03-03,
+C0089,Ativo,2026/02/28,
+C0090,Dormante,28/02/2026,mudança de fornecedor
+C0091,Ativo,2026-02-28,
+C0092,Inativo,05/05/2025,
+C0093,Ativo,2026-02-28,
+C0094,Inativo,2025-06-19,
+C0095,Ativo,28/02/2026,mudança de fornecedor
+C0096,Inativo,08/05/2025,mudança de fornecedor
+C0097,Ativo,28/02/2026,
+C0098,Ativo,2026/02/28,
+C0099,Dormante,2026/02/28,
+C0100,Dormante,2026-02-28,sem compra recente
+C0101,Dormante,2026/02/28,
+C0102,Ativo,2026-02-28,mudança de fornecedor
+C0103,Ativo,2026/02/28,mudança de fornecedor
+C0104,Ativo,2026/02/28,
+C0105,Ativo,2026-02-28,sem compra recente
+C0106,Inativo,27/06/2025,
+C0107,Dormante,2026-02-28,
+C0108,Ativo,28/02/2026,
+C0109,Ativo,2026-02-28,
+C0110,Ativo,2026/02/28,sem compra recente
+C0111,Dormante,2026-02-28,
+C0112,Inativo,2024-04-08,sem compra recente
+C0113,Dormante,2026-02-28,sem compra recente
+C0114,Ativo,2026-02-28,
+C0115,Inativo,2024-07-22,
+C0116,Ativo,28/02/2026,
+C0117,Ativo,28/02/2026,
+C0118,Ativo,28/02/2026,
+C0119,Inativo,20/11/2025,
+C0120,Ativo,2026-02-28,
+C0121,Inativo,2023/11/09,
+C0122,Ativo,28/02/2026,mudança de fornecedor
+C0123,Ativo,28/02/2026,
+C0124,Ativo,28/02/2026,sem compra recente
+C0125,Ativo,2026-02-28,baixo volume
+C0126,Inativo,05/10/2022,encerramento
+C0127,Inativo,2025-12-20,
+C0128,Inativo,2023-08-25,
+C0129,Ativo,2026-02-28,sem compra recente
+C0130,Ativo,2026/02/28,
+C0131,Inativo,10/10/2025,mudança de fornecedor
+C0132,Ativo,2026-02-28,
+C0133,Ativo,2026/02/28,
+C0134,Inativo,14/05/2023,
+C0135,Inativo,17/03/2024,baixo volume
+C0136,Ativo,28/02/2026,
+C0137,Dormante,28/02/2026,sem compra recente
+C0138,Ativo,2026/02/28,
+C0139,Ativo,2026-02-28,
+C0140,Inativo,2026-02-28,
+C0141,Ativo,28/02/2026,sem compra recente
+C0142,Ativo,28/02/2026,
+C0143,Ativo,2026-02-28,sem compra recente
+C0144,Ativo,28/02/2026,
+C0145,Ativo,2026/02/28,sem compra recente
+C0146,Ativo,2026-02-28,sem compra recente
+C0147,Ativo,2026-02-28,
+C0148,Inativo,2022-05-21,
+C0149,Ativo,2026/02/28,encerramento
+C0150,Ativo,2026-02-28,
+C0151,Ativo,2026/02/28,sem compra recente
+C0152,Ativo,2026-02-28,baixo volume
+C0153,Dormante,2026-02-28,sem compra recente
+C0154,Ativo,28/02/2026,
+C0155,Inativo,2025/08/24,sem compra recente
+C0156,Ativo,28/02/2026,sem compra recente
+C0157,Ativo,28/02/2026,mudança de fornecedor
+C0158,Dormante,28/02/2026,
+C0159,Ativo,2026-02-28,
+C0160,Ativo,28/02/2026,
+C0161,Ativo,2026-02-28,
+C0162,Ativo,2026-02-28,baixo volume
+C0163,Ativo,2026/02/28,
+C0164,Ativo,2026-02-28,
+C0165,Inativo,2023-09-26,sem compra recente
+C0166,Ativo,2026/02/28,
+C0167,Ativo,2026-02-28,baixo volume
+C0168,Ativo,2026/02/28,
+C0169,Ativo,2026-02-28,
+C0170,Dormante,2026-02-28,sem compra recente
+C0171,Dormante,28/02/2026,
+C0172,Dormante,2026/02/28,
+C0173,Ativo,2026-02-28,
+C0174,Ativo,2026-02-28,
+C0175,Ativo,28/02/2026,
+C0176,Dormante,2026/02/28,
+C0177,Dormante,2026-02-28,encerramento
+C0178,Ativo,28/02/2026,sem compra recente
+C0179,Ativo,28/02/2026,
+C0180,Inativo,26/11/2022,
+C0181,Ativo,2026-02-28,
+C0182,Dormante,28/02/2026,
+C0183,Ativo,28/02/2026,
+C0184,Ativo,2026/02/28,
+C0185,Ativo,28/02/2026,
+C0186,Ativo,2026-02-28,baixo volume
+C0187,Ativo,2026-02-28,baixo volume
+C0188,Ativo,2026/02/28,
+C0189,Ativo,2026-02-28,encerramento
+C0190,Inativo,2022/08/28,sem compra recente
+C0191,Ativo,2026-02-28,mudança de fornecedor
+C0192,Ativo,28/02/2026,sem compra recente
+C0193,Dormante,2026-02-28,
+C0194,Inativo,2023-07-04,
+C0195,Ativo,2026/02/28,sem compra recente
+C0196,Inativo,28/02/2026,sem compra recente
+C0197,Ativo,2026-02-28,
+C0198,Ativo,2026-02-28,
+C0199,Inativo,2026-02-28,mudança de fornecedor
+C0200,Ativo,2026-02-28,
+C0201,Inativo,2024-07-17,sem compra recente
+C0202,Ativo,28/02/2026,
+C0203,Ativo,28/02/2026,
+C0204,Dormante,28/02/2026,
+C0205,Inativo,2024-03-30,sem compra recente
+C0206,Inativo,2024-09-19,
+C0207,Ativo,2026-02-28,
+C0208,Ativo,28/02/2026,
+C0209,Ativo,2026-02-28,
+C0210,Ativo,28/02/2026,sem compra recente
+C0211,Ativo,2026-02-28,baixo volume
+C0212,Ativo,28/02/2026,sem compra recente
+C0213,Ativo,2026-02-28,
+C0214,Dormante,2026-02-28,
+C0215,Ativo,2026-02-28,sem compra recente
+C0216,Inativo,2024-07-24,sem compra recente
+C0217,Inativo,2024-07-04,
+C0218,Ativo,28/02/2026,
+C0219,Inativo,2023-03-15,sem compra recente
+C0220,Ativo,28/02/2026,
+C0221,Ativo,2026-02-28,
+C0222,Ativo,28/02/2026,
+C0223,Dormante,2026/02/28,
+C0224,Inativo,11/03/2023,
+C0225,Ativo,28/02/2026,
+C0226,Ativo,2026/02/28,
+C0227,Ativo,28/02/2026,
+C0228,Ativo,2026/02/28,
+C0229,Inativo,2022-08-22,
+C0230,Ativo,2026/02/28,sem compra recente
+C0231,Ativo,2026-02-28,sem compra recente
+C0232,Ativo,28/02/2026,
+C0233,Ativo,2026-02-28,baixo volume
+C0234,Dormante,2026-02-28,
+C0235,Ativo,2026-02-28,
+C0236,Ativo,2026/02/28,
+C0237,Ativo,2026-02-28,baixo volume
+C0238,Ativo,2026-02-28,
+C0239,Ativo,2026-02-28,baixo volume
+C0240,Ativo,28/02/2026,sem compra recente
+C0241,Dormante,2026-02-28,
+C0242,Dormante,2026-02-28,
+C0243,Inativo,2023/09/19,baixo volume
+C0244,Inativo,2023-11-25,baixo volume
+C0245,Ativo,2026-02-28,sem compra recente
+C0246,Ativo,28/02/2026,
+C0247,Ativo,2026-02-28,mudança de fornecedor
+C0248,Ativo,2026-02-28,
+C0249,Ativo,2026-02-28,
+C0250,Ativo,28/02/2026,
+C0251,Dormante,2026-02-28,
+C0252,Ativo,28/02/2026,baixo volume
+C0253,Ativo,2026-02-28,
+C0254,Inativo,04/01/2025,sem compra recente
+C0255,Inativo,2024-07-17,
+C0256,Dormante,28/02/2026,
+C0257,Inativo,21/01/2023,
+C0258,Ativo,2026-02-28,sem compra recente
+C0259,Inativo,2025-04-16,
+C0260,Ativo,2026/02/28,
+C0261,Ativo,2026-02-28,
+C0262,Ativo,2026-02-28,
+C0263,Ativo,28/02/2026,
+C0264,Ativo,2026-02-28,
+C0265,Ativo,28/02/2026,baixo volume
+C0266,Ativo,2026/02/28,
+C0267,Inativo,16/05/2025,sem compra recente
+C0268,Ativo,2026/02/28,
+C0269,Inativo,31/10/2022,baixo volume
+C0270,Inativo,2023-11-07,sem compra recente
+C0271,Inativo,02/11/2025,
+C0272,Ativo,2026/02/28,
+C0273,Ativo,2026/02/28,
+C0274,Ativo,2026-02-28,baixo volume
+C0275,Ativo,28/02/2026,
+C0276,Ativo,2026-02-28,sem compra recente
+C0277,Ativo,2026-02-28,sem compra recente
+C0278,Ativo,28/02/2026,
+C0279,Dormante,2026/02/28,sem compra recente
+C0280,Inativo,2024-05-14,baixo volume
+C0281,Ativo,28/02/2026,
+C0282,Ativo,28/02/2026,
+C0283,Ativo,28/02/2026,
+C0284,Dormante,28/02/2026,
+C0285,Inativo,28/02/2026,
+C0286,Ativo,2026-02-28,
+C0287,Inativo,2022-01-28,
+C0288,Ativo,28/02/2026,
+C0289,Dormante,2026-02-28,sem compra recente
+C0290,Ativo,2026-02-28,sem compra recente
+C0291,Inativo,2024-02-01,
+C0292,Ativo,2026-02-28,sem compra recente
+C0293,Ativo,28/02/2026,mudança de fornecedor
+C0294,Dormante,28/02/2026,
+C0295,Ativo,2026/02/28,sem compra recente
+C0296,Ativo,28/02/2026,
+C0297,Ativo,2026-02-28,
+C0298,Ativo,2026/02/28,
+C0299,Inativo,2026-01-17,
+C0300,Ativo,28/02/2026,
+C0301,Ativo,28/02/2026,
+C0302,Ativo,28/02/2026,
+C0303,Ativo,28/02/2026,sem compra recente
+C0304,Ativo,2026-02-28,
+C0305,Ativo,2026-02-28,
+C0306,Inativo,2022-02-26,baixo volume
+C0307,Ativo,28/02/2026,
+C0308,Inativo,2026-02-28,
+C0309,Ativo,2026-02-28,
+C0310,Inativo,2022/09/18,
+C0311,Dormante,28/02/2026,encerramento
+C0312,Inativo,03/04/2025,sem compra recente
+C0313,Inativo,2023-01-10,
+C0314,Ativo,2026-02-28,
+C0315,Inativo,2023-07-20,baixo volume
+C0316,Inativo,2021-11-03,
+C0317,Inativo,2024-01-31,
+C0318,Ativo,2026-02-28,sem compra recente
+C0319,Ativo,2026-02-28,
+C0320,Ativo,2026/02/28,mudança de fornecedor
+C0168,Ativo,2026/02/28,

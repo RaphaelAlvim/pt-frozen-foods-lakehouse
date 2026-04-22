@@ -1,0 +1,323 @@
+cliente_id,nome_cliente,tipo_cliente,nif,data_registo,cidade,distrito,canal_captacao,score_atividade,obs_comercial
+C0001,Take-away 001,Take-away,245365139,2024-05-19,Vila Nova de Gaia,Porto,Telefone,0.947,cliente estratégico
+C0002,Supermercado 002,Supermercado,245478476,2025-02-15,Vila Nova de Gaia,Porto,E-commerce,1.572,
+C0003,Supermercado 003,Supermercado,226441226,2021/10/22,Viana do Castelo,Viana do Castelo,Marketplace,1.928,cliente estratégico
+C0004,Restaurante 004,Restaurante,239582554,2022-04-15,Vila Nova de Gaia,Porto,Telefone,2.127,
+C0005,Particular 005,Particular,210226594,05/09/2021,Santo Tirso,Porto,E-commerce,0.131,
+C0006,Take-away 006,Take-away,244729024,2023-01-01,Barcelos,Braga,Marketplace,0.748,
+C0007,Hotel 007,Hotel,260056379,2023/09/19,Barcelos,Braga,E-commerce,1.638,
+C0008,Restaurante 008,Restaurante,216149829,2024/11/16,Porto,Porto,Vendas Externas,0.819,
+C0009,Hotel 009,Hotel,220072421,26/03/2024,Valongo,Porto,E-commerce,1.466,
+C0010,Hotel 010,Hotel,220816648,2021-03-03,Matosinhos,Porto,Telefone,1.022,
+C0011,Restaurante 011,Restaurante,232548573,2021/12/27,Barcelos,Braga,Marketplace,0.775,
+C0012,Supermercado 012,Supermercado,219203572,03/06/2023,Matosinhos,Porto,E-commerce,3.22,follow-up trimestral
+C0013,Restaurante 013,Restaurante,250655981,2025/02/19,Viana do Castelo,Viana do Castelo,E-commerce,0.912,
+C0014,Particular 014,Particular,247411425,2025-09-18,Maia,Porto,Telefone,0.08,
+C0015,Take-away 015,Take-away,268750822,2021-08-23,Braga,Braga,E-commerce,1.186,follow-up trimestral
+C0016,Supermercado 016,Supermercado,222339307,2024-05-10,Valongo,Porto,Vendas Externas,0.831,
+C0017,Particular 017,Particular,254003168,2025/05/08,Viana do Castelo,Viana do Castelo,E-commerce,0.083,
+C0018,Restaurante 018,Restaurante,203357584,2024-06-18,Porto,Porto,E-commerce,1.243,follow-up trimestral
+C0019,Take-away 019,Take-away,248515369,2022/01/07,Espinho,Aveiro,Vendas Externas,0.717,follow-up trimestral
+C0020,Restaurante 020,Restaurante,209694902,2025/10/17,Matosinhos,Porto,E-commerce,0.981,
+C0021,Restaurante 021,Restaurante,207109424,2024/03/18,Maia,Porto,E-commerce,2.69,
+C0022,Supermercado 022,Supermercado,244652392,2023/05/16,Guimarães,Braga,E-commerce,1.304,
+C0023,Supermercado 023,Supermercado,269022083,2022-08-20,Barcelos,Braga,Vendas Externas,1.948,
+C0024,Restaurante 024,Restaurante,250461639,02/10/2023,Aveiro,Aveiro,Telefone,0.832,
+C0025,Restaurante 025,Restaurante,237488395,2022-10-07,Espinho,Aveiro,Vendas Externas,0.825,follow-up trimestral
+C0026,Take-away 026,Take-away,253504095,2022-10-08,Viana do Castelo,Viana do Castelo,Telefone,0.464,
+C0027,Particular 027,Particular,264129952,2022/05/17,Santo Tirso,Porto,Marketplace,0.098,
+C0028,Particular 028,Particular,256133419,2024/06/20,Barcelos,Braga,Telefone,0.169,
+C0029,Restaurante 029,Restaurante,205929045,2021-06-23,Barcelos,Braga,Vendas Externas,1.46,follow-up trimestral
+C0030,Restaurante 030,Restaurante,263725841,2023-04-16,Espinho,Aveiro,Telefone,1.88,follow-up trimestral
+C0031,Hotel 031,Hotel,224040688,2021-08-15,Porto,Porto,Marketplace,2.15,
+C0032,Supermercado 032,Supermercado,229910936,29/10/2022,Valongo,Porto,E-commerce,1.298,
+C0033,Take-away 033,Take-away,222814600,2021/03/01,Braga,Braga,Telefone,0.488,
+C0034,Restaurante 034,Restaurante,262387643,09/07/2024,Vila Nova de Gaia,Porto,E-commerce,0.4,
+C0035,Particular 035,Particular,219382879,2023/07/01,Guimarães,Braga,Marketplace,0.291,
+C0036,Supermercado 036,Supermercado,273088586,05/05/2021,Guimarães,Braga,Vendas Externas,2.431,cliente estratégico
+C0037,Supermercado 037,Supermercado,204036876,30/08/2021,Porto,Porto,Telefone,3.479,
+C0038,Take-away 038,Take-away,204908732,2025-03-24,Matosinhos,Porto,Vendas Externas,0.702,cliente estratégico
+C0039,Take-away 039,Take-away,220696653,08/05/2021,Vila Nova de Gaia,Porto,E-commerce,0.51,
+C0040,Restaurante 040,Restaurante,201421527,2022-12-15,Braga,Braga,Telefone,1.06,
+C0041,Supermercado 041,Supermercado,226344991,2022-04-09,Póvoa de Varzim,Porto,Marketplace,1.469,
+C0042,Hotel 042,Hotel,233296589,21/06/2022,Vila Nova de Gaia,Porto,E-commerce,1.424,
+C0043,Supermercado 043,Supermercado,266560617,2023-01-18,Porto,Porto,E-commerce,3.376,
+C0044,Supermercado 044,Supermercado,274802158,2025-04-26,Valongo,Porto,Telefone,3.351,follow-up trimestral
+C0045,Particular 045,Particular,245296465,01/06/2022,Espinho,Aveiro,Marketplace,0.141,
+C0046,Restaurante 046,Restaurante,236964145,12/01/2022,Vila Nova de Gaia,Porto,E-commerce,1.156,
+C0047,Hotel 047,Hotel,271916217,2023-05-12,Guimarães,Braga,Telefone,0.671,
+C0048,Supermercado 048,Supermercado,244576196,2022-03-31,Braga,Braga,Vendas Externas,1.015,follow-up trimestral
+C0049,Particular 049,Particular,264801080,2021-07-12,Guimarães,Braga,E-commerce,0.159,cliente estratégico
+C0050,Supermercado 050,Supermercado,206106792,15/02/2021,Maia,Porto,E-commerce,3.312,
+C0051,Supermercado 051,Supermercado,244733888,17/11/2024,Maia,Porto,E-commerce,1.285,follow-up trimestral
+C0052,Restaurante 052,Restaurante,220415553,10/02/2023,Guimarães,Braga,Vendas Externas,0.469,follow-up trimestral
+C0053,Restaurante 053,Restaurante,263661531,2025/03/04,Braga,Braga,Vendas Externas,1.027,
+C0054,Restaurante 054,Restaurante,254163027,2021-10-17,Vila Nova de Gaia,Porto,Vendas Externas,1.023,follow-up trimestral
+C0055,Restaurante 055,Restaurante,256065668,2025-07-30,Guimarães,Braga,Marketplace,0.932,
+C0056,Restaurante 056,Restaurante,205361735,01/09/2024,Porto,Porto,Marketplace,1.002,
+C0057,Restaurante 057,Restaurante,202234758,2021-01-13,Santo Tirso,Porto,Vendas Externas,1.245,
+C0058,Restaurante 058,Restaurante,246227064,2025-02-01,Barcelos,Braga,Marketplace,2.563,
+C0059,Restaurante 059,Restaurante,227626718,2024-02-17,Valongo,Porto,Vendas Externas,0.889,
+C0060,Particular 060,Particular,274849896,2021-06-07,Viana do Castelo,Viana do Castelo,Marketplace,0.094,
+C0061,Restaurante 061,Restaurante,206925184,16/10/2025,Viana do Castelo,Viana do Castelo,Marketplace,1.065,cliente estratégico
+C0062,Restaurante 062,Restaurante,256112144,2024-09-17,Porto,Porto,Vendas Externas,0.468,
+C0063,Take-away 063,Take-away,206770417,09/02/2024,Porto,Porto,Marketplace,0.763,
+C0064,Take-away 064,Take-away,204258658,2023/11/22,Porto,Porto,Marketplace,0.371,cliente estratégico
+C0065,Restaurante 065,Restaurante,233135805,26/10/2022,Vila Nova de Gaia,Porto,Telefone,0.916,
+C0066,Particular 066,Particular,210554746,06/01/2025,Guimarães,Braga,Vendas Externas,0.144,
+C0067,Supermercado 067,Supermercado,236353312,2023-01-29,Santo Tirso,Porto,Telefone,0.824,
+C0068,Particular 068,Particular,257031019,2025-04-03,Braga,Braga,Vendas Externas,0.27,
+C0069,Restaurante 069,Restaurante,207413415,2021-12-10,Santo Tirso,Porto,Telefone,0.588,
+C0070,Supermercado 070,Supermercado,245536995,2024/12/24,Barcelos,Braga,E-commerce,2.745,
+C0071,Hotel 071,Hotel,203986288,19/06/2025,Póvoa de Varzim,Porto,Marketplace,1.097,
+C0072,Supermercado 072,Supermercado,260744799,2021-07-25,Maia,Porto,Telefone,2.499,cliente estratégico
+C0073,Supermercado 073,Supermercado,221157370,2025/10/27,Guimarães,Braga,Vendas Externas,1.526,
+C0074,Restaurante 074,Restaurante,227892862,21/12/2024,Porto,Porto,E-commerce,0.558,
+C0075,Restaurante 075,Restaurante,252433496,2021-05-29,Aveiro,Aveiro,E-commerce,1.186,
+C0076,Hotel 076,Hotel,205702487,2024-10-05,Viana do Castelo,Viana do Castelo,E-commerce,0.686,follow-up trimestral
+C0077,Restaurante 077,Restaurante,200827077,2024/06/23,Espinho,Aveiro,E-commerce,1.903,follow-up trimestral
+C0078,Take-away 078,Take-away,227822617,2025-09-04,Maia,Porto,Vendas Externas,0.511,cliente estratégico
+C0079,Restaurante 079,Restaurante,222113023,2025/03/15,Guimarães,Braga,E-commerce,1.116,follow-up trimestral
+C0080,Supermercado 080,Supermercado,266780917,2023-04-11,Braga,Braga,E-commerce,1.999,
+C0081,Supermercado 081,Supermercado,200346405,05/04/2024,Porto,Porto,Marketplace,2.042,follow-up trimestral
+C0082,Supermercado 082,Supermercado,275898293,2024-01-27,Santo Tirso,Porto,Vendas Externas,1.419,
+C0083,Particular 083,Particular,227739206,18/08/2022,Porto,Porto,Vendas Externas,0.103,
+C0084,Take-away 084,Take-away,223546184,06/06/2022,Aveiro,Aveiro,Marketplace,0.653,
+C0085,Restaurante 085,Restaurante,262630337,2022-05-30,Braga,Braga,Marketplace,0.741,
+C0086,Particular 086,Particular,212131516,31/05/2023,Espinho,Aveiro,Vendas Externas,0.115,
+C0087,Take-away 087,Take-away,262434946,06/12/2021,Barcelos,Braga,E-commerce,0.671,cliente estratégico
+C0088,Take-away 088,Take-away,267513143,2023-11-04,Póvoa de Varzim,Porto,E-commerce,0.435,
+C0089,Restaurante 089,Restaurante,211343935,2021-06-26,Maia,Porto,Marketplace,0.442,
+C0090,Supermercado 090,Supermercado,237784546,2024/04/10,Espinho,Aveiro,Telefone,1.048,cliente estratégico
+C0091,Restaurante 091,Restaurante,263855758,23/06/2025,Porto,Porto,Vendas Externas,0.841,
+C0092,Restaurante 092,Restaurante,237675341,2024-06-06,Maia,Porto,E-commerce,0.957,
+C0093,Take-away 093,Take-away,261970551,11/02/2021,Valongo,Porto,Vendas Externas,1.033,
+C0094,Take-away 094,Take-away,216013341,2024-05-08,Espinho,Aveiro,E-commerce,0.692,
+C0095,Hotel 095,Hotel,227333844,2025-08-06,Barcelos,Braga,Vendas Externas,1.025,
+C0096,Restaurante 096,Restaurante,265697241,2023-10-20,Guimarães,Braga,E-commerce,1.614,
+C0097,Take-away 097,Take-away,234091085,31/12/2023,Braga,Braga,Marketplace,0.767,
+C0098,Hotel 098,Hotel,204114567,15/02/2023,Santo Tirso,Porto,E-commerce,2.392,
+C0099,Restaurante 099,Restaurante,218082263,2024-06-17,Aveiro,Aveiro,E-commerce,0.967,
+C0100,Supermercado 100,Supermercado,264451175,2021-09-26,Aveiro,Aveiro,Marketplace,0.995,
+C0101,Restaurante 101,Restaurante,261845098,25/01/2024,Póvoa de Varzim,Porto,E-commerce,2.429,
+C0102,Restaurante 102,Restaurante,244648165,07/09/2024,Guimarães,Braga,Vendas Externas,2.663,cliente estratégico
+C0103,Supermercado 103,Supermercado,218350786,2021-06-24,Porto,Porto,Marketplace,2.151,cliente estratégico
+C0104,Particular 104,Particular,204295495,2021-07-03,Aveiro,Aveiro,Marketplace,0.242,
+C0105,Particular 105,Particular,269227969,14/09/2024,Braga,Braga,Vendas Externas,0.176,
+C0106,Hotel 106,Hotel,229152547,2024/03/20,Barcelos,Braga,Vendas Externas,0.935,
+C0107,Particular 107,Particular,209482719,2023/07/24,Matosinhos,Porto,E-commerce,0.204,
+C0108,Restaurante 108,Restaurante,272504574,2025-10-10,Valongo,Porto,E-commerce,0.497,
+C0109,Supermercado 109,Supermercado,252131698,30/10/2025,Póvoa de Varzim,Porto,E-commerce,1.758,
+C0110,Restaurante 110,Restaurante,243533038,2023-09-19,Porto,Porto,Vendas Externas,2.663,cliente estratégico
+C0111,Restaurante 111,Restaurante,259376554,13/05/2021,Viana do Castelo,Viana do Castelo,E-commerce,0.993,
+C0112,Particular 112,Particular,234344735,2022-12-15,Vila Nova de Gaia,Porto,Marketplace,0.174,
+C0113,Supermercado 113,Supermercado,266828552,05/02/2021,Maia,Porto,Vendas Externas,0.819,
+C0114,Supermercado 114,Supermercado,275463576,20/08/2022,Santo Tirso,Porto,E-commerce,3.216,
+C0115,Particular 115,Particular,239274480,2023-09-08,Porto,Porto,E-commerce,0.243,follow-up trimestral
+C0116,Supermercado 116,Supermercado,265387063,2022-08-08,Maia,Porto,E-commerce,1.704,
+C0117,Take-away 117,Take-away,221769013,06/01/2022,Santo Tirso,Porto,Vendas Externas,0.945,cliente estratégico
+C0118,Restaurante 118,Restaurante,263879550,08/09/2022,Guimarães,Braga,Telefone,0.885,
+C0119,Supermercado 119,Supermercado,209335248,2024/12/03,Matosinhos,Porto,E-commerce,1.163,
+C0120,Supermercado 120,Supermercado,273735711,2023/12/09,Espinho,Aveiro,E-commerce,1.371,
+C0121,Restaurante 121,Restaurante,249843007,2022-04-18,Aveiro,Aveiro,E-commerce,0.7,
+C0122,Hotel 122,Hotel,233612091,2025-02-23,Maia,Porto,Vendas Externas,1.08,
+C0123,Restaurante 123,Restaurante,221732313,15/05/2021,Santo Tirso,Porto,Vendas Externas,1.288,
+C0124,Restaurante 124,Restaurante,221532713,2022-09-09,Braga,Braga,Telefone,1.131,
+C0125,Restaurante 125,Restaurante,240680398,2023-05-14,Aveiro,Aveiro,Vendas Externas,2.436,
+C0126,Particular 126,Particular,216156188,30/04/2021,Maia,Porto,E-commerce,0.158,
+C0127,Restaurante 127,Restaurante,258599793,03/07/2024,Guimarães,Braga,Vendas Externas,1.402,
+C0128,Particular 128,Particular,248853679,2022/06/08,Viana do Castelo,Viana do Castelo,Vendas Externas,0.116,
+C0129,Particular 129,Particular,246739863,2025-03-05,Santo Tirso,Porto,Marketplace,0.221,
+C0130,Take-away 130,Take-away,202710557,24/10/2024,Braga,Braga,Marketplace,0.797,
+C0131,Restaurante 131,Restaurante,207925724,2024-06-07,Viana do Castelo,Viana do Castelo,Vendas Externas,0.922,
+C0132,Restaurante 132,Restaurante,226871812,27/05/2021,Aveiro,Aveiro,E-commerce,1.908,follow-up trimestral
+C0133,Take-away 133,Take-away,203259300,12/09/2021,Guimarães,Braga,Vendas Externas,0.398,
+C0134,Particular 134,Particular,266999167,25/01/2022,Maia,Porto,E-commerce,0.166,follow-up trimestral
+C0135,Restaurante 135,Restaurante,259110750,2023-03-22,Santo Tirso,Porto,E-commerce,0.809,
+C0136,Restaurante 136,Restaurante,243297765,2021-01-11,Espinho,Aveiro,Telefone,0.996,
+C0137,Take-away 137,Take-away,207470416,2021-03-07,Vila Nova de Gaia,Porto,Marketplace,0.836,
+C0138,Take-away 138,Take-away,213219355,04/04/2021,Barcelos,Braga,Vendas Externas,0.498,
+C0139,Supermercado 139,Supermercado,262360372,2022-04-24,Santo Tirso,Porto,Marketplace,2.365,
+C0140,Hotel 140,Hotel,278664601,2024-10-14,Viana do Castelo,Viana do Castelo,Telefone,0.995,cliente estratégico
+C0141,Particular 141,Particular,260847313,13/07/2021,Valongo,Porto,Telefone,0.225,
+C0142,Supermercado 142,Supermercado,257633787,24/10/2025,Barcelos,Braga,E-commerce,2.701,
+C0143,Take-away 143,Take-away,277631148,16/07/2021,Matosinhos,Porto,Vendas Externas,0.784,
+C0144,Restaurante 144,Restaurante,208187862,22/08/2023,Viana do Castelo,Viana do Castelo,E-commerce,0.685,follow-up trimestral
+C0145,Take-away 145,Take-away,249436543,13/10/2023,Espinho,Aveiro,Vendas Externas,0.357,
+C0146,Hotel 146,Hotel,267757215,20/06/2022,Porto,Porto,Vendas Externas,2.061,
+C0147,Restaurante 147,Restaurante,260983089,2025-01-11,Aveiro,Aveiro,Vendas Externas,1.647,
+C0148,Restaurante 148,Restaurante,235147132,09/04/2021,Valongo,Porto,Vendas Externas,1.289,cliente estratégico
+C0149,Supermercado 149,Supermercado,253558597,11/04/2022,Espinho,Aveiro,E-commerce,1.652,
+C0150,Take-away 150,Take-away,243579813,2024-10-19,Barcelos,Braga,E-commerce,1.391,
+C0151,Particular 151,Particular,267701662,2021-11-04,Braga,Braga,Vendas Externas,0.215,
+C0152,Particular 152,Particular,213893994,12/12/2022,Maia,Porto,Vendas Externas,0.269,
+C0153,Particular 153,Particular,255750600,11/09/2024,Vila Nova de Gaia,Porto,Marketplace,0.252,
+C0154,Take-away 154,Take-away,240350195,29/05/2024,Vila Nova de Gaia,Porto,Marketplace,0.973,follow-up trimestral
+C0155,Particular 155,Particular,235058491,2025-02-24,Espinho,Aveiro,Marketplace,0.19,
+C0156,Supermercado 156,Supermercado,212560083,2023-11-13,Viana do Castelo,Viana do Castelo,Marketplace,0.968,
+C0157,Supermercado 157,Supermercado,248398302,13/07/2024,Valongo,Porto,E-commerce,1.598,
+C0158,Take-away 158,Take-away,254139004,08/03/2025,Braga,Braga,Vendas Externas,0.355,
+C0159,Restaurante 159,Restaurante,250224736,01/01/2025,Valongo,Porto,Marketplace,1.249,
+C0160,Supermercado 160,Supermercado,202425329,2022/12/28,Póvoa de Varzim,Porto,Vendas Externas,1.736,cliente estratégico
+C0161,Restaurante 161,Restaurante,269295984,2022/09/21,Vila Nova de Gaia,Porto,Marketplace,0.88,
+C0162,Restaurante 162,Restaurante,206466983,2023-09-11,Póvoa de Varzim,Porto,E-commerce,0.433,cliente estratégico
+C0163,Take-away 163,Take-away,262163075,2021/11/12,Matosinhos,Porto,Vendas Externas,0.78,
+C0164,Restaurante 164,Restaurante,206938246,2021-04-16,Matosinhos,Porto,Vendas Externas,2.608,
+C0165,Restaurante 165,Restaurante,202169429,20/09/2022,Póvoa de Varzim,Porto,Marketplace,0.773,
+C0166,Supermercado 166,Supermercado,256638649,2023-06-28,Viana do Castelo,Viana do Castelo,Vendas Externas,2.938,
+C0167,Particular 167,Particular,268559540,2025-02-10,Vila Nova de Gaia,Porto,Telefone,0.224,
+C0168,Hotel 168,Hotel,239893537,2022-03-15,Porto,Porto,Vendas Externas,1.775,
+C0169,Take-away 169,Take-away,208098697,2022/07/30,Barcelos,Braga,Marketplace,1.236,
+C0170,Take-away 170,Take-away,275214809,2023-01-28,Barcelos,Braga,E-commerce,0.779,
+C0171,Restaurante 171,Restaurante,258139568,2025-02-24,Póvoa de Varzim,Porto,E-commerce,2.284,
+C0172,Take-away 172,Take-away,221081430,2024-01-07,Maia,Porto,E-commerce,0.353,
+C0173,Restaurante 173,Restaurante,245789385,2025-06-02,Guimarães,Braga,E-commerce,0.531,
+C0174,Restaurante 174,Restaurante,261562444,2021/02/25,Matosinhos,Porto,Telefone,0.473,
+C0175,Take-away 175,Take-away,224203308,2025-02-18,Barcelos,Braga,E-commerce,0.722,
+C0176,Hotel 176,Hotel,264081859,2023-11-25,Porto,Porto,Vendas Externas,1.384,
+C0177,Restaurante 177,Restaurante,214913760,2022/08/02,Vila Nova de Gaia,Porto,Marketplace,1.405,follow-up trimestral
+C0178,Take-away 178,Take-away,269794415,2022-11-23,Viana do Castelo,Viana do Castelo,Marketplace,0.779,follow-up trimestral
+C0179,Take-away 179,Take-away,211406676,19/04/2022,Viana do Castelo,Viana do Castelo,Vendas Externas,1.431,
+C0180,Restaurante 180,Restaurante,224022137,2022-01-04,Viana do Castelo,Viana do Castelo,Marketplace,0.602,follow-up trimestral
+C0181,Hotel 181,Hotel,277448592,2025-08-10,Valongo,Porto,Vendas Externas,1.078,
+C0182,Hotel 182,Hotel,275110350,2024-06-27,Valongo,Porto,Marketplace,1.779,follow-up trimestral
+C0183,Restaurante 183,Restaurante,214218356,2025/09/15,Braga,Braga,E-commerce,1.25,cliente estratégico
+C0184,Supermercado 184,Supermercado,201021233,2023/01/03,Braga,Braga,Vendas Externas,1.273,cliente estratégico
+C0185,Take-away 185,Take-away,240271259,05/09/2025,Aveiro,Aveiro,E-commerce,0.404,cliente estratégico
+C0186,Supermercado 186,Supermercado,271906094,2023-12-02,Barcelos,Braga,E-commerce,3.468,follow-up trimestral
+C0187,Supermercado 187,Supermercado,227810329,26/01/2024,Santo Tirso,Porto,Telefone,1.391,
+C0188,Take-away 188,Take-away,254990408,2024-02-06,Guimarães,Braga,Vendas Externas,0.425,follow-up trimestral
+C0189,Supermercado 189,Supermercado,228353336,2025-01-07,Espinho,Aveiro,Telefone,1.999,
+C0190,Particular 190,Particular,260873244,2021/06/04,Aveiro,Aveiro,E-commerce,0.243,
+C0191,Take-away 191,Take-away,248603483,2025-04-05,Valongo,Porto,Telefone,0.614,
+C0192,Take-away 192,Take-away,219534534,2024-02-05,Espinho,Aveiro,Vendas Externas,1.86,cliente estratégico
+C0193,Supermercado 193,Supermercado,205608625,2023-12-17,Aveiro,Aveiro,Telefone,2.52,
+C0194,Take-away 194,Take-away,274642215,2022-10-25,Matosinhos,Porto,E-commerce,0.706,
+C0195,Hotel 195,Hotel,231462782,2024-01-23,Porto,Porto,E-commerce,2.393,follow-up trimestral
+C0196,Restaurante 196,Restaurante,202584481,2025/02/25,Santo Tirso,Porto,E-commerce,2.629,cliente estratégico
+C0197,Restaurante 197,Restaurante,211685157,15/01/2024,Aveiro,Aveiro,E-commerce,0.876,
+C0198,Restaurante 198,Restaurante,225745204,2024-10-02,Guimarães,Braga,E-commerce,0.997,cliente estratégico
+C0199,Particular 199,Particular,205942031,2025-07-08,Póvoa de Varzim,Porto,Vendas Externas,0.109,
+C0200,Take-away 200,Take-away,208561661,26/01/2022,Matosinhos,Porto,E-commerce,0.469,
+C0201,Particular 201,Particular,220847572,10/06/2023,Maia,Porto,Vendas Externas,0.283,
+C0202,Take-away 202,Take-away,245485860,04/04/2023,Aveiro,Aveiro,Telefone,0.916,follow-up trimestral
+C0203,Restaurante 203,Restaurante,260309626,2025-09-17,Espinho,Aveiro,Marketplace,1.365,
+C0204,Restaurante 204,Restaurante,249803398,04/02/2025,Guimarães,Braga,E-commerce,0.979,
+C0205,Restaurante 205,Restaurante,206628796,31/03/2023,Vila Nova de Gaia,Porto,Vendas Externas,0.874,
+C0206,Particular 206,Particular,243162850,2023-08-12,Maia,Porto,Marketplace,0.087,
+C0207,Take-away 207,Take-away,234451294,2023-11-12,Barcelos,Braga,E-commerce,0.624,follow-up trimestral
+C0208,Take-away 208,Take-away,222239915,2021/08/20,Braga,Braga,E-commerce,1.075,
+C0209,Take-away 209,Take-away,250651624,02/10/2021,Viana do Castelo,Viana do Castelo,E-commerce,0.451,
+C0210,Restaurante 210,Restaurante,273736202,13/10/2021,Viana do Castelo,Viana do Castelo,E-commerce,0.819,
+C0211,Particular 211,Particular,269071269,02/01/2024,Vila Nova de Gaia,Porto,E-commerce,0.313,
+C0212,Restaurante 212,Restaurante,262112318,2024/10/08,Braga,Braga,Telefone,0.559,
+C0213,Take-away 213,Take-away,219105647,26/06/2022,Barcelos,Braga,Telefone,0.841,
+C0214,Restaurante 214,Restaurante,278714820,26/02/2022,Guimarães,Braga,E-commerce,2.484,
+C0215,Restaurante 215,Restaurante,205136389,2024/04/13,Barcelos,Braga,Vendas Externas,1.689,
+C0216,Restaurante 216,Restaurante,263973206,2023-05-08,Viana do Castelo,Viana do Castelo,Marketplace,0.999,
+C0217,Particular 217,Particular,276312539,01/03/2023,Porto,Porto,Marketplace,0.235,
+C0218,Supermercado 218,Supermercado,216176571,2025-07-03,Porto,Porto,E-commerce,1.398,
+C0219,Restaurante 219,Restaurante,232511301,07/03/2022,Porto,Porto,Vendas Externas,1.291,cliente estratégico
+C0220,Restaurante 220,Restaurante,203091735,2024/02/11,Espinho,Aveiro,Marketplace,0.627,cliente estratégico
+C0221,Restaurante 221,Restaurante,227432627,2025-08-03,Espinho,Aveiro,Vendas Externas,1.506,
+C0222,Hotel 222,Hotel,223539532,2023/10/17,Matosinhos,Porto,Vendas Externas,1.077,
+C0223,Restaurante 223,Restaurante,278280641,02/12/2024,Porto,Porto,E-commerce,1.561,
+C0224,Restaurante 224,Restaurante,223261753,07/01/2022,Maia,Porto,E-commerce,1.322,
+C0225,Restaurante 225,Restaurante,241909128,2024-09-23,Viana do Castelo,Viana do Castelo,E-commerce,1.056,follow-up trimestral
+C0226,Supermercado 226,Supermercado,271248065,24/11/2022,Vila Nova de Gaia,Porto,Vendas Externas,1.292,
+C0227,Hotel 227,Hotel,253879650,2021-06-11,Braga,Braga,Vendas Externas,1.915,
+C0228,Restaurante 228,Restaurante,221510628,17/03/2022,Barcelos,Braga,E-commerce,1.501,
+C0229,Restaurante 229,Restaurante,208085838,2021-05-26,Matosinhos,Porto,E-commerce,1.681,
+C0230,Hotel 230,Hotel,213279627,14/07/2025,Valongo,Porto,Marketplace,1.467,cliente estratégico
+C0231,Restaurante 231,Restaurante,217551595,2024-11-24,Barcelos,Braga,E-commerce,0.725,
+C0232,Supermercado 232,Supermercado,276705458,2022-04-21,Espinho,Aveiro,E-commerce,1.463,
+C0233,Take-away 233,Take-away,234174817,2022-03-30,Guimarães,Braga,Vendas Externas,1.343,
+C0234,Particular 234,Particular,225357437,07/09/2022,Braga,Braga,Marketplace,0.256,
+C0235,Take-away 235,Take-away,256573815,2024-06-16,Valongo,Porto,E-commerce,0.805,cliente estratégico
+C0236,Restaurante 236,Restaurante,233915391,18/04/2021,Espinho,Aveiro,E-commerce,1.204,
+C0237,Hotel 237,Hotel,216346615,24/01/2022,Espinho,Aveiro,Vendas Externas,2.685,cliente estratégico
+C0238,Particular 238,Particular,232432080,31/05/2025,Vila Nova de Gaia,Porto,E-commerce,0.253,
+C0239,Supermercado 239,Supermercado,213420802,2021/04/10,Santo Tirso,Porto,Marketplace,1.85,
+C0240,Restaurante 240,Restaurante,246168280,2024-07-13,Espinho,Aveiro,E-commerce,1.485,
+C0241,Hotel 241,Hotel,230557445,2021-08-19,Póvoa de Varzim,Porto,Vendas Externas,2.781,
+C0242,Restaurante 242,Restaurante,259782296,2023-09-07,Porto,Porto,E-commerce,1.522,
+C0243,Take-away 243,Take-away,243464281,27/12/2022,Viana do Castelo,Viana do Castelo,E-commerce,0.481,
+C0244,Take-away 244,Take-away,267394497,2023-06-03,Viana do Castelo,Viana do Castelo,Vendas Externas,0.37,
+C0245,Hotel 245,Hotel,205917423,07/09/2025,Braga,Braga,Telefone,0.912,
+C0246,Restaurante 246,Restaurante,250212739,2023-01-21,Aveiro,Aveiro,Telefone,0.452,
+C0247,Restaurante 247,Restaurante,224074049,24/09/2022,Póvoa de Varzim,Porto,Marketplace,0.687,
+C0248,Restaurante 248,Restaurante,209369103,2023-07-04,Barcelos,Braga,Vendas Externas,1.14,
+C0249,Restaurante 249,Restaurante,257582080,2021-09-28,Viana do Castelo,Viana do Castelo,Marketplace,0.677,
+C0250,Supermercado 250,Supermercado,222190576,2024-04-17,Santo Tirso,Porto,Vendas Externas,1.312,
+C0251,Hotel 251,Hotel,234597760,2022/03/02,Valongo,Porto,E-commerce,1.281,
+C0252,Take-away 252,Take-away,266560125,2021/05/23,Póvoa de Varzim,Porto,Vendas Externas,0.747,
+C0253,Supermercado 253,Supermercado,231350113,2025-05-06,Braga,Braga,Marketplace,1.778,
+C0254,Restaurante 254,Restaurante,242144342,01/03/2024,Maia,Porto,Vendas Externas,0.899,
+C0255,Restaurante 255,Restaurante,232525081,2023-05-29,Maia,Porto,E-commerce,1.522,
+C0256,Supermercado 256,Supermercado,221141850,2022-06-05,Braga,Braga,Telefone,2.77,
+C0257,Particular 257,Particular,209237621,2021-10-17,Matosinhos,Porto,Marketplace,0.272,
+C0258,Take-away 258,Take-away,266125604,2025/02/12,Valongo,Porto,Telefone,0.739,follow-up trimestral
+C0259,Restaurante 259,Restaurante,276485172,2024/02/08,Barcelos,Braga,Vendas Externas,0.481,
+C0260,Hotel 260,Hotel,215677431,2021-07-11,Porto,Porto,E-commerce,2.284,
+C0261,Hotel 261,Hotel,229829422,26/06/2024,Póvoa de Varzim,Porto,E-commerce,1.183,
+C0262,Particular 262,Particular,206254934,10/11/2022,Póvoa de Varzim,Porto,Telefone,0.194,
+C0263,Take-away 263,Take-away,208113853,05/04/2025,Guimarães,Braga,Vendas Externas,0.719,
+C0264,Particular 264,Particular,233389925,30/04/2025,Vila Nova de Gaia,Porto,Vendas Externas,0.14,follow-up trimestral
+C0265,Particular 265,Particular,264005912,09/06/2024,Vila Nova de Gaia,Porto,Telefone,0.109,
+C0266,Supermercado 266,Supermercado,233513143,2021/12/05,Vila Nova de Gaia,Porto,E-commerce,2.802,
+C0267,Restaurante 267,Restaurante,241475819,2024-10-22,Vila Nova de Gaia,Porto,Telefone,0.538,
+C0268,Restaurante 268,Restaurante,208199591,28/09/2023,Espinho,Aveiro,E-commerce,0.924,cliente estratégico
+C0269,Restaurante 269,Restaurante,264151723,2021-09-13,Aveiro,Aveiro,Telefone,0.784,cliente estratégico
+C0270,Restaurante 270,Restaurante,222625520,07/11/2022,Espinho,Aveiro,E-commerce,2.347,follow-up trimestral
+C0271,Supermercado 271,Supermercado,227053676,2025-01-26,Porto,Porto,E-commerce,2.442,
+C0272,Hotel 272,Hotel,211175576,28/07/2023,Porto,Porto,Telefone,1.205,
+C0273,Supermercado 273,Supermercado,277125704,01/09/2024,Guimarães,Braga,Marketplace,1.931,
+C0274,Restaurante 274,Restaurante,202924106,2021-10-21,Santo Tirso,Porto,E-commerce,1.193,
+C0275,Take-away 275,Take-away,205157842,22/10/2024,Maia,Porto,Telefone,1.137,
+C0276,Restaurante 276,Restaurante,235083779,2024/08/31,Matosinhos,Porto,E-commerce,0.912,cliente estratégico
+C0277,Particular 277,Particular,206072631,2024-11-07,Braga,Braga,E-commerce,0.178,
+C0278,Hotel 278,Hotel,266333681,06/08/2023,Viana do Castelo,Viana do Castelo,E-commerce,1.647,
+C0279,Particular 279,Particular,270840911,08/03/2025,Santo Tirso,Porto,Telefone,0.26,cliente estratégico
+C0280,Restaurante 280,Restaurante,212281974,2023-01-02,Vila Nova de Gaia,Porto,E-commerce,0.534,cliente estratégico
+C0281,Restaurante 281,Restaurante,263428148,2021-06-16,Viana do Castelo,Viana do Castelo,E-commerce,0.972,cliente estratégico
+C0282,Hotel 282,Hotel,222694851,08/05/2024,Aveiro,Aveiro,Telefone,2.444,
+C0283,Take-away 283,Take-away,250313114,08/09/2021,Santo Tirso,Porto,E-commerce,0.38,
+C0284,Take-away 284,Take-away,268449050,15/10/2024,Aveiro,Aveiro,E-commerce,1.683,follow-up trimestral
+C0285,Hotel 285,Hotel,232030302,2025/04/02,Maia,Porto,Vendas Externas,0.719,cliente estratégico
+C0286,Supermercado 286,Supermercado,251529235,2022/05/10,Espinho,Aveiro,E-commerce,1.553,
+C0287,Take-away 287,Take-away,220998865,2021-01-20,Póvoa de Varzim,Porto,Vendas Externas,0.612,
+C0288,Restaurante 288,Restaurante,240247000,08/07/2024,Valongo,Porto,Marketplace,0.884,cliente estratégico
+C0289,Hotel 289,Hotel,246254207,05/11/2023,Matosinhos,Porto,Vendas Externas,2.09,cliente estratégico
+C0290,Take-away 290,Take-away,239974741,2023-09-17,Porto,Porto,Telefone,0.488,
+C0291,Restaurante 291,Restaurante,238513301,05/11/2022,Braga,Braga,Vendas Externas,0.542,
+C0292,Take-away 292,Take-away,235733312,10/11/2022,Espinho,Aveiro,Vendas Externas,1.313,follow-up trimestral
+C0293,Restaurante 293,Restaurante,257219747,2021-06-04,Guimarães,Braga,E-commerce,1.443,
+C0294,Restaurante 294,Restaurante,258722146,31/03/2023,Vila Nova de Gaia,Porto,Marketplace,0.952,
+C0295,Restaurante 295,Restaurante,254891724,2023-03-06,Valongo,Porto,Telefone,0.682,
+C0296,Take-away 296,Take-away,266742022,2023/02/27,Maia,Porto,Telefone,0.936,
+C0297,Particular 297,Particular,257732402,2025-05-14,Valongo,Porto,Vendas Externas,0.205,cliente estratégico
+C0298,Restaurante 298,Restaurante,209255296,2022-01-21,Santo Tirso,Porto,E-commerce,0.67,follow-up trimestral
+C0299,Particular 299,Particular,261553212,2024-10-20,Matosinhos,Porto,E-commerce,0.161,
+C0300,Restaurante 300,Restaurante,247746205,2024-09-10,Matosinhos,Porto,Vendas Externas,0.733,
+C0301,Supermercado 301,Supermercado,203363764,2021-08-11,Porto,Porto,Telefone,1.904,
+C0302,Supermercado 302,Supermercado,257978131,12/06/2021,Aveiro,Aveiro,Vendas Externas,3.342,
+C0303,Restaurante 303,Restaurante,248135361,2023-03-07,Viana do Castelo,Viana do Castelo,Vendas Externas,1.125,
+C0304,Restaurante 304,Restaurante,230327070,2024-11-12,Porto,Porto,Vendas Externas,1.369,
+C0305,Restaurante 305,Restaurante,210650897,03/10/2025,Espinho,Aveiro,E-commerce,0.623,
+C0306,Restaurante 306,Restaurante,235123930,2021/09/30,Maia,Porto,Vendas Externas,1.31,cliente estratégico
+C0307,Take-away 307,Take-away,225716948,19/12/2023,Póvoa de Varzim,Porto,E-commerce,0.781,
+C0308,Take-away 308,Take-away,256535841,2025-07-28,Porto,Porto,E-commerce,0.667,
+C0309,Take-away 309,Take-away,227962306,2022-10-26,Viana do Castelo,Viana do Castelo,E-commerce,1.103,
+C0310,Restaurante 310,Restaurante,217688934,2021/09/21,Porto,Porto,Telefone,0.968,follow-up trimestral
+C0311,Restaurante 311,Restaurante,273544300,24/04/2025,Porto,Porto,E-commerce,0.864,
+C0312,Restaurante 312,Restaurante,220287389,2023-12-29,Espinho,Aveiro,E-commerce,2.558,follow-up trimestral
+C0313,Particular 313,Particular,266625697,13/11/2021,Vila Nova de Gaia,Porto,Telefone,0.242,
+C0314,Restaurante 314,Restaurante,230293075,2021-07-06,Guimarães,Braga,E-commerce,2.24,
+C0315,Particular 315,Particular,212334051,19/01/2022,Matosinhos,Porto,E-commerce,0.093,
+C0316,Take-away 316,Take-away,252994385,2021/01/20,Espinho,Aveiro,E-commerce,0.765,
+C0317,Particular 317,Particular,225299276,27/09/2022,Santo Tirso,Porto,Vendas Externas,0.115,
+C0318,Restaurante 318,Restaurante,275970502,2025-07-16,Valongo,Porto,E-commerce,1.393,
+C0319,Restaurante 319,Restaurante,218667982,2023-02-23,Póvoa de Varzim,Porto,E-commerce,0.818,
+C0320,Supermercado 320,Supermercado,217372211,18/09/2022,Aveiro,Aveiro,Telefone,1.23,
+C0168,Hotel 168,Hotel,239893537,2022-03-15,Porto,Porto,Vendas Externas,1.775,
+C0231,Restaurante 231,Restaurante,217551595,2024-11-24,Barcelos,Braga,E-commerce,0.725,

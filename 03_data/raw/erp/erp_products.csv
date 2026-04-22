@@ -1,0 +1,37 @@
+produto_id,produto_nome,categoria,marca,peso_gramas,preco_lista_base,custo_base_unitario,fornecedor_id,data_lancamento,data_fim,status_produto,popularidade_base,sensibilidade_promocao,fator_sazonal_proprio,codigo_barra_legacy,observacao_interna
+P001,Filetes de pescada 1kg,Peixe,PT Frozen Foods,1000,7.9,4.2,F001,13-09-2022,,Ativo,0.465,0.703,0.835,56000647025,sku antigo
+P002,Lombos de salmão 600g,Peixe,Mar Azul,600,11.5,7.1,F003,2023-03-01,,Ativo,0.683,0.694,0.808,56000379416,
+P003,Potas em anéis 1kg,Peixe,Norte Mar,1000,6.9,3.95,F003,2021-01-14,,Ativo,0.672,0.938,1.21,56000619617,
+P004,Bacalhau desfiado 800g,Peixe,PT Frozen Foods,800,8.5,5.1,F001,23-03-2023,,Ativo,4.548,0.761,1.23,56000971005,
+P005,Miolo de camarão 60/80 800g,Marisco,Norte Mar,800,10.9,7.2,F003,2024-11-04,,Ativo,2.351,0.994,0.956,56000339087,
+P006,Miolo de mexilhão 1kg,Marisco,FrioMax,1000,7.4,4.25,F002,22-11-2023,2025-12-09,Inativo,1.002,0.475,1.243,56000489146,
+P007,Cocktail de marisco 1kg,Marisco,FrioMax,1000,9.8,6.35,F002,2023-09-03,,Ativo,1.196,1.259,1.155,56000858566,
+P008,Ervilhas 1kg,Hortícolas,Campo Verde,1000,2.2,1.05,F004,2021-05-21,,Ativo,0.916,1.443,1.067,56000525052,rever ficha
+P009,Feijão verde 1kg,Hortícolas,Campo Verde,1000,2.4,1.16,F004,26/03/2023,,Ativo,6.445,0.975,0.959,56000714489,
+P010,Legumes para sopa 1kg,Hortícolas,Campo Verde,1000,2.6,1.24,F004,2023-07-01,,Ativo,4.609,1.165,1.4,56000476489,
+P011,Mistura chinesa 1kg,Hortícolas,Horta Fácil,1000,3.4,1.92,F004,2022-10-10,,Ativo,0.683,0.845,0.835,56000103523,
+P012,Hambúrguer bovino 800g,Carne,Chef Express,800,5.9,3.32,F006,2022-04-12,,Ativo,2.695,0.557,0.922,56000354783,rever ficha
+P013,Nuggets de frango 1kg,Carne,Chef Express,1000,5.2,2.84,F006,05/09/2023,,Ativo,0.516,1.146,1.001,56000609106,
+P014,Almôndegas de novilho 1kg,Carne,Mesa Pronta,1000,6.1,3.58,F006,2023-03-16,23/10/2024,Inativo,1.231,1.288,1.093,56000117519,sku antigo
+P015,Lasanha bolonhesa 1kg,Pré-cozinhados,Atlântico Select,1000,6.9,4.25,F001,2022-03-03,,Ativo,2.302,1.291,1.398,56000308650,sku antigo
+P016,Empadão de carne 1200g,Pré-cozinhados,Atlântico Select,1200,7.1,4.3,F001,2023-12-06,,Ativo,2.871,0.982,0.975,56000957795,
+P017,Bacalhau com natas 1200g,Pré-cozinhados,PT Frozen Foods,1200,8.9,5.65,F001,2021-11-07,,Ativo,0.547,0.677,1.076,56000113830,rever ficha
+P018,Batata palito 10mm 2500g,Batatas,FrioMax,2500,4.6,2.3,F002,2021-04-19,,Ativo,0.364,1.225,1.034,56000322643,
+P019,Batata rústica 2500g,Batatas,FrioMax,2500,4.9,2.45,F002,2022-07-02,,Ativo,1.796,0.839,1.074,56000657429,
+P020,Batata smile 1500g,Batatas,FrioMax,1500,4.8,2.42,F002,2024-07-13,,Ativo,3.466,0.781,0.893,56000606764,rever ficha
+P021,Pão de água 2400g,Padaria,Padaria Premium,2400,3.9,1.78,F005,2022-10-15,,Ativo,0.884,1.744,0.789,56000284422,
+P022,Pão de cereais 2kg,Padaria,Doce Norte,2000,4.4,2.1,F005,23/08/2022,,Ativo,0.715,0.724,0.836,56000153631,sku antigo
+P023,Pão de forma 800g,Padaria,Doce Norte,800,3.1,1.42,F005,11/08/2023,,Ativo,1.057,0.812,0.952,56000909671,
+P024,Croissant manteiga 1500g,Pastelaria,Doce Norte,1500,7.5,3.95,F005,15/10/2023,,Ativo,1.82,0.997,1.042,56000595745,
+P025,Pastel de nata cru 1200g,Pastelaria,Doce Norte,1200,6.9,3.65,F005,19/01/2022,,Ativo,0.852,0.967,1.005,56000616042,
+P026,Gelado baunilha 2L 2kg,Sobremesas,PT Frozen Foods,2000,5.9,2.95,F001,25/04/2022,,Ativo,0.599,1.2,0.7,56000151954,sku antigo
+P027,Gelado chocolate 2L 2kg,Sobremesas,Atlântico Select,2000,5.9,2.92,F001,01-01-2023,,Ativo,0.525,0.855,1.131,56000288266,rever ficha
+P028,Gelado morango 2L 2kg,Sobremesas,PT Frozen Foods,2000,5.9,2.9,F001,2021-02-07,2023-03-20,Inativo,0.21,1.314,0.89,56000165623,rever ficha
+P029,Tarte de maçã 1200g,Sobremesas,Doce Norte,1200,7.9,4.05,F005,2021-11-08,,Ativo,0.676,0.93,0.736,56000981213,
+P030,Tarte de amêndoa 1200g,Sobremesas,Padaria Premium,1200,8.2,4.3,F005,2021-04-27,04/09/2022,Inativo,2.576,0.973,0.833,56000792771,sku antigo
+P031,Sumo de laranja 1L 1kg,Bebidas,Mesa Pronta,1000,1.8,0.92,F006,2023-04-19,,Ativo,1.202,0.763,1.174,56000591796,sku antigo
+P032,"Ice tea limão 1,5L 1500g",Bebidas,Chef Express,1500,1.7,0.86,F006,13/11/2021,2024-03-20,Inativo,4.243,0.929,1.064,56000712777,rever ficha
+P033,Smoothie frutos vermelhos 750g,Bebidas,Chef Express,750,3.4,1.72,F006,15-10-2021,,Ativo,1.53,0.852,1.321,56000248924,
+P034,Arroz agulha 1kg 1kg,Conservas & Secos,Horta Fácil,1000,1.3,0.74,F004,18/02/2022,,Ativo,0.826,1.286,0.84,56000989415,sku antigo
+P035,Ervilhas em lata 400g,Conservas & Secos,Campo Verde,400,0.9,0.45,F004,12/09/2022,,Ativo,1.511,0.676,0.782,56000565517,rever ficha
+P036,Atum em óleo 120g,Conservas & Secos,Mar Azul,120,1.1,0.58,F003,08-09-2023,,Ativo,0.431,0.893,0.902,56000564949,

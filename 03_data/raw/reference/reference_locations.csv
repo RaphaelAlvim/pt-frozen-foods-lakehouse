@@ -1,0 +1,14 @@
+localidade_id,cidade,distrito,regiao
+LOC001,Porto,Porto,Norte
+LOC002,Vila Nova de Gaia,Porto,Norte
+LOC003,Matosinhos,Porto,Norte
+LOC004,Maia,Porto,Norte
+LOC005,Braga,Braga,Norte
+LOC006,Guimarães,Braga,Norte
+LOC007,Viana do Castelo,Viana do Castelo,Norte
+LOC008,Aveiro,Aveiro,Centro
+LOC009,Espinho,Aveiro,Norte
+LOC010,Póvoa de Varzim,Porto,Norte
+LOC011,Santo Tirso,Porto,Norte
+LOC012,Barcelos,Braga,Norte
+LOC013,Valongo,Porto,Norte
