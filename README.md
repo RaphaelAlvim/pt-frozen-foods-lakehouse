@@ -1,18 +1,31 @@
-# PT Frozen Foods — Data Platform Project
+# PT Frozen Foods — Modern Data Platform
 
 ## Overview
 
-PT Frozen Foods is a real data platform project based on a realistic business scenario of a frozen food distribution company located in Northern Portugal.
+PT Frozen Foods is a real-world, end-to-end data platform project.
 
-Due to confidentiality constraints, the project uses a fictional name and synthetic datasets. However, all architectural decisions, business logic, and technical implementations are designed to reflect a real production environment.
+Due to privacy and confidentiality constraints, the project uses synthetic datasets and a fictional company name. However, the platform design, architecture, and implementation reflect real enterprise use cases.
 
-The project demonstrates end-to-end capabilities in:
+The project demonstrates how a modern data platform is structured, orchestrated, and operated end-to-end.
+
+It covers:
 
 - Data Engineering  
 - Data Analytics  
-- Machine Learning  
+- Machine Learning (foundation)  
 - Cloud Architecture (Azure)  
-- Lakehouse design pattern  
+- Lakehouse architecture design  
+
+---
+
+## Key Highlights
+
+- End-to-end data pipeline (RAW → Bronze → Silver → Gold)  
+- Fully orchestrated with Azure Data Factory  
+- Distributed processing using Databricks (Spark + Delta Lake)  
+- Infrastructure provisioned via Terraform (IaC)  
+- Modular and scalable architecture  
+- Repository structured for production-grade maintainability  
 
 ---
 
@@ -29,78 +42,74 @@ The platform follows a Lakehouse architecture built on Azure services:
 
 ---
 
-## Infrastructure (Infrastructure as Code)
-
-All infrastructure is provisioned using **Terraform**, following Infrastructure as Code (IaC) principles.
-
-This approach provides several advantages:
-
-- reduction of human errors  
-- environment standardization  
-- infrastructure reproducibility  
-- easier maintenance and evolution  
-- code reuse through modular design  
-- version control integration with Git  
-- readiness for CI/CD pipelines  
-
-The infrastructure is designed in a modular way, enabling scalability and consistent environment management.
-
----
-
 ## High-Level Data Flow
 
 Data Sources (Simulated)  
--> Logic Apps / Manual Upload  
--> ADLS Gen2 (RAW)  
--> ADF (Orchestration)  
--> Databricks (Processing)  
--> Bronze -> Silver -> Gold  
--> Analytics / Machine Learning  
+→ Logic Apps / Manual Upload  
+→ ADLS Gen2 (RAW Layer)  
+→ ADF (Orchestration)  
+→ Databricks (Processing)  
+→ Bronze → Silver → Gold  
+→ Analytics / Machine Learning  
+
+---
+
+## Infrastructure (IaC)
+
+All infrastructure is provisioned using Terraform.
+
+This enables:
+
+- reproducibility of environments  
+- version-controlled infrastructure  
+- modular design  
+- scalability and maintainability  
+- readiness for CI/CD  
 
 ---
 
 ## Data Ingestion Strategy
 
-Data ingestion is implemented using a hybrid approach:
+The ingestion layer combines:
 
-- Azure Logic Apps for selected automated ingestion scenarios (e.g., SharePoint simulation)  
-- Manual uploads to the RAW layer of the Data Lake for specific datasets  
+- Azure Logic Apps for automated ingestion scenarios  
+- Manual ingestion into RAW to simulate enterprise systems  
 
-Manual ingestion is intentionally used to simulate enterprise data sources such as CRM systems, ERP platforms, APIs, and other operational systems, since the project uses synthetic datasets and real production data cannot be exposed due to confidentiality constraints.
+This approach allows the platform to represent real-world data ingestion patterns such as:
 
-This approach allows the platform to realistically simulate real-world ingestion patterns while maintaining full control over data and ensuring proper governance.
-
----
-
-## Orchestration Layer
-
-Azure Data Factory is used as the orchestration layer in this project.
-
-Within this portfolio context, ADF is mainly responsible for:
-
-- triggering Databricks notebooks  
-- coordinating execution across Bronze, Silver, and Gold layers  
-- scheduling and managing transformation pipelines  
-
-In a real production environment, ADF would also orchestrate data ingestion from enterprise systems such as ERP, CRM, APIs, and other external sources, integrating multiple data flows across the platform.
+- CRM systems  
+- ERP platforms  
+- APIs  
+- external operational data sources  
 
 ---
 
-## Data Processing Layer
+## Orchestration Layer (ADF)
 
-Data processing is executed in Azure Databricks using Spark and Delta Lake.
+Azure Data Factory is responsible for:
 
-The processing pipeline follows a layered approach:
+- pipeline orchestration  
+- dependency management across layers  
+- execution scheduling  
+- triggering Databricks workloads  
 
-- Bronze: structured data after ingestion, with initial standardization  
-- Silver: cleaned, validated, and enriched data  
-- Gold: business-ready datasets  
+---
+
+## Data Processing (Databricks)
+
+Processing is implemented using Spark and Delta Lake.
+
+Layers:
+
+- Bronze → ingestion and initial structuring  
+- Silver → cleansing, validation, and integration  
+- Gold → business-ready datasets  
 
 ---
 
 ## Data Model
 
-The analytical model follows a dimensional design.
+The analytical model follows a dimensional approach.
 
 ### Dimensions
 
@@ -109,42 +118,45 @@ The analytical model follows a dimensional design.
 - dim_supplier  
 - dim_sales_channel  
 - dim_calendar  
+- dim_weather  
 
 ### Fact Tables
 
 - fact_sales  
-- fact_web_events  
+
+### Data Marts
+
+- mart_customer_sales  
+- mart_sales_performance  
+- mart_customer_product_mix  
 
 ---
 
 ## Analytics Layer
 
-The Gold layer provides curated datasets for analytical use, enabling:
+The Gold layer enables:
 
-- performance analysis  
-- data exploration  
-- dashboards and reporting  
-- foundation for advanced analytics and predictive models  
+- KPI analysis  
+- reporting and dashboards  
+- business insights  
+- data-driven decision making  
 
 ---
 
-## Machine Learning
+## Machine Learning (Next Step)
 
-Planned machine learning use cases include:
+Planned use cases:
 
 - demand forecasting  
 - product recommendation  
-- customer churn prediction  
+- customer segmentation and churn  
 
 ---
 
 ## Project Structure
 
-pt_frozen_foods_251201/  
-├── README.md  
-├── requirements.txt  
-├── .gitignore  
-├── .env.example  
+pt_frozen_foods_251201/
+
 ├── 01_docs/  
 ├── 02_infra/  
 ├── 03_data/  
@@ -155,19 +167,19 @@ pt_frozen_foods_251201/
 
 ---
 
-## Key Design Principles
+## Design Principles
 
-- separation of concerns (ingestion, orchestration, processing)  
-- modular and cloud-native architecture  
-- Lakehouse design pattern  
-- Infrastructure as Code (IaC)  
-- scalability and reproducibility  
-- realistic simulation of enterprise data workflows  
+- Git as single source of truth  
+- clear separation of concerns  
+- layered architecture (Medallion)  
+- modular and scalable design  
+- performance-oriented processing  
+- reproducibility and governance  
 
 ---
 
 ## Disclaimer
 
-This project represents a real-world data platform scenario but uses synthetic data and a fictional company name for confidentiality reasons.
+This project uses synthetic data and a fictional company name due to privacy constraints.
 
-All architectural decisions, data flows, and implementations are designed to reflect real enterprise practices while ensuring that no sensitive or confidential data is exposed.
+No real company data is used.
