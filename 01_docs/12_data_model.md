@@ -21,7 +21,7 @@ The model is designed to support:
 - scalable Gold-layer data products
 - high-performance analytical queries
 
-It aligns with the Lakehouse architecture and is progressively materialized across Bronze, Silver, and Gold layers.
+It aligns with the Lakehouse architecture and is progressively materialized across Raw, Bronze, Silver, and Gold layers.
 
 ---
 
@@ -29,9 +29,10 @@ It aligns with the Lakehouse architecture and is progressively materialized acro
 
 | Layer | Purpose | Example |
 |-------|---------|---------|
-| Bronze | Raw technical ingestion | `bronze_erp_orders` |
-| Silver | Cleaned and integrated datasets | `silver_orders_customers` |
-| Gold | Analytical and dimensional models | `fact_sales`, `dim_customer` |
+| Raw | Landing zone for source files | `raw/erp/erp_orders.csv` |
+| Bronze | Raw technical ingestion with minimal transformation | `bronze_erp_orders` |
+| Silver | Cleaned, standardized, and integrated datasets | `silver_orders_customers` |
+| Gold | Analytical and dimensional models | `fact_sales`, `dim_customer`, `mart_sales_performance` |
 
 ---
 
@@ -203,6 +204,80 @@ These datasets are designed for both analytics and machine learning preparation.
 
 ---
 
+## Analytics Consumption Layer
+
+The Analytics layer extends the Gold layer by providing consumption-optimized datasets designed for business use cases, BI tools, and recurring analytical queries.
+
+It is not treated as a separate Medallion layer. Instead, it represents a consumption-oriented extension of the Gold layer.
+
+---
+
+### analytics_sales_overview
+
+This dataset was introduced to support multi-dimensional analysis across customer, product, channel, and time.
+
+**Source:**
+
+- `gold.fact_sales`
+
+**Grain:**
+
+- One record per:
+  - `data_pedido`
+  - `cliente_id`
+  - `produto_id`
+  - `canal_id`
+
+**Key Dimensions:**
+
+- customer
+- product
+- sales channel
+- calendar attributes
+
+**Key Measures:**
+
+- quantity_sold
+- gross_sales_amount
+- net_sales_amount
+- total_cost_amount
+- gross_margin_amount
+- order_count
+- line_count
+
+**Purpose:**
+
+- enable complex analytical queries without relying on the fact table  
+- support BI dashboards and reporting  
+- improve query performance and cost efficiency  
+
+**Optimization:**
+
+- Delta Lake format  
+- Liquid Clustering applied on:
+  - `cliente_id`
+  - `produto_id`
+  - `canal_id`
+- Auto Optimize enabled  
+
+---
+
+### Design Strategy
+
+The Analytics layer follows a usage-driven approach:
+
+- datasets are only created when justified by recurring analytical needs  
+- avoids unnecessary duplication of existing marts  
+- prioritizes performance and simplicity for data consumption  
+
+Currently, a single dataset is implemented:
+
+- `analytics_sales_overview`
+
+Additional datasets will only be introduced if required by real business use cases or performance constraints.
+
+---
+
 ## Storage and Governance
 
 | Component | Specification |
@@ -252,5 +327,6 @@ It ensures:
 - alignment with dimensional modeling best practices
 - readiness for BI, analytics, and machine learning
 - seamless integration with the Lakehouse architecture
+- support for consumption-optimized analytics datasets
 
 This model enables efficient data-driven decision-making and supports the long-term evolution of the platform.

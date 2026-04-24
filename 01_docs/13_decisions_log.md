@@ -709,3 +709,75 @@ Adopt standardized logging for all production notebooks.
 - clear visibility into processing steps and results
 - improved operational reliability
 
+---
+
+## Decision 037: Analytics Layer Strategy
+
+### Context
+
+During the development of the Analytics layer, exploratory analysis was conducted to evaluate the ability of existing datasets (fact and marts) to support common business questions.
+
+The analysis revealed that:
+
+- the `fact_sales` table provides full analytical flexibility but requires higher computational cost  
+- existing marts support specific analytical views but do not fully cover multi-dimensional analysis across customer, product, and channel  
+
+---
+
+### Decision
+
+A single analytics dataset will be created for the current phase:
+
+- `analytics_sales_overview`
+
+No additional analytics datasets will be introduced at this stage.
+
+---
+
+### Rationale
+
+The selected dataset:
+
+- supports multi-dimensional analysis across customer, product, channel, and time  
+- covers the majority of business use cases identified during exploratory analysis  
+- reduces dependency on the fact table for recurring analytical queries  
+- improves query performance and cost efficiency  
+
+Creating additional datasets at this stage would:
+
+- introduce unnecessary duplication  
+- increase maintenance complexity  
+- provide limited additional value without real usage demand  
+
+---
+
+### Strategy
+
+The Analytics layer follows a usage-driven approach:
+
+- new datasets will only be created if justified by:
+  - recurring BI or reporting use cases  
+  - performance bottlenecks  
+  - need for different analytical grain  
+
+- existing datasets should be reused whenever possible  
+
+---
+
+### Implications
+
+- `analytics_sales_overview` becomes the primary dataset for analytical consumption  
+- BI tools and dashboards should prioritize this dataset over direct fact table access  
+- future optimization efforts should focus on this dataset  
+
+---
+
+### Future Considerations
+
+Additional analytics datasets may be introduced if:
+
+- new business requirements emerge  
+- query performance becomes a constraint  
+- specialized analytical views are needed (e.g., customer lifecycle, time-series trends)  
+
+Any new dataset must be justified and documented before implementation.
