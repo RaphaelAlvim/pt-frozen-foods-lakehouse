@@ -1,3 +1,7 @@
+# Databricks notebook source
+
+# COMMAND ----------
+
 # ========================================
 # ANALYTICS PROCESSING NOTEBOOK
 # DATASET: analytics_sales_overview
