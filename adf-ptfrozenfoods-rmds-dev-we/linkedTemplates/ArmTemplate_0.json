@@ -1130,6 +1130,44 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/pl_analytics')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Analytics pipeline for consumption-optimized datasets and business analytics",
+				"activities": [
+					{
+						"name": "nb_analytics_sales_overview",
+						"description": "Run analytics notebook for sales overview dataset",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/05_analytics/processing/analytics_sales_overview_processing"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks_ptfrozenfoods_dev",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks_ptfrozenfoods_dev')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_ptfrozenfoods_master')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1278,6 +1316,31 @@
 							"waitOnCompletion": true,
 							"parameters": {}
 						}
+					},
+					{
+						"name": "exec_analytics",
+						"description": "Analytics pipeline for consumption-optimized datasets and business analytics",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exec_gold_marts",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_analytics",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
 					}
 				],
 				"policy": {
@@ -1291,7 +1354,8 @@
 				"[concat(variables('factoryId'), '/pipelines/pl_silver_integration')]",
 				"[concat(variables('factoryId'), '/pipelines/pl_gold_dimensions')]",
 				"[concat(variables('factoryId'), '/pipelines/pl_gold_fact')]",
-				"[concat(variables('factoryId'), '/pipelines/pl_gold_marts')]"
+				"[concat(variables('factoryId'), '/pipelines/pl_gold_marts')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_analytics')]"
 			]
 		}
 	]
