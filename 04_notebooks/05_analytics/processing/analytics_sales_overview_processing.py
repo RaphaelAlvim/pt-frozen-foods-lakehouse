@@ -137,6 +137,11 @@ print("[INFO] Analytics table created successfully.")
 # 2. OPTIMIZATION
 # ========================================
 
+# OPTIMIZE is executed after the full rebuild because this table is intended
+# for recurring analytical consumption.
+# In future production scenarios, this may be moved to a scheduled maintenance
+# job if execution cost becomes relevant.
+
 print("[INFO] Running OPTIMIZE for clustered Delta layout...")
 
 spark.sql(f"OPTIMIZE {TARGET_TABLE}")
