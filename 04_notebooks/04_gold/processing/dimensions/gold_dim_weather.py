@@ -4,12 +4,18 @@
 # DATASET: dim_weather
 # ========================================
 
+# Processing decisions:
+# - Use CTAS (CREATE OR REPLACE TABLE AS SELECT) to create and register the Delta table in one step.
+# - Use Liquid Clustering by weather_date and city to support analytical filters.
+# - Avoid unnecessary cache, repartition, or coalesce operations.
+# - Consolidate validation checks to reduce unnecessary scans.
+# - Keep critical grain and null validations to protect dimension quality.
+
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "silver"
@@ -21,92 +27,22 @@ DATASET = "dim_weather"
 STORAGE_ACCOUNT = "stptfrozenfoodsdevwe01"
 GOLD_CONTAINER = "gold"
 
-WEATHER_DATASET = "weather_porto_daily"
-
-WEATHER_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{WEATHER_DATASET}"
-
+SOURCE_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.weather_porto_daily"
 TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
+
 TARGET_PATH = f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
-CLUSTER_KEYS = ["weather_date", "city"]
+GRAIN_COLUMNS = [
+    "weather_date",
+    "city"
+]
 
-AUTO_OPTIMIZE_PROPERTIES = {
-    "delta.autoOptimize.optimizeWrite": "true",
-    "delta.autoOptimize.autoCompact": "true"
-}
+CLUSTER_COLUMNS = [
+    "weather_date",
+    "city"
+]
 
-
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
-
-print("=" * 80)
-print("STARTING GOLD PROCESSING: dim_weather")
-print("=" * 80)
-
-spark.sql(f"USE CATALOG {CATALOG}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
-spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
-
-print("[INFO] Context setup completed successfully.")
-
-
-# ========================================
-# 2. CONFIGURATION SUMMARY
-# ========================================
-
-print("=" * 80)
-print("GOLD PROCESSING NOTEBOOK CONFIGURATION")
-print("=" * 80)
-print(f"Catalog:                         {CATALOG}")
-print(f"Source schema:                   {SOURCE_SCHEMA}")
-print(f"Target schema:                   {TARGET_SCHEMA}")
-print(f"Domain:                          {DOMAIN}")
-print(f"Dataset:                         {DATASET}")
-print(f"Weather table:                   {WEATHER_TABLE}")
-print(f"Target table:                    {TARGET_TABLE}")
-print(f"Target path:                     {TARGET_PATH}")
-print(f"Cluster keys:                    {', '.join(CLUSTER_KEYS)}")
-print(f"Optimize write enabled:          {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.optimizeWrite']}")
-print(f"Auto compact enabled:            {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.autoCompact']}")
-print("=" * 80)
-
-
-# ========================================
-# 3. PRE-CHECKS
-# ========================================
-
-print("[INFO] Checking source table availability...")
-spark.sql(f"DESCRIBE TABLE {WEATHER_TABLE}")
-
-print("[INFO] Checking target container access...")
-dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
-
-print("[INFO] Pre-checks completed successfully.")
-
-
-# ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_weather = spark.table(WEATHER_TABLE)
-
-print("[INFO] Source data loaded successfully.")
-print(f"[INFO] Weather row count:                    {df_weather.count():,}")
-
-
-# ========================================
-# 5. SOURCE VALIDATION
-# ========================================
-
-print("[INFO] Validating source datasets...")
-
-raw_weather_count = df_weather.count()
-distinct_date_city_count = df_weather.select("data", "cidade").distinct().count()
-null_date_count = df_weather.filter(F.col("data").isNull()).count()
-null_city_count = df_weather.filter(F.col("cidade").isNull()).count()
-
-required_columns = [
+REQUIRED_COLUMNS = [
     "data",
     "cidade",
     "temperatura_media",
@@ -119,186 +55,216 @@ required_columns = [
     "fonte_api"
 ]
 
-missing_columns = [c for c in required_columns if c not in df_weather.columns]
+print("=" * 80)
+print("STARTING GOLD PROCESSING: dim_weather")
+print("=" * 80)
 
-print(f"[INFO] Distinct date-city combinations:      {distinct_date_city_count:,}")
-print(f"[INFO] Null data count:                      {null_date_count:,}")
-print(f"[INFO] Null cidade count:                    {null_city_count:,}")
-print(f"[INFO] Missing required columns:             {missing_columns}")
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
+spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
 
-if distinct_date_city_count != raw_weather_count:
-    raise ValueError(
-        f"Duplicate date-city combinations detected in source dataset. Distinct: {distinct_date_city_count}, Rows: {raw_weather_count}"
-    )
+print("[INFO] Context setup completed successfully.")
 
-if null_date_count > 0:
-    raise ValueError(f"Null data detected in source dataset: {null_date_count}")
+# ========================================
+# 1. CONFIGURATION SUMMARY
+# ========================================
 
-if null_city_count > 0:
-    raise ValueError(f"Null cidade detected in source dataset: {null_city_count}")
+print("=" * 80)
+print("GOLD PROCESSING NOTEBOOK CONFIGURATION")
+print("=" * 80)
+print(f"Catalog:                         {CATALOG}")
+print(f"Source schema:                   {SOURCE_SCHEMA}")
+print(f"Target schema:                   {TARGET_SCHEMA}")
+print(f"Domain:                          {DOMAIN}")
+print(f"Dataset:                         {DATASET}")
+print(f"Source table:                    {SOURCE_TABLE}")
+print(f"Target table:                    {TARGET_TABLE}")
+print(f"Target path:                     {TARGET_PATH}")
+print(f"Grain columns:                   {', '.join(GRAIN_COLUMNS)}")
+print(f"Cluster columns:                 {', '.join(CLUSTER_COLUMNS)}")
+print(f"Optimization strategy:           Delta Auto Optimize + Liquid Clustering")
+print(f"Partitioning strategy:           None")
+print("=" * 80)
+
+# ========================================
+# 2. PRE-CHECKS
+# ========================================
+
+print("[INFO] Checking source table availability...")
+spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
+
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print("[INFO] Pre-checks completed successfully.")
+
+# ========================================
+# 3. SOURCE VALIDATION
+# ========================================
+
+print("[INFO] Validating source dataset...")
+
+df_source = spark.table(SOURCE_TABLE)
+
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
 
 if missing_columns:
     raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
 
+source_validation = (
+    df_source
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("data", "cidade").alias("distinct_date_city_count"),
+        F.sum(F.when(F.col("data").isNull(), 1).otherwise(0)).alias("null_data"),
+        F.sum(F.when(F.col("cidade").isNull(), 1).otherwise(0)).alias("null_cidade")
+    )
+    .collect()[0]
+)
+
+print(f"Source row count:                  {source_validation['row_count']:,}")
+print(f"Distinct date-city combinations:   {source_validation['distinct_date_city_count']:,}")
+print(f"Null data count:                   {source_validation['null_data']:,}")
+print(f"Null cidade count:                 {source_validation['null_cidade']:,}")
+
+if source_validation["distinct_date_city_count"] != source_validation["row_count"]:
+    raise ValueError(
+        f"Duplicate date-city combinations detected in source dataset. "
+        f"Distinct: {source_validation['distinct_date_city_count']}, Rows: {source_validation['row_count']}"
+    )
+
+if source_validation["null_data"] > 0:
+    raise ValueError(f"Null data detected in source dataset: {source_validation['null_data']}")
+
+if source_validation["null_cidade"] > 0:
+    raise ValueError(f"Null cidade detected in source dataset: {source_validation['null_cidade']}")
+
 print("[INFO] Source validation completed successfully.")
 
-
 # ========================================
-# 6. BUILD DIMENSION DATASET
-# ========================================
-
-print("[INFO] Building Gold dimension dataset with explicit column selection...")
-
-df_dim_weather = (
-    df_weather
-    .select(
-        F.col("data").alias("weather_date"),
-        F.col("cidade").alias("city"),
-        F.col("temperatura_media").alias("avg_temperature"),
-        F.col("temperatura_min").alias("min_temperature"),
-        F.col("temperatura_max").alias("max_temperature"),
-        F.col("choveu").alias("did_rain"),
-        F.col("precipitacao_mm").alias("precipitation_mm"),
-        F.col("humidade_media").alias("avg_humidity"),
-        F.col("vento_kmh").alias("wind_kmh"),
-        F.col("fonte_api").alias("weather_source")
-    )
-    .dropDuplicates(["weather_date", "city"])
-)
-
-print("[INFO] Gold dimension dataset built successfully.")
-print(f"[INFO] Row count after build:                {df_dim_weather.count():,}")
-
-
-# ========================================
-# 7. OUTPUT VALIDATION
+# 4. CREATE DIMENSION TABLE
 # ========================================
 
-print("[INFO] Validating Gold dimension output...")
-
-expected_row_count = distinct_date_city_count
-final_row_count = df_dim_weather.count()
-
-duplicate_date_city_count = (
-    df_dim_weather
-    .groupBy("weather_date", "city")
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
-)
-
-null_weather_date_final = df_dim_weather.filter(F.col("weather_date").isNull()).count()
-null_city_final = df_dim_weather.filter(F.col("city").isNull()).count()
-null_avg_temperature_final = df_dim_weather.filter(F.col("avg_temperature").isNull()).count()
-null_min_temperature_final = df_dim_weather.filter(F.col("min_temperature").isNull()).count()
-null_max_temperature_final = df_dim_weather.filter(F.col("max_temperature").isNull()).count()
-null_did_rain_final = df_dim_weather.filter(F.col("did_rain").isNull()).count()
-null_precipitation_final = df_dim_weather.filter(F.col("precipitation_mm").isNull()).count()
-null_avg_humidity_final = df_dim_weather.filter(F.col("avg_humidity").isNull()).count()
-null_wind_kmh_final = df_dim_weather.filter(F.col("wind_kmh").isNull()).count()
-null_weather_source_final = df_dim_weather.filter(F.col("weather_source").isNull()).count()
-
-print(f"[INFO] Expected row count:                   {expected_row_count:,}")
-print(f"[INFO] Output row count:                     {final_row_count:,}")
-print(f"[INFO] Duplicate date-city count:           {duplicate_date_city_count:,}")
-print(f"[INFO] Null weather_date count:             {null_weather_date_final:,}")
-print(f"[INFO] Null city count:                     {null_city_final:,}")
-print(f"[INFO] Null avg_temperature count:          {null_avg_temperature_final:,}")
-print(f"[INFO] Null min_temperature count:          {null_min_temperature_final:,}")
-print(f"[INFO] Null max_temperature count:          {null_max_temperature_final:,}")
-print(f"[INFO] Null did_rain count:                 {null_did_rain_final:,}")
-print(f"[INFO] Null precipitation_mm count:         {null_precipitation_final:,}")
-print(f"[INFO] Null avg_humidity count:             {null_avg_humidity_final:,}")
-print(f"[INFO] Null wind_kmh count:                 {null_wind_kmh_final:,}")
-print(f"[INFO] Null weather_source count:           {null_weather_source_final:,}")
-
-if final_row_count != expected_row_count:
-    raise ValueError(
-        f"Row count mismatch detected. Expected: {expected_row_count}, Got: {final_row_count}"
-    )
-
-if duplicate_date_city_count > 0:
-    raise ValueError(f"Duplicate weather_date-city detected in output dataset: {duplicate_date_city_count}")
-
-if null_weather_date_final > 0:
-    raise ValueError(f"Null weather_date detected in output dataset: {null_weather_date_final}")
-
-if null_city_final > 0:
-    raise ValueError(f"Null city detected in output dataset: {null_city_final}")
-
-if null_avg_temperature_final > 0:
-    raise ValueError(f"Null avg_temperature detected in output dataset: {null_avg_temperature_final}")
-
-if null_min_temperature_final > 0:
-    raise ValueError(f"Null min_temperature detected in output dataset: {null_min_temperature_final}")
-
-if null_max_temperature_final > 0:
-    raise ValueError(f"Null max_temperature detected in output dataset: {null_max_temperature_final}")
-
-if null_did_rain_final > 0:
-    raise ValueError(f"Null did_rain detected in output dataset: {null_did_rain_final}")
-
-if null_precipitation_final > 0:
-    raise ValueError(f"Null precipitation_mm detected in output dataset: {null_precipitation_final}")
-
-if null_avg_humidity_final > 0:
-    raise ValueError(f"Null avg_humidity detected in output dataset: {null_avg_humidity_final}")
-
-if null_wind_kmh_final > 0:
-    raise ValueError(f"Null wind_kmh detected in output dataset: {null_wind_kmh_final}")
-
-if null_weather_source_final > 0:
-    raise ValueError(f"Null weather_source detected in output dataset: {null_weather_source_final}")
-
-print("[INFO] Output validation completed successfully.")
-
-
-# ========================================
-# 8. WRITE DELTA TABLE
-# ========================================
-
-print("[INFO] Writing Gold dimension table to Delta format...")
-
-(
-    df_dim_weather.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
+print("[INFO] Creating Gold dimension table using CTAS...")
 
 spark.sql(f"""
-    CREATE TABLE {TARGET_TABLE}
-    USING DELTA
-    LOCATION '{TARGET_PATH}'
+CREATE OR REPLACE TABLE {TARGET_TABLE}
+USING DELTA
+LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+SELECT
+    data AS weather_date,
+    cidade AS city,
+    temperatura_media AS avg_temperature,
+    temperatura_min AS min_temperature,
+    temperatura_max AS max_temperature,
+    choveu AS did_rain,
+    precipitacao_mm AS precipitation_mm,
+    humidade_media AS avg_humidity,
+    vento_kmh AS wind_kmh,
+    fonte_api AS weather_source
+
+FROM {SOURCE_TABLE}
 """)
 
-print("[INFO] Delta table written successfully.")
-
-
-# ========================================
-# 9. APPLY TABLE OPTIMIZATION
-# ========================================
-
-print("[INFO] Applying Auto Optimize table properties...")
-
-for property_name, property_value in AUTO_OPTIMIZE_PROPERTIES.items():
-    spark.sql(f"""
-        ALTER TABLE {TARGET_TABLE}
-        SET TBLPROPERTIES ('{property_name}' = '{property_value}')
-    """)
-
-print("[INFO] Auto Optimize table properties applied successfully.")
-
-print("[INFO] Applying Liquid Clustering...")
-spark.sql(f"ALTER TABLE {TARGET_TABLE} CLUSTER BY ({', '.join(CLUSTER_KEYS)})")
-print("[INFO] Liquid clustering applied successfully.")
-
+print("[INFO] Gold dimension table created successfully.")
 
 # ========================================
-# 10. FINAL STATUS
+# 5. OPTIMIZATION
+# ========================================
+
+# OPTIMIZE is executed after the full rebuild because this dimension may support
+# recurring analytical joins and filters.
+# In future production scenarios, this may be moved to a scheduled maintenance
+# job if execution cost becomes relevant.
+
+print("[INFO] Running OPTIMIZE for clustered Delta layout...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Table optimization completed.")
+
+# ========================================
+# 6. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+validation = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("weather_date", "city").alias("distinct_grain_rows"),
+        F.sum(F.when(F.col("weather_date").isNull(), 1).otherwise(0)).alias("null_weather_date"),
+        F.sum(F.when(F.col("city").isNull(), 1).otherwise(0)).alias("null_city"),
+        F.sum(F.when(F.col("avg_temperature").isNull(), 1).otherwise(0)).alias("null_avg_temperature"),
+        F.sum(F.when(F.col("min_temperature").isNull(), 1).otherwise(0)).alias("null_min_temperature"),
+        F.sum(F.when(F.col("max_temperature").isNull(), 1).otherwise(0)).alias("null_max_temperature"),
+        F.sum(F.when(F.col("did_rain").isNull(), 1).otherwise(0)).alias("null_did_rain"),
+        F.sum(F.when(F.col("precipitation_mm").isNull(), 1).otherwise(0)).alias("null_precipitation_mm"),
+        F.sum(F.when(F.col("avg_humidity").isNull(), 1).otherwise(0)).alias("null_avg_humidity"),
+        F.sum(F.when(F.col("wind_kmh").isNull(), 1).otherwise(0)).alias("null_wind_kmh"),
+        F.sum(F.when(F.col("weather_source").isNull(), 1).otherwise(0)).alias("null_weather_source")
+    )
+    .collect()[0]
+)
+
+duplicate_rows = validation["row_count"] - validation["distinct_grain_rows"]
+
+print(f"Expected row count:              {source_validation['distinct_date_city_count']:,}")
+print(f"Output row count:                {validation['row_count']:,}")
+print(f"Duplicate grain rows:            {duplicate_rows:,}")
+print(f"Null weather_date count:         {validation['null_weather_date']:,}")
+print(f"Null city count:                 {validation['null_city']:,}")
+print(f"Null avg_temperature count:      {validation['null_avg_temperature']:,}")
+print(f"Null min_temperature count:      {validation['null_min_temperature']:,}")
+print(f"Null max_temperature count:      {validation['null_max_temperature']:,}")
+print(f"Null did_rain count:             {validation['null_did_rain']:,}")
+print(f"Null precipitation_mm count:     {validation['null_precipitation_mm']:,}")
+print(f"Null avg_humidity count:         {validation['null_avg_humidity']:,}")
+print(f"Null wind_kmh count:             {validation['null_wind_kmh']:,}")
+print(f"Null weather_source count:       {validation['null_weather_source']:,}")
+
+if validation["row_count"] != source_validation["distinct_date_city_count"]:
+    raise ValueError(
+        f"Row count mismatch detected. Expected: {source_validation['distinct_date_city_count']}, "
+        f"Got: {validation['row_count']}"
+    )
+
+if duplicate_rows > 0:
+    raise ValueError(f"Duplicate weather_date-city detected in output dataset: {duplicate_rows}")
+
+critical_nulls = {
+    "weather_date": validation["null_weather_date"],
+    "city": validation["null_city"],
+    "avg_temperature": validation["null_avg_temperature"],
+    "min_temperature": validation["null_min_temperature"],
+    "max_temperature": validation["null_max_temperature"],
+    "did_rain": validation["null_did_rain"],
+    "precipitation_mm": validation["null_precipitation_mm"],
+    "avg_humidity": validation["null_avg_humidity"],
+    "wind_kmh": validation["null_wind_kmh"],
+    "weather_source": validation["null_weather_source"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+print("[INFO] Final validations completed successfully.")
+
+# ========================================
+# 7. FINAL TABLE DETAIL
 # ========================================
 
 print("=" * 80)

@@ -4,12 +4,18 @@
 # DATASET: mart_customer_product_mix
 # ========================================
 
+# Processing decisions:
+# - Use CTAS (CREATE OR REPLACE TABLE AS SELECT) to create and register the Delta table in one step.
+# - Use Liquid Clustering to optimize recurring queries by date, customer, and product.
+# - Avoid unnecessary cache, repartition, or coalesce operations.
+# - Keep only essential validations to control processing cost.
+# - Use tolerance-based metric reconciliation for floating-point measures.
+
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "gold"
@@ -21,19 +27,22 @@ DATASET = "mart_customer_product_mix"
 STORAGE_ACCOUNT = "stptfrozenfoodsdevwe01"
 GOLD_CONTAINER = "gold"
 
-FACT_TABLE_NAME = "fact_sales"
-
-FACT_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{FACT_TABLE_NAME}"
-
+SOURCE_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.fact_sales"
 TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
+
 TARGET_PATH = f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
-CLUSTER_KEYS = ["data_pedido", "cliente_id", "produto_id"]
+GRAIN_COLUMNS = [
+    "data_pedido",
+    "cliente_id",
+    "produto_id"
+]
 
-AUTO_OPTIMIZE_PROPERTIES = {
-    "delta.autoOptimize.optimizeWrite": "true",
-    "delta.autoOptimize.autoCompact": "true"
-}
+CLUSTER_COLUMNS = [
+    "data_pedido",
+    "cliente_id",
+    "produto_id"
+]
 
 REQUIRED_COLUMNS = [
     "pedido_id",
@@ -60,10 +69,7 @@ REQUIRED_COLUMNS = [
     "average_order_value"
 ]
 
-
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
+TOLERANCE = 0.01
 
 print("=" * 80)
 print("STARTING GOLD PROCESSING: mart_customer_product_mix")
@@ -75,9 +81,8 @@ spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
 
 print("[INFO] Context setup completed successfully.")
 
-
 # ========================================
-# 2. CONFIGURATION SUMMARY
+# 1. CONFIGURATION SUMMARY
 # ========================================
 
 print("=" * 80)
@@ -88,98 +93,136 @@ print(f"Source schema:                   {SOURCE_SCHEMA}")
 print(f"Target schema:                   {TARGET_SCHEMA}")
 print(f"Domain:                          {DOMAIN}")
 print(f"Dataset:                         {DATASET}")
-print(f"Fact table:                      {FACT_TABLE}")
+print(f"Source table:                    {SOURCE_TABLE}")
 print(f"Target table:                    {TARGET_TABLE}")
 print(f"Target path:                     {TARGET_PATH}")
-print(f"Cluster keys:                    {', '.join(CLUSTER_KEYS)}")
+print(f"Grain columns:                   {', '.join(GRAIN_COLUMNS)}")
+print(f"Cluster columns:                 {', '.join(CLUSTER_COLUMNS)}")
 print(f"Optimization strategy:           Delta Auto Optimize + Liquid Clustering")
 print(f"Partitioning strategy:           None")
-print(f"Optimization rationale:          Align storage layout with mart grain and BI access pattern")
 print("=" * 80)
 
-
 # ========================================
-# 3. PRE-CHECKS
+# 2. PRE-CHECKS
 # ========================================
 
 print("[INFO] Checking source table availability...")
-spark.sql(f"DESCRIBE TABLE {FACT_TABLE}")
+spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
 
 print("[INFO] Checking target container access...")
 dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
 
 print("[INFO] Pre-checks completed successfully.")
 
-
 # ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_fact_sales = spark.table(FACT_TABLE)
-
-print("[INFO] Source data loaded successfully.")
-
-
-# ========================================
-# 5. SOURCE VALIDATION (ESSENTIAL ONLY)
+# 3. SOURCE VALIDATION
 # ========================================
 
-missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_fact_sales.columns]
+df_source = spark.table(SOURCE_TABLE)
+
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
 
 if missing_columns:
     raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
 
 print("[INFO] Required columns validation completed successfully.")
 
-
 # ========================================
-# 6. BUILD MART (CORE LOGIC)
+# 4. CREATE MART TABLE
 # ========================================
 
-df_mart = (
-    df_fact_sales
-    .groupBy(
-        "data_pedido",
-        "cliente_id",
-        "produto_id",
-        "tipo_cliente",
-        "cliente_cidade",
-        "distrito",
-        "segmento",
-        "potencial_valor",
-        "cluster_comercial",
-        "status_cliente",
-        "produto_nome",
-        "categoria",
-        "marca",
-        "status_produto"
-    )
-    .agg(
-        F.sum("quantity_sold").alias("quantity_sold"),
-        F.sum("gross_sales_amount").alias("gross_sales_amount"),
-        F.sum("net_sales_amount").alias("net_sales_amount"),
-        F.sum("total_cost_amount").alias("total_cost_amount"),
-        F.sum("gross_margin_amount").alias("gross_margin_amount"),
-        F.countDistinct("pedido_id").alias("order_count"),
-        F.sum("line_count").alias("line_count"),
-        F.avg("average_order_value").alias("average_order_value")
-    )
+print("[INFO] Creating Gold mart table using CTAS...")
+
+spark.sql(f"""
+CREATE OR REPLACE TABLE {TARGET_TABLE}
+USING DELTA
+LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
 )
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+SELECT
+    data_pedido,
+    cliente_id,
+    produto_id,
 
-print("[INFO] Mart dataset built successfully.")
+    tipo_cliente,
+    cliente_cidade,
+    distrito,
+    segmento,
+    potencial_valor,
+    cluster_comercial,
+    status_cliente,
 
+    produto_nome,
+    categoria,
+    marca,
+    status_produto,
+
+    SUM(quantity_sold) AS quantity_sold,
+    SUM(gross_sales_amount) AS gross_sales_amount,
+    SUM(net_sales_amount) AS net_sales_amount,
+    SUM(total_cost_amount) AS total_cost_amount,
+    SUM(gross_margin_amount) AS gross_margin_amount,
+    COUNT(DISTINCT pedido_id) AS order_count,
+    SUM(line_count) AS line_count,
+    AVG(average_order_value) AS average_order_value
+
+FROM {SOURCE_TABLE}
+
+GROUP BY
+    data_pedido,
+    cliente_id,
+    produto_id,
+
+    tipo_cliente,
+    cliente_cidade,
+    distrito,
+    segmento,
+    potencial_valor,
+    cluster_comercial,
+    status_cliente,
+
+    produto_nome,
+    categoria,
+    marca,
+    status_produto
+""")
+
+print("[INFO] Gold mart table created successfully.")
 
 # ========================================
-# 7. OUTPUT VALIDATION (CRITICAL AND LIGHTWEIGHT)
+# 5. OPTIMIZATION
 # ========================================
+
+# OPTIMIZE is executed after the full rebuild because this mart is intended
+# for recurring analytical consumption.
+# In future production scenarios, this may be moved to a scheduled maintenance
+# job if execution cost becomes relevant.
+
+print("[INFO] Running OPTIMIZE for clustered Delta layout...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Table optimization completed.")
+
+# ========================================
+# 6. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
 
 validation = (
-    df_mart
+    df_target
     .agg(
         F.count("*").alias("row_count"),
-        F.countDistinct(
-            F.concat_ws("||", "data_pedido", "cliente_id", "produto_id")
-        ).alias("distinct_keys"),
+        F.countDistinct(*[F.col(c) for c in GRAIN_COLUMNS]).alias("distinct_grain_rows"),
         F.sum(F.when(F.col("data_pedido").isNull(), 1).otherwise(0)).alias("null_data_pedido"),
         F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id"),
         F.sum(F.when(F.col("produto_id").isNull(), 1).otherwise(0)).alias("null_produto_id")
@@ -187,8 +230,17 @@ validation = (
     .collect()[0]
 )
 
-if validation["row_count"] != validation["distinct_keys"]:
-    raise ValueError("Grain violation detected: duplicate keys found.")
+duplicate_rows = validation["row_count"] - validation["distinct_grain_rows"]
+
+print(f"Total rows:            {validation['row_count']:,}")
+print(f"Distinct grain rows:   {validation['distinct_grain_rows']:,}")
+print(f"Duplicate grain rows:  {duplicate_rows:,}")
+print(f"Null data_pedido:      {validation['null_data_pedido']}")
+print(f"Null cliente_id:       {validation['null_cliente_id']}")
+print(f"Null produto_id:       {validation['null_produto_id']}")
+
+if duplicate_rows != 0:
+    raise ValueError("Grain violation detected: duplicate grain records found.")
 
 if validation["null_data_pedido"] > 0:
     raise ValueError("Null values detected in data_pedido.")
@@ -199,15 +251,16 @@ if validation["null_cliente_id"] > 0:
 if validation["null_produto_id"] > 0:
     raise ValueError("Null values detected in produto_id.")
 
-print("[INFO] Output validation completed successfully.")
-
+print("[INFO] Grain and null validations completed successfully.")
 
 # ========================================
-# 8. METRIC RECONCILIATION (ESSENTIAL ONLY)
+# 7. METRIC RECONCILIATION
 # ========================================
+
+print("[INFO] Running metric reconciliation...")
 
 fact_totals = (
-    df_fact_sales
+    df_source
     .agg(
         F.sum("quantity_sold").alias("fact_quantity_sold"),
         F.sum("net_sales_amount").alias("fact_net_sales_amount"),
@@ -218,7 +271,7 @@ fact_totals = (
 )
 
 mart_totals = (
-    df_mart
+    df_target
     .agg(
         F.sum("quantity_sold").alias("mart_quantity_sold"),
         F.sum("net_sales_amount").alias("mart_net_sales_amount"),
@@ -228,83 +281,33 @@ mart_totals = (
     .collect()[0]
 )
 
-if fact_totals["fact_quantity_sold"] != mart_totals["mart_quantity_sold"]:
+quantity_diff = abs(fact_totals["fact_quantity_sold"] - mart_totals["mart_quantity_sold"])
+net_sales_diff = abs(fact_totals["fact_net_sales_amount"] - mart_totals["mart_net_sales_amount"])
+gross_margin_diff = abs(fact_totals["fact_gross_margin_amount"] - mart_totals["mart_gross_margin_amount"])
+line_count_diff = abs(fact_totals["fact_line_count"] - mart_totals["mart_line_count"])
+
+print(f"Quantity sold difference:       {quantity_diff:,.4f}")
+print(f"Net sales amount difference:    {net_sales_diff:,.4f}")
+print(f"Gross margin amount difference: {gross_margin_diff:,.4f}")
+print(f"Line count difference:          {line_count_diff:,.4f}")
+
+if quantity_diff > TOLERANCE:
     raise ValueError("Mismatch in quantity_sold.")
 
-if fact_totals["fact_net_sales_amount"] != mart_totals["mart_net_sales_amount"]:
+if net_sales_diff > TOLERANCE:
     raise ValueError("Mismatch in net_sales_amount.")
 
-if fact_totals["fact_gross_margin_amount"] != mart_totals["mart_gross_margin_amount"]:
+if gross_margin_diff > TOLERANCE:
     raise ValueError("Mismatch in gross_margin_amount.")
 
-if fact_totals["fact_line_count"] != mart_totals["mart_line_count"]:
+if line_count_diff > TOLERANCE:
     raise ValueError("Mismatch in line_count.")
 
 print("[INFO] Metric reconciliation completed successfully.")
 print("[INFO] Order count is intentionally not reconciled globally because it is non-additive at this mart grain.")
 
-
 # ========================================
-# 9. WRITE DELTA TABLE
-# ========================================
-
-(
-    df_mart.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
-
-spark.sql(f"""
-    CREATE TABLE {TARGET_TABLE}
-    USING DELTA
-    LOCATION '{TARGET_PATH}'
-""")
-
-print("[INFO] Delta table written successfully.")
-
-
-# ========================================
-# 10. OPTIMIZATION
-# ========================================
-
-print("=" * 80)
-print("APPLYING TABLE OPTIMIZATION STRATEGIES")
-print("=" * 80)
-
-print("[INFO] Optimization strategy 1: Delta Auto Optimize")
-print("[INFO] - optimizeWrite: reduces small file generation during writes")
-print("[INFO] - autoCompact: compacts small files automatically after writes")
-
-for property_name, property_value in AUTO_OPTIMIZE_PROPERTIES.items():
-    spark.sql(f"""
-        ALTER TABLE {TARGET_TABLE}
-        SET TBLPROPERTIES ('{property_name}' = '{property_value}')
-    """)
-
-print("[INFO] Delta Auto Optimize properties applied successfully.")
-
-print("[INFO] Optimization strategy 2: Liquid Clustering")
-print(f"[INFO] - clustering columns: {', '.join(CLUSTER_KEYS)}")
-print("[INFO] - purpose: improve query pruning and read performance for the mart grain")
-print("[INFO] - rationale: these columns match the analytical access pattern and validated grain")
-
-spark.sql(f"ALTER TABLE {TARGET_TABLE} CLUSTER BY ({', '.join(CLUSTER_KEYS)})")
-
-print("[INFO] Liquid Clustering applied successfully.")
-
-print("[INFO] Optimization strategy summary:")
-print("[INFO] - no partitioning was used")
-print("[INFO] - Liquid Clustering was preferred for flexibility and maintenance simplicity")
-print("[INFO] - optimization aligned with mart grain and expected BI query patterns")
-print("=" * 80)
-
-
-# ========================================
-# 11. FINAL STATUS
+# 8. FINAL TABLE DETAIL
 # ========================================
 
 print("=" * 80)

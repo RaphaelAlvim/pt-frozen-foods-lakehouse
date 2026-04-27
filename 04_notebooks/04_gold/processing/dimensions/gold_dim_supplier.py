@@ -4,12 +4,18 @@
 # DATASET: dim_supplier
 # ========================================
 
+# Processing decisions:
+# - Use CTAS (CREATE OR REPLACE TABLE AS SELECT) to create and register the Delta table in one step.
+# - Use Liquid Clustering by supplier status and country to support analytical filters.
+# - Avoid unnecessary cache, repartition, or coalesce operations.
+# - Consolidate validation checks to reduce unnecessary scans.
+# - Keep critical grain and null validations to protect dimension quality.
+
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "silver"
@@ -21,91 +27,21 @@ DATASET = "dim_supplier"
 STORAGE_ACCOUNT = "stptfrozenfoodsdevwe01"
 GOLD_CONTAINER = "gold"
 
-SUPPLIERS_DATASET = "erp_suppliers"
-
-SUPPLIERS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{SUPPLIERS_DATASET}"
-
+SOURCE_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.erp_suppliers"
 TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
+
 TARGET_PATH = f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
-CLUSTER_KEYS = ["status_fornecedor", "pais"]
+GRAIN_COLUMNS = [
+    "fornecedor_id"
+]
 
-AUTO_OPTIMIZE_PROPERTIES = {
-    "delta.autoOptimize.optimizeWrite": "true",
-    "delta.autoOptimize.autoCompact": "true"
-}
+CLUSTER_COLUMNS = [
+    "status_fornecedor",
+    "pais"
+]
 
-
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
-
-print("=" * 80)
-print("STARTING GOLD PROCESSING: dim_supplier")
-print("=" * 80)
-
-spark.sql(f"USE CATALOG {CATALOG}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
-spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
-
-print("[INFO] Context setup completed successfully.")
-
-
-# ========================================
-# 2. CONFIGURATION SUMMARY
-# ========================================
-
-print("=" * 80)
-print("GOLD PROCESSING NOTEBOOK CONFIGURATION")
-print("=" * 80)
-print(f"Catalog:                         {CATALOG}")
-print(f"Source schema:                   {SOURCE_SCHEMA}")
-print(f"Target schema:                   {TARGET_SCHEMA}")
-print(f"Domain:                          {DOMAIN}")
-print(f"Dataset:                         {DATASET}")
-print(f"Suppliers table:                 {SUPPLIERS_TABLE}")
-print(f"Target table:                    {TARGET_TABLE}")
-print(f"Target path:                     {TARGET_PATH}")
-print(f"Cluster keys:                    {', '.join(CLUSTER_KEYS)}")
-print(f"Optimize write enabled:          {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.optimizeWrite']}")
-print(f"Auto compact enabled:            {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.autoCompact']}")
-print("=" * 80)
-
-
-# ========================================
-# 3. PRE-CHECKS
-# ========================================
-
-print("[INFO] Checking source table availability...")
-spark.sql(f"DESCRIBE TABLE {SUPPLIERS_TABLE}")
-
-print("[INFO] Checking target container access...")
-dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
-
-print("[INFO] Pre-checks completed successfully.")
-
-
-# ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_suppliers = spark.table(SUPPLIERS_TABLE)
-
-print("[INFO] Source data loaded successfully.")
-print(f"[INFO] Suppliers row count:                  {df_suppliers.count():,}")
-
-
-# ========================================
-# 5. SOURCE VALIDATION
-# ========================================
-
-print("[INFO] Validating source datasets...")
-
-raw_supplier_count = df_suppliers.count()
-distinct_supplier_ids = df_suppliers.select("fornecedor_id").distinct().count()
-null_supplier_id_count = df_suppliers.filter(F.col("fornecedor_id").isNull()).count()
-
-required_columns = [
+REQUIRED_COLUMNS = [
     "fornecedor_id",
     "nome_fornecedor",
     "pais",
@@ -117,176 +53,207 @@ required_columns = [
     "source_file"
 ]
 
-missing_columns = [c for c in required_columns if c not in df_suppliers.columns]
+print("=" * 80)
+print("STARTING GOLD PROCESSING: dim_supplier")
+print("=" * 80)
 
-print(f"[INFO] fornecedor_id distinct count:         {distinct_supplier_ids:,}")
-print(f"[INFO] Null fornecedor_id count:             {null_supplier_id_count:,}")
-print(f"[INFO] Missing required columns:             {missing_columns}")
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
+spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
 
-if distinct_supplier_ids != raw_supplier_count:
-    raise ValueError(
-        f"fornecedor_id is not unique in source dataset. Distinct: {distinct_supplier_ids}, Rows: {raw_supplier_count}"
-    )
+print("[INFO] Context setup completed successfully.")
 
-if null_supplier_id_count > 0:
-    raise ValueError(f"Null fornecedor_id detected in source dataset: {null_supplier_id_count}")
+# ========================================
+# 1. CONFIGURATION SUMMARY
+# ========================================
+
+print("=" * 80)
+print("GOLD PROCESSING NOTEBOOK CONFIGURATION")
+print("=" * 80)
+print(f"Catalog:                         {CATALOG}")
+print(f"Source schema:                   {SOURCE_SCHEMA}")
+print(f"Target schema:                   {TARGET_SCHEMA}")
+print(f"Domain:                          {DOMAIN}")
+print(f"Dataset:                         {DATASET}")
+print(f"Source table:                    {SOURCE_TABLE}")
+print(f"Target table:                    {TARGET_TABLE}")
+print(f"Target path:                     {TARGET_PATH}")
+print(f"Grain columns:                   {', '.join(GRAIN_COLUMNS)}")
+print(f"Cluster columns:                 {', '.join(CLUSTER_COLUMNS)}")
+print(f"Optimization strategy:           Delta Auto Optimize + Liquid Clustering")
+print(f"Partitioning strategy:           None")
+print("=" * 80)
+
+# ========================================
+# 2. PRE-CHECKS
+# ========================================
+
+print("[INFO] Checking source table availability...")
+spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
+
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print("[INFO] Pre-checks completed successfully.")
+
+# ========================================
+# 3. SOURCE VALIDATION
+# ========================================
+
+print("[INFO] Validating source dataset...")
+
+df_source = spark.table(SOURCE_TABLE)
+
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
 
 if missing_columns:
     raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
 
+source_validation = (
+    df_source
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("fornecedor_id").alias("distinct_supplier_ids"),
+        F.sum(F.when(F.col("fornecedor_id").isNull(), 1).otherwise(0)).alias("null_fornecedor_id")
+    )
+    .collect()[0]
+)
+
+print(f"Source row count:              {source_validation['row_count']:,}")
+print(f"Distinct fornecedor_id count:  {source_validation['distinct_supplier_ids']:,}")
+print(f"Null fornecedor_id count:      {source_validation['null_fornecedor_id']:,}")
+
+if source_validation["distinct_supplier_ids"] != source_validation["row_count"]:
+    raise ValueError(
+        f"fornecedor_id is not unique in source dataset. "
+        f"Distinct: {source_validation['distinct_supplier_ids']}, Rows: {source_validation['row_count']}"
+    )
+
+if source_validation["null_fornecedor_id"] > 0:
+    raise ValueError(f"Null fornecedor_id detected in source dataset: {source_validation['null_fornecedor_id']}")
+
 print("[INFO] Source validation completed successfully.")
 
-
 # ========================================
-# 6. BUILD DIMENSION DATASET
-# ========================================
-
-print("[INFO] Building Gold dimension dataset with explicit column selection...")
-
-df_dim_supplier = (
-    df_suppliers
-    .select(
-        F.col("fornecedor_id"),
-        F.col("nome_fornecedor"),
-        F.col("pais"),
-        F.col("status_fornecedor"),
-        F.col("codigo_legacy"),
-        F.col("ultima_sincronizacao"),
-        F.col("load_date"),
-        F.col("ingestion_timestamp"),
-        F.col("source_file")
-    )
-    .dropDuplicates(["fornecedor_id"])
-)
-
-print("[INFO] Gold dimension dataset built successfully.")
-print(f"[INFO] Row count after build:                {df_dim_supplier.count():,}")
-
-
-# ========================================
-# 7. OUTPUT VALIDATION
+# 4. CREATE DIMENSION TABLE
 # ========================================
 
-print("[INFO] Validating Gold dimension output...")
-
-expected_row_count = distinct_supplier_ids
-final_row_count = df_dim_supplier.count()
-
-duplicate_supplier_id_count = (
-    df_dim_supplier
-    .groupBy("fornecedor_id")
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
-)
-
-null_fornecedor_id_final = df_dim_supplier.filter(F.col("fornecedor_id").isNull()).count()
-null_nome_fornecedor_final = df_dim_supplier.filter(F.col("nome_fornecedor").isNull()).count()
-null_pais_final = df_dim_supplier.filter(F.col("pais").isNull()).count()
-null_status_fornecedor_final = df_dim_supplier.filter(F.col("status_fornecedor").isNull()).count()
-null_codigo_legacy_final = df_dim_supplier.filter(F.col("codigo_legacy").isNull()).count()
-null_ultima_sincronizacao_final = df_dim_supplier.filter(F.col("ultima_sincronizacao").isNull()).count()
-null_load_date_final = df_dim_supplier.filter(F.col("load_date").isNull()).count()
-null_ingestion_timestamp_final = df_dim_supplier.filter(F.col("ingestion_timestamp").isNull()).count()
-null_source_file_final = df_dim_supplier.filter(F.col("source_file").isNull()).count()
-
-print(f"[INFO] Expected row count:                   {expected_row_count:,}")
-print(f"[INFO] Output row count:                     {final_row_count:,}")
-print(f"[INFO] Duplicate fornecedor_id count:       {duplicate_supplier_id_count:,}")
-print(f"[INFO] Null fornecedor_id count:            {null_fornecedor_id_final:,}")
-print(f"[INFO] Null nome_fornecedor count:          {null_nome_fornecedor_final:,}")
-print(f"[INFO] Null pais count:                     {null_pais_final:,}")
-print(f"[INFO] Null status_fornecedor count:        {null_status_fornecedor_final:,}")
-print(f"[INFO] Null codigo_legacy count:            {null_codigo_legacy_final:,}")
-print(f"[INFO] Null ultima_sincronizacao count:     {null_ultima_sincronizacao_final:,}")
-print(f"[INFO] Null load_date count:                {null_load_date_final:,}")
-print(f"[INFO] Null ingestion_timestamp count:      {null_ingestion_timestamp_final:,}")
-print(f"[INFO] Null source_file count:              {null_source_file_final:,}")
-
-if final_row_count != expected_row_count:
-    raise ValueError(
-        f"Row count mismatch detected. Expected: {expected_row_count}, Got: {final_row_count}"
-    )
-
-if duplicate_supplier_id_count > 0:
-    raise ValueError(f"Duplicate fornecedor_id detected in output dataset: {duplicate_supplier_id_count}")
-
-if null_fornecedor_id_final > 0:
-    raise ValueError(f"Null fornecedor_id detected in output dataset: {null_fornecedor_id_final}")
-
-if null_nome_fornecedor_final > 0:
-    raise ValueError(f"Null nome_fornecedor detected in output dataset: {null_nome_fornecedor_final}")
-
-if null_pais_final > 0:
-    raise ValueError(f"Null pais detected in output dataset: {null_pais_final}")
-
-if null_status_fornecedor_final > 0:
-    raise ValueError(f"Null status_fornecedor detected in output dataset: {null_status_fornecedor_final}")
-
-if null_codigo_legacy_final > 0:
-    raise ValueError(f"Null codigo_legacy detected in output dataset: {null_codigo_legacy_final}")
-
-if null_ultima_sincronizacao_final > 0:
-    raise ValueError(f"Null ultima_sincronizacao detected in output dataset: {null_ultima_sincronizacao_final}")
-
-if null_load_date_final > 0:
-    raise ValueError(f"Null load_date detected in output dataset: {null_load_date_final}")
-
-if null_ingestion_timestamp_final > 0:
-    raise ValueError(f"Null ingestion_timestamp detected in output dataset: {null_ingestion_timestamp_final}")
-
-if null_source_file_final > 0:
-    raise ValueError(f"Null source_file detected in output dataset: {null_source_file_final}")
-
-print("[INFO] Output validation completed successfully.")
-
-
-# ========================================
-# 8. WRITE DELTA TABLE
-# ========================================
-
-print("[INFO] Writing Gold dimension table to Delta format...")
-
-(
-    df_dim_supplier.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
+print("[INFO] Creating Gold dimension table using CTAS...")
 
 spark.sql(f"""
-    CREATE TABLE {TARGET_TABLE}
-    USING DELTA
-    LOCATION '{TARGET_PATH}'
+CREATE OR REPLACE TABLE {TARGET_TABLE}
+USING DELTA
+LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+SELECT
+    fornecedor_id,
+    nome_fornecedor,
+    pais,
+    status_fornecedor,
+    codigo_legacy,
+    ultima_sincronizacao,
+    load_date,
+    ingestion_timestamp,
+    source_file
+
+FROM {SOURCE_TABLE}
 """)
 
-print("[INFO] Delta table written successfully.")
-
-
-# ========================================
-# 9. APPLY TABLE OPTIMIZATION
-# ========================================
-
-print("[INFO] Applying Auto Optimize table properties...")
-
-for property_name, property_value in AUTO_OPTIMIZE_PROPERTIES.items():
-    spark.sql(f"""
-        ALTER TABLE {TARGET_TABLE}
-        SET TBLPROPERTIES ('{property_name}' = '{property_value}')
-    """)
-
-print("[INFO] Auto Optimize table properties applied successfully.")
-
-print("[INFO] Applying Liquid Clustering...")
-spark.sql(f"ALTER TABLE {TARGET_TABLE} CLUSTER BY ({', '.join(CLUSTER_KEYS)})")
-print("[INFO] Liquid clustering applied successfully.")
-
+print("[INFO] Gold dimension table created successfully.")
 
 # ========================================
-# 10. FINAL STATUS
+# 5. OPTIMIZATION
+# ========================================
+
+# OPTIMIZE is executed after the full rebuild because this dimension may support
+# recurring analytical joins and filters.
+# In future production scenarios, this may be moved to a scheduled maintenance
+# job if execution cost becomes relevant.
+
+print("[INFO] Running OPTIMIZE for clustered Delta layout...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Table optimization completed.")
+
+# ========================================
+# 6. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+validation = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("fornecedor_id").alias("distinct_supplier_ids"),
+        F.sum(F.when(F.col("fornecedor_id").isNull(), 1).otherwise(0)).alias("null_fornecedor_id"),
+        F.sum(F.when(F.col("nome_fornecedor").isNull(), 1).otherwise(0)).alias("null_nome_fornecedor"),
+        F.sum(F.when(F.col("pais").isNull(), 1).otherwise(0)).alias("null_pais"),
+        F.sum(F.when(F.col("status_fornecedor").isNull(), 1).otherwise(0)).alias("null_status_fornecedor"),
+        F.sum(F.when(F.col("codigo_legacy").isNull(), 1).otherwise(0)).alias("null_codigo_legacy"),
+        F.sum(F.when(F.col("ultima_sincronizacao").isNull(), 1).otherwise(0)).alias("null_ultima_sincronizacao"),
+        F.sum(F.when(F.col("load_date").isNull(), 1).otherwise(0)).alias("null_load_date"),
+        F.sum(F.when(F.col("ingestion_timestamp").isNull(), 1).otherwise(0)).alias("null_ingestion_timestamp"),
+        F.sum(F.when(F.col("source_file").isNull(), 1).otherwise(0)).alias("null_source_file")
+    )
+    .collect()[0]
+)
+
+duplicate_rows = validation["row_count"] - validation["distinct_supplier_ids"]
+
+print(f"Expected row count:                  {source_validation['distinct_supplier_ids']:,}")
+print(f"Output row count:                    {validation['row_count']:,}")
+print(f"Duplicate fornecedor_id count:       {duplicate_rows:,}")
+print(f"Null fornecedor_id count:            {validation['null_fornecedor_id']:,}")
+print(f"Null nome_fornecedor count:          {validation['null_nome_fornecedor']:,}")
+print(f"Null pais count:                     {validation['null_pais']:,}")
+print(f"Null status_fornecedor count:        {validation['null_status_fornecedor']:,}")
+print(f"Null codigo_legacy count:            {validation['null_codigo_legacy']:,}")
+print(f"Null ultima_sincronizacao count:     {validation['null_ultima_sincronizacao']:,}")
+print(f"Null load_date count:                {validation['null_load_date']:,}")
+print(f"Null ingestion_timestamp count:      {validation['null_ingestion_timestamp']:,}")
+print(f"Null source_file count:              {validation['null_source_file']:,}")
+
+if validation["row_count"] != source_validation["distinct_supplier_ids"]:
+    raise ValueError(
+        f"Row count mismatch detected. Expected: {source_validation['distinct_supplier_ids']}, "
+        f"Got: {validation['row_count']}"
+    )
+
+if duplicate_rows > 0:
+    raise ValueError(f"Duplicate fornecedor_id detected in output dataset: {duplicate_rows}")
+
+critical_nulls = {
+    "fornecedor_id": validation["null_fornecedor_id"],
+    "nome_fornecedor": validation["null_nome_fornecedor"],
+    "pais": validation["null_pais"],
+    "status_fornecedor": validation["null_status_fornecedor"],
+    "codigo_legacy": validation["null_codigo_legacy"],
+    "ultima_sincronizacao": validation["null_ultima_sincronizacao"],
+    "load_date": validation["null_load_date"],
+    "ingestion_timestamp": validation["null_ingestion_timestamp"],
+    "source_file": validation["null_source_file"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+print("[INFO] Final validations completed successfully.")
+
+# ========================================
+# 7. FINAL TABLE DETAIL
 # ========================================
 
 print("=" * 80)

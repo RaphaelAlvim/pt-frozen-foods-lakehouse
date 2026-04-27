@@ -4,12 +4,11 @@
 # DATASET: dim_calendar
 # ========================================
 
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "silver"
@@ -21,87 +20,17 @@ DATASET = "dim_calendar"
 STORAGE_ACCOUNT = "stptfrozenfoodsdevwe01"
 GOLD_CONTAINER = "gold"
 
-CALENDAR_DATASET = "reference_calendar"
-
-CALENDAR_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{CALENDAR_DATASET}"
-
+SOURCE_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.reference_calendar"
 TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
+
 TARGET_PATH = f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
-CLUSTER_KEYS = ["calendar_year", "calendar_month"]
+CLUSTER_COLUMNS = [
+    "calendar_year",
+    "calendar_month"
+]
 
-AUTO_OPTIMIZE_PROPERTIES = {
-    "delta.autoOptimize.optimizeWrite": "true",
-    "delta.autoOptimize.autoCompact": "true"
-}
-
-
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
-
-print("=" * 80)
-print("STARTING GOLD PROCESSING: dim_calendar")
-print("=" * 80)
-
-spark.sql(f"USE CATALOG {CATALOG}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
-spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
-
-print("[INFO] Context setup completed successfully.")
-
-
-# ========================================
-# 2. CONFIGURATION SUMMARY
-# ========================================
-
-print("=" * 80)
-print("GOLD PROCESSING NOTEBOOK CONFIGURATION")
-print("=" * 80)
-print(f"Catalog:                         {CATALOG}")
-print(f"Source schema:                   {SOURCE_SCHEMA}")
-print(f"Target schema:                   {TARGET_SCHEMA}")
-print(f"Domain:                          {DOMAIN}")
-print(f"Dataset:                         {DATASET}")
-print(f"Calendar table:                  {CALENDAR_TABLE}")
-print(f"Target table:                    {TARGET_TABLE}")
-print(f"Target path:                     {TARGET_PATH}")
-print(f"Cluster keys:                    {', '.join(CLUSTER_KEYS)}")
-print(f"Optimize write enabled:          {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.optimizeWrite']}")
-print(f"Auto compact enabled:            {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.autoCompact']}")
-print("=" * 80)
-
-
-# ========================================
-# 3. PRE-CHECKS
-# ========================================
-
-print("[INFO] Checking source table availability...")
-spark.sql(f"DESCRIBE TABLE {CALENDAR_TABLE}")
-
-print("[INFO] Checking target container access...")
-dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
-
-print("[INFO] Pre-checks completed successfully.")
-
-
-# ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_calendar = spark.table(CALENDAR_TABLE)
-
-print("[INFO] Source data loaded successfully.")
-print(f"[INFO] Calendar row count:                   {df_calendar.count():,}")
-
-
-# ========================================
-# 5. SOURCE VALIDATION
-# ========================================
-
-print("[INFO] Validating source datasets...")
-
-required_columns = [
+REQUIRED_COLUMNS = [
     "data",
     "ano",
     "mes",
@@ -115,210 +44,202 @@ required_columns = [
     "is_fim_mes"
 ]
 
-missing_columns = [c for c in required_columns if c not in df_calendar.columns]
-null_calendar_date = df_calendar.filter(F.col("data").isNull()).count()
-distinct_dates = df_calendar.select("data").distinct().count()
-raw_row_count = df_calendar.count()
+print("=" * 80)
+print("STARTING GOLD PROCESSING: dim_calendar")
+print("=" * 80)
 
-print(f"[INFO] Distinct dates count:                {distinct_dates:,}")
-print(f"[INFO] Null calendar date count:           {null_calendar_date:,}")
-print(f"[INFO] Missing required columns:           {missing_columns}")
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
+spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
+
+print("[INFO] Context setup completed successfully.")
+
+# ========================================
+# 1. PRE-CHECKS
+# ========================================
+
+print("[INFO] Checking source table availability...")
+spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
+
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print("[INFO] Pre-checks completed successfully.")
+
+# ========================================
+# 2. SOURCE VALIDATION
+# ========================================
+
+print("[INFO] Validating source dataset...")
+
+df_source = spark.table(SOURCE_TABLE)
+
+# Validate required columns before creating the Gold dimension.
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
 
 if missing_columns:
     raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
 
-if null_calendar_date > 0:
-    raise ValueError(f"Null data detected in source dataset: {null_calendar_date}")
-
-if distinct_dates != raw_row_count:
-    raise ValueError(
-        f"Duplicate calendar dates detected. Distinct: {distinct_dates}, Rows: {raw_row_count}"
+# Consolidated validation to reduce unnecessary scans.
+source_validation = (
+    df_source
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("data").alias("distinct_dates"),
+        F.sum(F.when(F.col("data").isNull(), 1).otherwise(0)).alias("null_data")
     )
+    .collect()[0]
+)
+
+print(f"Source row count:       {source_validation['row_count']:,}")
+print(f"Distinct dates:         {source_validation['distinct_dates']:,}")
+print(f"Null data:              {source_validation['null_data']:,}")
+
+if source_validation["null_data"] > 0:
+    raise ValueError("Null data detected in source dataset.")
+
+if source_validation["row_count"] != source_validation["distinct_dates"]:
+    raise ValueError("Duplicate calendar dates detected in source dataset.")
 
 print("[INFO] Source validation completed successfully.")
 
-
 # ========================================
-# 6. BUILD DIMENSION DATASET
-# ========================================
-
-print("[INFO] Building Gold dimension dataset with explicit column selection...")
-
-df_dim_calendar = (
-    df_calendar
-    .select(
-        F.col("data").alias("calendar_date"),
-        F.col("ano").alias("calendar_year"),
-        F.col("mes").alias("calendar_month"),
-        F.col("dia").alias("calendar_day"),
-        F.col("trimestre").alias("calendar_quarter"),
-        F.col("nome_mes").alias("calendar_month_name"),
-        F.col("dia_semana").alias("calendar_day_of_week"),
-        F.col("nome_dia_semana").alias("calendar_day_name"),
-        F.col("is_fim_de_semana").alias("calendar_is_weekend"),
-        F.col("is_inicio_mes").alias("calendar_is_month_start"),
-        F.col("is_fim_mes").alias("calendar_is_month_end")
-    )
-)
-
-print("[INFO] Gold dimension dataset built successfully.")
-print(f"[INFO] Row count after build:                {df_dim_calendar.count():,}")
-
-
-# ========================================
-# 7. OUTPUT VALIDATION
+# 3. CREATE DIMENSION TABLE
 # ========================================
 
-print("[INFO] Validating Gold dimension output...")
+print("[INFO] Creating Gold dimension table using CTAS...")
 
-final_row_count = df_dim_calendar.count()
-expected_row_count = raw_row_count
-
-duplicate_calendar_dates = (
-    df_dim_calendar
-    .groupBy("calendar_date")
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
-)
-
-null_calendar_date_final = df_dim_calendar.filter(F.col("calendar_date").isNull()).count()
-null_calendar_year = df_dim_calendar.filter(F.col("calendar_year").isNull()).count()
-null_calendar_month = df_dim_calendar.filter(F.col("calendar_month").isNull()).count()
-null_calendar_day = df_dim_calendar.filter(F.col("calendar_day").isNull()).count()
-null_calendar_quarter = df_dim_calendar.filter(F.col("calendar_quarter").isNull()).count()
-null_calendar_month_name = df_dim_calendar.filter(F.col("calendar_month_name").isNull()).count()
-null_calendar_day_of_week = df_dim_calendar.filter(F.col("calendar_day_of_week").isNull()).count()
-null_calendar_day_name = df_dim_calendar.filter(F.col("calendar_day_name").isNull()).count()
-null_calendar_is_weekend = df_dim_calendar.filter(F.col("calendar_is_weekend").isNull()).count()
-null_calendar_is_month_start = df_dim_calendar.filter(F.col("calendar_is_month_start").isNull()).count()
-null_calendar_is_month_end = df_dim_calendar.filter(F.col("calendar_is_month_end").isNull()).count()
-
-print(f"[INFO] Expected row count:                   {expected_row_count:,}")
-print(f"[INFO] Output row count:                     {final_row_count:,}")
-print(f"[INFO] Duplicate calendar_date count:       {duplicate_calendar_dates:,}")
-print(f"[INFO] Null calendar_date count:            {null_calendar_date_final:,}")
-print(f"[INFO] Null calendar_year count:            {null_calendar_year:,}")
-print(f"[INFO] Null calendar_month count:           {null_calendar_month:,}")
-print(f"[INFO] Null calendar_day count:             {null_calendar_day:,}")
-print(f"[INFO] Null calendar_quarter count:         {null_calendar_quarter:,}")
-print(f"[INFO] Null calendar_month_name count:      {null_calendar_month_name:,}")
-print(f"[INFO] Null calendar_day_of_week count:     {null_calendar_day_of_week:,}")
-print(f"[INFO] Null calendar_day_name count:        {null_calendar_day_name:,}")
-print(f"[INFO] Null calendar_is_weekend count:      {null_calendar_is_weekend:,}")
-print(f"[INFO] Null calendar_is_month_start count:  {null_calendar_is_month_start:,}")
-print(f"[INFO] Null calendar_is_month_end count:    {null_calendar_is_month_end:,}")
-
-if final_row_count != expected_row_count:
-    raise ValueError(
-        f"Row count mismatch detected. Expected: {expected_row_count}, Got: {final_row_count}"
-    )
-
-if duplicate_calendar_dates > 0:
-    raise ValueError(f"Duplicate calendar_date detected in output dataset: {duplicate_calendar_dates}")
-
-if null_calendar_date_final > 0:
-    raise ValueError(f"Null calendar_date detected in output dataset: {null_calendar_date_final}")
-
-if null_calendar_year > 0:
-    raise ValueError(f"Null calendar_year detected in output dataset: {null_calendar_year}")
-
-if null_calendar_month > 0:
-    raise ValueError(f"Null calendar_month detected in output dataset: {null_calendar_month}")
-
-if null_calendar_day > 0:
-    raise ValueError(f"Null calendar_day detected in output dataset: {null_calendar_day}")
-
-if null_calendar_quarter > 0:
-    raise ValueError(f"Null calendar_quarter detected in output dataset: {null_calendar_quarter}")
-
-if null_calendar_month_name > 0:
-    raise ValueError(f"Null calendar_month_name detected in output dataset: {null_calendar_month_name}")
-
-if null_calendar_day_of_week > 0:
-    raise ValueError(f"Null calendar_day_of_week detected in output dataset: {null_calendar_day_of_week}")
-
-if null_calendar_day_name > 0:
-    raise ValueError(f"Null calendar_day_name detected in output dataset: {null_calendar_day_name}")
-
-if null_calendar_is_weekend > 0:
-    raise ValueError(f"Null calendar_is_weekend detected in output dataset: {null_calendar_is_weekend}")
-
-if null_calendar_is_month_start > 0:
-    raise ValueError(f"Null calendar_is_month_start detected in output dataset: {null_calendar_is_month_start}")
-
-if null_calendar_is_month_end > 0:
-    raise ValueError(f"Null calendar_is_month_end detected in output dataset: {null_calendar_is_month_end}")
-
-print("[INFO] Output validation completed successfully.")
-
-
-# ========================================
-# 8. WRITE DELTA TABLE
-# ========================================
-
-print("[INFO] Writing Gold dimension table to Delta format...")
-
-(
-    df_dim_calendar.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
-
+# CTAS creates, overwrites, registers, and materializes the Delta table in one step.
 spark.sql(f"""
-    CREATE TABLE {TARGET_TABLE}
-    USING DELTA
-    LOCATION '{TARGET_PATH}'
+CREATE OR REPLACE TABLE {TARGET_TABLE}
+USING DELTA
+LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+SELECT
+    data AS calendar_date,
+    ano AS calendar_year,
+    mes AS calendar_month,
+    dia AS calendar_day,
+    trimestre AS calendar_quarter,
+    nome_mes AS calendar_month_name,
+    dia_semana AS calendar_day_of_week,
+    nome_dia_semana AS calendar_day_name,
+    is_fim_de_semana AS calendar_is_weekend,
+    is_inicio_mes AS calendar_is_month_start,
+    is_fim_mes AS calendar_is_month_end
+
+FROM {SOURCE_TABLE}
 """)
 
-print("[INFO] Delta table written successfully.")
-
-
-# ========================================
-# 9. APPLY TABLE OPTIMIZATION
-# ========================================
-
-print("[INFO] Applying Auto Optimize table properties...")
-
-for property_name, property_value in AUTO_OPTIMIZE_PROPERTIES.items():
-    spark.sql(f"""
-        ALTER TABLE {TARGET_TABLE}
-        SET TBLPROPERTIES ('{property_name}' = '{property_value}')
-    """)
-
-print("[INFO] Auto Optimize table properties applied successfully.")
-
-print("[INFO] Applying Liquid Clustering...")
-spark.sql(f"ALTER TABLE {TARGET_TABLE} CLUSTER BY ({', '.join(CLUSTER_KEYS)})")
-print("[INFO] Liquid clustering applied successfully.")
-
+print("[INFO] Gold dimension table created successfully.")
 
 # ========================================
-# 10. FINAL STATUS
+# 4. OPTIMIZATION
 # ========================================
+
+# OPTIMIZE is executed after the full rebuild because this dimension may support
+# recurring analytical joins and time-based filters.
+# In future production scenarios, this may be moved to a scheduled maintenance
+# job if execution cost becomes relevant.
+
+print("[INFO] Running OPTIMIZE...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Optimization completed.")
+
+# ========================================
+# 5. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+# Validate grain and critical attributes in a single aggregation.
+final = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("calendar_date").alias("distinct_dates"),
+        F.sum(F.when(F.col("calendar_date").isNull(), 1).otherwise(0)).alias("null_calendar_date"),
+        F.sum(F.when(F.col("calendar_year").isNull(), 1).otherwise(0)).alias("null_calendar_year"),
+        F.sum(F.when(F.col("calendar_month").isNull(), 1).otherwise(0)).alias("null_calendar_month"),
+        F.sum(F.when(F.col("calendar_day").isNull(), 1).otherwise(0)).alias("null_calendar_day"),
+        F.sum(F.when(F.col("calendar_quarter").isNull(), 1).otherwise(0)).alias("null_calendar_quarter"),
+        F.sum(F.when(F.col("calendar_month_name").isNull(), 1).otherwise(0)).alias("null_calendar_month_name"),
+        F.sum(F.when(F.col("calendar_day_of_week").isNull(), 1).otherwise(0)).alias("null_calendar_day_of_week"),
+        F.sum(F.when(F.col("calendar_day_name").isNull(), 1).otherwise(0)).alias("null_calendar_day_name"),
+        F.sum(F.when(F.col("calendar_is_weekend").isNull(), 1).otherwise(0)).alias("null_calendar_is_weekend"),
+        F.sum(F.when(F.col("calendar_is_month_start").isNull(), 1).otherwise(0)).alias("null_calendar_is_month_start"),
+        F.sum(F.when(F.col("calendar_is_month_end").isNull(), 1).otherwise(0)).alias("null_calendar_is_month_end")
+    )
+    .collect()[0]
+)
+
+duplicates = final["row_count"] - final["distinct_dates"]
+
+print(f"Expected rows:                  {source_validation['row_count']:,}")
+print(f"Rows:                           {final['row_count']:,}")
+print(f"Duplicates:                     {duplicates:,}")
+print(f"Null calendar_date:             {final['null_calendar_date']}")
+print(f"Null calendar_year:             {final['null_calendar_year']}")
+print(f"Null calendar_month:            {final['null_calendar_month']}")
+print(f"Null calendar_day:              {final['null_calendar_day']}")
+print(f"Null calendar_quarter:          {final['null_calendar_quarter']}")
+print(f"Null calendar_month_name:       {final['null_calendar_month_name']}")
+print(f"Null calendar_day_of_week:      {final['null_calendar_day_of_week']}")
+print(f"Null calendar_day_name:         {final['null_calendar_day_name']}")
+print(f"Null calendar_is_weekend:       {final['null_calendar_is_weekend']}")
+print(f"Null calendar_is_month_start:   {final['null_calendar_is_month_start']}")
+print(f"Null calendar_is_month_end:     {final['null_calendar_is_month_end']}")
+
+if final["row_count"] != source_validation["row_count"]:
+    raise ValueError("Row count mismatch detected.")
+
+if duplicates > 0:
+    raise ValueError("Duplicate calendar_date detected.")
+
+critical_nulls = {
+    "calendar_date": final["null_calendar_date"],
+    "calendar_year": final["null_calendar_year"],
+    "calendar_month": final["null_calendar_month"],
+    "calendar_day": final["null_calendar_day"],
+    "calendar_quarter": final["null_calendar_quarter"],
+    "calendar_month_name": final["null_calendar_month_name"],
+    "calendar_day_of_week": final["null_calendar_day_of_week"],
+    "calendar_day_name": final["null_calendar_day_name"],
+    "calendar_is_weekend": final["null_calendar_is_weekend"],
+    "calendar_is_month_start": final["null_calendar_is_month_start"],
+    "calendar_is_month_end": final["null_calendar_is_month_end"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+print("[INFO] Final validations completed.")
+
+# ========================================
+# 6. FINAL STATUS
+# ========================================
+
+detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
 
 print("=" * 80)
 print("FINAL TABLE DETAIL")
 print("=" * 80)
-
-final_detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
-
-print(f"Format:              {final_detail.get('format')}")
-print(f"Table name:          {final_detail.get('name')}")
-print(f"Location:            {final_detail.get('location')}")
-print(f"Created at:          {final_detail.get('createdAt')}")
-print(f"Last modified:       {final_detail.get('lastModified')}")
-print(f"Partition columns:   {final_detail.get('partitionColumns')}")
-print(f"Clustering columns:  {final_detail.get('clusteringColumns')}")
-print(f"Number of files:     {final_detail.get('numFiles')}")
-print(f"Size in bytes:       {final_detail.get('sizeInBytes')}")
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
 
 print("=" * 80)
-print("GOLD PROCESSING COMPLETED SUCCESSFULLY")
+print("COMPLETED")
 print("=" * 80)
-print(f"Target table: {TARGET_TABLE}")
-print(f"Target path:  {TARGET_PATH}")

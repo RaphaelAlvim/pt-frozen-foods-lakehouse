@@ -4,12 +4,11 @@
 # DATASET: dim_product
 # ========================================
 
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "silver"
@@ -21,110 +20,18 @@ DATASET = "dim_product"
 STORAGE_ACCOUNT = "stptfrozenfoodsdevwe01"
 GOLD_CONTAINER = "gold"
 
-PRODUCTS_DATASET = "erp_products"
-ORDER_ITEMS_DATASET = "erp_order_items"
-
-PRODUCTS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{PRODUCTS_DATASET}"
-ORDER_ITEMS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{ORDER_ITEMS_DATASET}"
-
+SOURCE_PRODUCTS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.erp_products"
+SOURCE_ORDER_ITEMS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.erp_order_items"
 TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
+
 TARGET_PATH = f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
-CLUSTER_KEYS = ["status_produto", "categoria"]
+CLUSTER_COLUMNS = [
+    "status_produto",
+    "categoria"
+]
 
-AUTO_OPTIMIZE_PROPERTIES = {
-    "delta.autoOptimize.optimizeWrite": "true",
-    "delta.autoOptimize.autoCompact": "true"
-}
-
-
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
-
-print("=" * 80)
-print("STARTING GOLD PROCESSING: dim_product")
-print("=" * 80)
-
-spark.sql(f"USE CATALOG {CATALOG}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
-spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
-
-print("[INFO] Context setup completed successfully.")
-
-
-# ========================================
-# 2. CONFIGURATION SUMMARY
-# ========================================
-
-print("=" * 80)
-print("GOLD PROCESSING NOTEBOOK CONFIGURATION")
-print("=" * 80)
-print(f"Catalog:                         {CATALOG}")
-print(f"Source schema:                   {SOURCE_SCHEMA}")
-print(f"Target schema:                   {TARGET_SCHEMA}")
-print(f"Domain:                          {DOMAIN}")
-print(f"Dataset:                         {DATASET}")
-print(f"Products table:                  {PRODUCTS_TABLE}")
-print(f"Order items table:               {ORDER_ITEMS_TABLE}")
-print(f"Target table:                    {TARGET_TABLE}")
-print(f"Target path:                     {TARGET_PATH}")
-print(f"Cluster keys:                    {', '.join(CLUSTER_KEYS)}")
-print(f"Optimize write enabled:          {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.optimizeWrite']}")
-print(f"Auto compact enabled:            {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.autoCompact']}")
-print("=" * 80)
-
-
-# ========================================
-# 3. PRE-CHECKS
-# ========================================
-
-print("[INFO] Checking source table availability...")
-spark.sql(f"DESCRIBE TABLE {PRODUCTS_TABLE}")
-spark.sql(f"DESCRIBE TABLE {ORDER_ITEMS_TABLE}")
-
-print("[INFO] Checking target container access...")
-dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
-
-print("[INFO] Pre-checks completed successfully.")
-
-
-# ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_products = spark.table(PRODUCTS_TABLE)
-df_order_items = spark.table(ORDER_ITEMS_TABLE)
-
-print("[INFO] Source data loaded successfully.")
-print(f"[INFO] Products row count:                   {df_products.count():,}")
-print(f"[INFO] Order items row count:                {df_order_items.count():,}")
-
-
-# ========================================
-# 5. SOURCE VALIDATION
-# ========================================
-
-print("[INFO] Validating source datasets...")
-
-raw_products_count = df_products.count()
-distinct_product_ids = df_products.select("produto_id").distinct().count()
-null_product_ids_products = df_products.filter(F.col("produto_id").isNull()).count()
-null_product_ids_order_items = df_order_items.filter(F.col("produto_id").isNull()).count()
-
-if distinct_product_ids != raw_products_count:
-    raise ValueError(
-        f"produto_id is not unique in products source. Distinct: {distinct_product_ids}, Rows: {raw_products_count}"
-    )
-
-if null_product_ids_products > 0:
-    raise ValueError(f"Null produto_id detected in products source dataset: {null_product_ids_products}")
-
-print(f"[INFO] produto_id uniqueness validated:      {distinct_product_ids:,}")
-print(f"[INFO] Null produto_id in products:          {null_product_ids_products:,}")
-print(f"[INFO] Null produto_id in order items:       {null_product_ids_order_items:,}")
-
-required_products_columns = [
+REQUIRED_COLUMNS = [
     "produto_id",
     "produto_nome",
     "categoria",
@@ -141,204 +48,202 @@ required_products_columns = [
     "fator_sazonal_proprio"
 ]
 
-missing_products_columns = [c for c in required_products_columns if c not in df_products.columns]
+print("=" * 80)
+print("STARTING GOLD PROCESSING: dim_product")
+print("=" * 80)
 
-if missing_products_columns:
-    raise ValueError(f"Missing required columns in products source: {missing_products_columns}")
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
+spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
 
-print("[INFO] Source validation completed successfully.")
-
+print("[INFO] Context setup completed successfully.")
 
 # ========================================
-# 6. FILTER DIMENSION CANDIDATES
+# 1. PRE-CHECKS
 # ========================================
 
-print("[INFO] Building valid product key set from order items...")
-print("[INFO] Coverage was validated in the Gold exploratory notebook.")
+print("[INFO] Checking source table availability...")
+spark.sql(f"DESCRIBE TABLE {SOURCE_PRODUCTS_TABLE}")
+spark.sql(f"DESCRIBE TABLE {SOURCE_ORDER_ITEMS_TABLE}")
 
-df_valid_product_keys = (
-    df_order_items
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print("[INFO] Pre-checks completed successfully.")
+
+# ========================================
+# 2. SOURCE VALIDATION
+# ========================================
+
+print("[INFO] Validating source datasets...")
+
+df_products = spark.table(SOURCE_PRODUCTS_TABLE)
+
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_products.columns]
+
+if missing_columns:
+    raise ValueError(f"Missing required columns in products source: {missing_columns}")
+
+product_validation = (
+    df_products
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("produto_id").alias("distinct_ids"),
+        F.sum(F.when(F.col("produto_id").isNull(), 1).otherwise(0)).alias("null_id")
+    )
+    .collect()[0]
+)
+
+valid_product_keys_count = (
+    spark.table(SOURCE_ORDER_ITEMS_TABLE)
     .filter(F.col("produto_id").isNotNull())
     .select("produto_id")
     .distinct()
-)
-
-valid_product_keys_count = df_valid_product_keys.count()
-
-print(f"[INFO] Distinct valid product keys in sales: {valid_product_keys_count:,}")
-print("[INFO] Dimension candidate filtering completed successfully.")
-
-
-# ========================================
-# 7. BUILD DIMENSION DATASET
-# ========================================
-
-print("[INFO] Building Gold dimension dataset with explicit column selection...")
-
-df_dim_product = (
-    df_products.alias("p")
-    .join(
-        F.broadcast(df_valid_product_keys).alias("k"),
-        on="produto_id",
-        how="inner"
-    )
-    .select(
-        F.col("produto_id"),
-        F.col("produto_nome"),
-        F.col("categoria"),
-        F.col("marca"),
-        F.col("peso_gramas"),
-        F.col("preco_lista_base"),
-        F.col("custo_base_unitario"),
-        F.col("fornecedor_id"),
-        F.col("data_lancamento"),
-        F.col("data_fim"),
-        F.col("status_produto"),
-        F.col("popularidade_base"),
-        F.col("sensibilidade_promocao"),
-        F.col("fator_sazonal_proprio")
-    )
-    .dropDuplicates(["produto_id"])
-)
-
-print("[INFO] Gold dimension dataset built successfully.")
-print(f"[INFO] Row count after build:                {df_dim_product.count():,}")
-
-
-# ========================================
-# 8. OUTPUT VALIDATION
-# ========================================
-
-print("[INFO] Validating Gold dimension output...")
-
-final_row_count = df_dim_product.count()
-expected_row_count = valid_product_keys_count
-
-duplicate_product_ids = (
-    df_dim_product
-    .groupBy("produto_id")
-    .count()
-    .filter(F.col("count") > 1)
     .count()
 )
 
-null_produto_id_final = df_dim_product.filter(F.col("produto_id").isNull()).count()
-null_produto_nome_final = df_dim_product.filter(F.col("produto_nome").isNull()).count()
-null_categoria_final = df_dim_product.filter(F.col("categoria").isNull()).count()
-null_marca_final = df_dim_product.filter(F.col("marca").isNull()).count()
-null_fornecedor_id_final = df_dim_product.filter(F.col("fornecedor_id").isNull()).count()
-null_status_produto_final = df_dim_product.filter(F.col("status_produto").isNull()).count()
-null_peso_gramas_final = df_dim_product.filter(F.col("peso_gramas").isNull()).count()
+print(f"Products row count:             {product_validation['row_count']:,}")
+print(f"Distinct produto_id:            {product_validation['distinct_ids']:,}")
+print(f"Null produto_id in products:    {product_validation['null_id']:,}")
+print(f"Valid product keys in sales:    {valid_product_keys_count:,}")
 
-print(f"[INFO] Expected row count:                   {expected_row_count:,}")
-print(f"[INFO] Output row count:                     {final_row_count:,}")
-print(f"[INFO] Duplicate produto_id count:          {duplicate_product_ids:,}")
-print(f"[INFO] Null produto_id count:               {null_produto_id_final:,}")
-print(f"[INFO] Null produto_nome count:             {null_produto_nome_final:,}")
-print(f"[INFO] Null categoria count:                {null_categoria_final:,}")
-print(f"[INFO] Null marca count:                    {null_marca_final:,}")
-print(f"[INFO] Null fornecedor_id count:            {null_fornecedor_id_final:,}")
-print(f"[INFO] Null status_produto count:           {null_status_produto_final:,}")
-print(f"[INFO] Null peso_gramas count:              {null_peso_gramas_final:,}")
+if product_validation["row_count"] != product_validation["distinct_ids"]:
+    raise ValueError("produto_id is not unique in products source.")
 
-if final_row_count != expected_row_count:
-    raise ValueError(
-        f"Row count mismatch detected. Expected: {expected_row_count}, Got: {final_row_count}"
-    )
+if product_validation["null_id"] > 0:
+    raise ValueError("Null produto_id detected in products source.")
 
-if duplicate_product_ids > 0:
-    raise ValueError(f"Duplicate produto_id detected in output dataset: {duplicate_product_ids}")
-
-if null_produto_id_final > 0:
-    raise ValueError(f"Null produto_id detected in output dataset: {null_produto_id_final}")
-
-if null_produto_nome_final > 0:
-    raise ValueError(f"Null produto_nome detected in output dataset: {null_produto_nome_final}")
-
-if null_categoria_final > 0:
-    raise ValueError(f"Null categoria detected in output dataset: {null_categoria_final}")
-
-if null_marca_final > 0:
-    raise ValueError(f"Null marca detected in output dataset: {null_marca_final}")
-
-if null_fornecedor_id_final > 0:
-    raise ValueError(f"Null fornecedor_id detected in output dataset: {null_fornecedor_id_final}")
-
-if null_status_produto_final > 0:
-    raise ValueError(f"Null status_produto detected in output dataset: {null_status_produto_final}")
-
-if null_peso_gramas_final > 0:
-    raise ValueError(f"Null peso_gramas detected in output dataset: {null_peso_gramas_final}")
-
-print("[INFO] Output validation completed successfully.")
-
+print("[INFO] Source validation completed successfully.")
 
 # ========================================
-# 9. WRITE DELTA TABLE
+# 3. CREATE DIMENSION TABLE
 # ========================================
 
-print("[INFO] Writing Gold dimension table to Delta format...")
-
-(
-    df_dim_product.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
+print("[INFO] Creating Gold dimension table using CTAS...")
 
 spark.sql(f"""
-    CREATE TABLE {TARGET_TABLE}
-    USING DELTA
-    LOCATION '{TARGET_PATH}'
+CREATE OR REPLACE TABLE {TARGET_TABLE}
+USING DELTA
+LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+WITH valid_product_keys AS (
+    SELECT DISTINCT produto_id
+    FROM {SOURCE_ORDER_ITEMS_TABLE}
+    WHERE produto_id IS NOT NULL
+)
+
+SELECT
+    p.produto_id,
+    p.produto_nome,
+    p.categoria,
+    p.marca,
+    p.peso_gramas,
+    p.preco_lista_base,
+    p.custo_base_unitario,
+    p.fornecedor_id,
+    p.data_lancamento,
+    p.data_fim,
+    p.status_produto,
+    p.popularidade_base,
+    p.sensibilidade_promocao,
+    p.fator_sazonal_proprio
+
+FROM {SOURCE_PRODUCTS_TABLE} p
+INNER JOIN valid_product_keys k
+    ON p.produto_id = k.produto_id
 """)
 
-print("[INFO] Delta table written successfully.")
-
-
-# ========================================
-# 10. APPLY TABLE OPTIMIZATION
-# ========================================
-
-print("[INFO] Applying Auto Optimize table properties...")
-
-for property_name, property_value in AUTO_OPTIMIZE_PROPERTIES.items():
-    spark.sql(f"""
-        ALTER TABLE {TARGET_TABLE}
-        SET TBLPROPERTIES ('{property_name}' = '{property_value}')
-    """)
-
-print("[INFO] Auto Optimize table properties applied successfully.")
-
-print("[INFO] Applying Liquid Clustering...")
-spark.sql(f"ALTER TABLE {TARGET_TABLE} CLUSTER BY ({', '.join(CLUSTER_KEYS)})")
-print("[INFO] Liquid clustering applied successfully.")
-
+print("[INFO] Gold dimension table created successfully.")
 
 # ========================================
-# 11. FINAL STATUS
+# 4. OPTIMIZATION
 # ========================================
+
+print("[INFO] Running OPTIMIZE...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Optimization completed.")
+
+# ========================================
+# 5. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+final = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("produto_id").alias("distinct_ids"),
+        F.sum(F.when(F.col("produto_id").isNull(), 1).otherwise(0)).alias("null_produto_id"),
+        F.sum(F.when(F.col("produto_nome").isNull(), 1).otherwise(0)).alias("null_produto_nome"),
+        F.sum(F.when(F.col("categoria").isNull(), 1).otherwise(0)).alias("null_categoria"),
+        F.sum(F.when(F.col("marca").isNull(), 1).otherwise(0)).alias("null_marca"),
+        F.sum(F.when(F.col("fornecedor_id").isNull(), 1).otherwise(0)).alias("null_fornecedor_id"),
+        F.sum(F.when(F.col("status_produto").isNull(), 1).otherwise(0)).alias("null_status_produto"),
+        F.sum(F.when(F.col("peso_gramas").isNull(), 1).otherwise(0)).alias("null_peso_gramas")
+    )
+    .collect()[0]
+)
+
+duplicates = final["row_count"] - final["distinct_ids"]
+
+print(f"Expected rows:           {valid_product_keys_count:,}")
+print(f"Rows:                    {final['row_count']:,}")
+print(f"Duplicates:              {duplicates:,}")
+print(f"Null produto_id:         {final['null_produto_id']}")
+print(f"Null produto_nome:       {final['null_produto_nome']}")
+print(f"Null categoria:          {final['null_categoria']}")
+print(f"Null marca:              {final['null_marca']}")
+print(f"Null fornecedor_id:      {final['null_fornecedor_id']}")
+print(f"Null status_produto:     {final['null_status_produto']}")
+print(f"Null peso_gramas:        {final['null_peso_gramas']}")
+
+if final["row_count"] != valid_product_keys_count:
+    raise ValueError("Row count mismatch detected.")
+
+if duplicates > 0:
+    raise ValueError("Duplicate produto_id detected.")
+
+critical_nulls = {
+    "produto_id": final["null_produto_id"],
+    "produto_nome": final["null_produto_nome"],
+    "categoria": final["null_categoria"],
+    "marca": final["null_marca"],
+    "fornecedor_id": final["null_fornecedor_id"],
+    "status_produto": final["null_status_produto"],
+    "peso_gramas": final["null_peso_gramas"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+print("[INFO] Final validations completed.")
+
+# ========================================
+# 6. FINAL STATUS
+# ========================================
+
+detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
 
 print("=" * 80)
 print("FINAL TABLE DETAIL")
 print("=" * 80)
-
-final_detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
-
-print(f"Format:              {final_detail.get('format')}")
-print(f"Table name:          {final_detail.get('name')}")
-print(f"Location:            {final_detail.get('location')}")
-print(f"Created at:          {final_detail.get('createdAt')}")
-print(f"Last modified:       {final_detail.get('lastModified')}")
-print(f"Partition columns:   {final_detail.get('partitionColumns')}")
-print(f"Clustering columns:  {final_detail.get('clusteringColumns')}")
-print(f"Number of files:     {final_detail.get('numFiles')}")
-print(f"Size in bytes:       {final_detail.get('sizeInBytes')}")
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
 
 print("=" * 80)
-print("GOLD PROCESSING COMPLETED SUCCESSFULLY")
+print("COMPLETED")
 print("=" * 80)
-print(f"Target table: {TARGET_TABLE}")
-print(f"Target path:  {TARGET_PATH}")

@@ -4,13 +4,18 @@
 # DATASET: fact_sales
 # ========================================
 
+# Processing decisions:
+# - Use CTAS (CREATE OR REPLACE TABLE AS SELECT) to create and register the Delta table in one step.
+# - Use Liquid Clustering to optimize recurring queries by date and product.
+# - Avoid unnecessary cache, repartition, or coalesce operations.
+# - Consolidate validations to reduce unnecessary scans.
+# - Keep critical source and output validations to protect data quality.
+
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "silver"
@@ -22,33 +27,19 @@ DATASET = "fact_sales"
 STORAGE_ACCOUNT = "stptfrozenfoodsdevwe01"
 GOLD_CONTAINER = "gold"
 
-ORDER_ITEMS_DATASET = "erp_order_items"
-ORDERS_CUSTOMERS_DATASET = "silver_orders_customers"
-PRODUCTS_DATASET = "erp_products"
-SALES_CHANNELS_DATASET = "reference_sales_channels"
-CALENDAR_DATASET = "reference_calendar"
-
-ORDER_ITEMS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{ORDER_ITEMS_DATASET}"
-ORDERS_CUSTOMERS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{ORDERS_CUSTOMERS_DATASET}"
-PRODUCTS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{PRODUCTS_DATASET}"
-SALES_CHANNELS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{SALES_CHANNELS_DATASET}"
-CALENDAR_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{CALENDAR_DATASET}"
+ORDER_ITEMS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.erp_order_items"
+ORDERS_CUSTOMERS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.silver_orders_customers"
+PRODUCTS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.erp_products"
+SALES_CHANNELS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.reference_sales_channels"
+CALENDAR_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.reference_calendar"
 
 TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
 TARGET_PATH = f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
-CLUSTER_KEYS = ["data_pedido", "produto_id"]
-
-# Auto Optimize table properties
-AUTO_OPTIMIZE_PROPERTIES = {
-    "delta.autoOptimize.optimizeWrite": "true",
-    "delta.autoOptimize.autoCompact": "true"
-}
-
-
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
+CLUSTER_COLUMNS = [
+    "data_pedido",
+    "produto_id"
+]
 
 print("=" * 80)
 print("STARTING GOLD PROCESSING: fact_sales")
@@ -60,9 +51,8 @@ spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
 
 print("[INFO] Context setup completed successfully.")
 
-
 # ========================================
-# 2. CONFIGURATION SUMMARY
+# 1. CONFIGURATION SUMMARY
 # ========================================
 
 print("=" * 80)
@@ -80,17 +70,17 @@ print(f"Sales channels table:            {SALES_CHANNELS_TABLE}")
 print(f"Calendar table:                  {CALENDAR_TABLE}")
 print(f"Target table:                    {TARGET_TABLE}")
 print(f"Target path:                     {TARGET_PATH}")
-print(f"Cluster keys:                    {', '.join(CLUSTER_KEYS)}")
-print(f"Optimize write enabled:          {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.optimizeWrite']}")
-print(f"Auto compact enabled:            {AUTO_OPTIMIZE_PROPERTIES['delta.autoOptimize.autoCompact']}")
+print(f"Cluster columns:                 {', '.join(CLUSTER_COLUMNS)}")
+print(f"Optimization strategy:           Delta Auto Optimize + Liquid Clustering")
+print(f"Partitioning strategy:           None")
 print("=" * 80)
 
-
 # ========================================
-# 3. PRE-CHECKS
+# 2. PRE-CHECKS
 # ========================================
 
 print("[INFO] Checking source table availability...")
+
 spark.sql(f"DESCRIBE TABLE {ORDER_ITEMS_TABLE}")
 spark.sql(f"DESCRIBE TABLE {ORDERS_CUSTOMERS_TABLE}")
 spark.sql(f"DESCRIBE TABLE {PRODUCTS_TABLE}")
@@ -102,335 +92,266 @@ dbutils.fs.ls(f"abfss://{GOLD_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/
 
 print("[INFO] Pre-checks completed successfully.")
 
-
 # ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_order_items = spark.table(ORDER_ITEMS_TABLE)
-df_orders_customers = spark.table(ORDERS_CUSTOMERS_TABLE)
-df_products = spark.table(PRODUCTS_TABLE)
-df_sales_channels = spark.table(SALES_CHANNELS_TABLE)
-df_calendar = spark.table(CALENDAR_TABLE)
-
-print("[INFO] Source data loaded successfully.")
-print(f"[INFO] Raw order items row count:            {df_order_items.count():,}")
-print(f"[INFO] Orders customers row count:           {df_orders_customers.count():,}")
-print(f"[INFO] Products row count:                   {df_products.count():,}")
-print(f"[INFO] Sales channels row count:             {df_sales_channels.count():,}")
-print(f"[INFO] Calendar row count:                   {df_calendar.count():,}")
-
-
-# ========================================
-# 5. SOURCE VALIDATION
+# 3. SOURCE VALIDATION
 # ========================================
 
-print("[INFO] Validating primary key and critical business keys...")
+print("[INFO] Validating source primary key and critical business keys...")
 
-raw_order_items_count = df_order_items.count()
-distinct_item_ids = df_order_items.select("item_pedido_id").distinct().count()
-null_item_ids = df_order_items.filter(F.col("item_pedido_id").isNull()).count()
-null_product_ids = df_order_items.filter(F.col("produto_id").isNull()).count()
-
-if distinct_item_ids != raw_order_items_count:
-    raise ValueError(
-        f"item_pedido_id is not unique. Distinct: {distinct_item_ids}, Rows: {raw_order_items_count}"
+source_validation = (
+    spark.table(ORDER_ITEMS_TABLE)
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("item_pedido_id").alias("distinct_item_ids"),
+        F.sum(F.when(F.col("item_pedido_id").isNull(), 1).otherwise(0)).alias("null_item_pedido_id"),
+        F.sum(F.when(F.col("produto_id").isNull(), 1).otherwise(0)).alias("null_produto_id"),
+        F.sum(F.when(F.col("produto_id").isNotNull(), 1).otherwise(0)).alias("valid_order_items")
     )
+    .collect()[0]
+)
 
-if null_item_ids > 0:
-    raise ValueError(f"Null item_pedido_id detected in source dataset: {null_item_ids}")
-
-print(f"[INFO] item_pedido_id uniqueness validated:  {distinct_item_ids:,}")
-print(f"[INFO] Null item_pedido_id count:           {null_item_ids:,}")
-print(f"[INFO] Null produto_id count:               {null_product_ids:,}")
-print("[INFO] Source validation completed successfully.")
-
-
-# ========================================
-# 6. FILTER FACT CANDIDATES
-# ========================================
-
-print("[INFO] Filtering out records with null produto_id...")
-print("[INFO] This rule was validated in the Gold exploratory notebook.")
-
-df_order_items_valid = df_order_items.filter(F.col("produto_id").isNotNull())
-
-valid_order_items_count = df_order_items_valid.count()
+raw_order_items_count = source_validation["row_count"]
+valid_order_items_count = source_validation["valid_order_items"]
 excluded_order_items_count = raw_order_items_count - valid_order_items_count
 excluded_pct = round((excluded_order_items_count / raw_order_items_count) * 100, 4) if raw_order_items_count else 0
 
-print(f"[INFO] Order items before filter:            {raw_order_items_count:,}")
-print(f"[INFO] Order items after filter:             {valid_order_items_count:,}")
-print(f"[INFO] Rows excluded:                        {excluded_order_items_count:,}")
-print(f"[INFO] Excluded percentage:                  {excluded_pct}%")
+print(f"Raw order items count:            {raw_order_items_count:,}")
+print(f"Distinct item_pedido_id count:    {source_validation['distinct_item_ids']:,}")
+print(f"Null item_pedido_id count:        {source_validation['null_item_pedido_id']:,}")
+print(f"Null produto_id count:            {source_validation['null_produto_id']:,}")
+print(f"Valid order items count:          {valid_order_items_count:,}")
+print(f"Rows excluded:                    {excluded_order_items_count:,}")
+print(f"Excluded percentage:              {excluded_pct}%")
 
-# Optional standardization for nullable operational key
-df_orders_customers_clean = df_orders_customers.fillna({"vendedor_id": "UNKNOWN"})
-
-print("[INFO] Fact candidate filtering completed successfully.")
-
-
-# ========================================
-# 7. BUILD FACT DATASET
-# ========================================
-
-print("[INFO] Building Gold fact dataset with explicit column selection...")
-print("[INFO] Applying join order control from transactional base to small dimensions...")
-
-# Base join: order items + orders/customers
-df_fact_base = (
-    df_order_items_valid.alias("oi")
-    .join(
-        df_orders_customers_clean.alias("oc"),
-        on="pedido_id",
-        how="inner"
-    )
-)
-
-base_join_count = df_fact_base.count()
-
-# Product dimension
-df_fact_products = (
-    df_fact_base.alias("f")
-    .join(
-        F.broadcast(
-            df_products.select(
-                "produto_id",
-                "produto_nome",
-                "categoria",
-                "marca",
-                "fornecedor_id",
-                "status_produto"
-            )
-        ).alias("p"),
-        on="produto_id",
-        how="left"
-    )
-)
-
-# Sales channel dimension
-df_fact_channels = (
-    df_fact_products.alias("f")
-    .join(
-        F.broadcast(
-            df_sales_channels.select(
-                "canal_id",
-                "nome_canal",
-                "descricao"
-            )
-        ).alias("sc"),
-        on="canal_id",
-        how="left"
-    )
-)
-
-# Calendar dimension
-df_fact_joined = (
-    df_fact_channels.alias("f")
-    .join(
-        F.broadcast(
-            df_calendar.select(
-                F.col("data").alias("calendar_date"),
-                F.col("ano").alias("calendar_year"),
-                F.col("mes").alias("calendar_month"),
-                F.col("dia").alias("calendar_day"),
-                F.col("trimestre").alias("calendar_quarter"),
-                F.col("nome_mes").alias("calendar_month_name"),
-                F.col("dia_semana").alias("calendar_day_of_week"),
-                F.col("nome_dia_semana").alias("calendar_day_of_week_name"),
-                F.col("is_fim_de_semana").alias("calendar_is_weekend"),
-                F.col("is_inicio_mes").alias("calendar_is_month_start"),
-                F.col("is_fim_mes").alias("calendar_is_month_end")
-            )
-        ).alias("cal"),
-        F.col("f.data_pedido") == F.col("cal.calendar_date"),
-        how="left"
-    )
-)
-
-# Final explicit projection
-df_fact_sales = (
-    df_fact_joined.select(
-        # Grain and transactional keys
-        F.col("item_pedido_id"),
-        F.col("pedido_id"),
-        F.col("produto_id"),
-        F.col("cliente_id"),
-        F.col("canal_id"),
-        F.col("fornecedor_id"),
-
-        # Dates
-        F.col("data_pedido"),
-        F.col("calendar_year"),
-        F.col("calendar_quarter"),
-        F.col("calendar_month"),
-        F.col("calendar_day"),
-        F.col("calendar_month_name"),
-        F.col("calendar_day_of_week"),
-        F.col("calendar_day_of_week_name"),
-        F.col("calendar_is_weekend"),
-        F.col("calendar_is_month_start"),
-        F.col("calendar_is_month_end"),
-
-        # Customer / order context
-        F.col("vendedor_id"),
-        F.col("cidade_entrega"),
-        F.col("estado_pedido"),
-        F.col("prazo_entrega_dias"),
-        F.col("tipo_cliente"),
-        F.col("cliente_cidade"),
-        F.col("distrito"),
-        F.col("segmento"),
-        F.col("potencial_valor"),
-        F.col("cluster_comercial"),
-        F.col("status_cliente"),
-
-        # Product / channel context
-        F.col("produto_nome"),
-        F.col("categoria"),
-        F.col("marca"),
-        F.col("status_produto"),
-        F.col("nome_canal"),
-        F.col("descricao").alias("descricao_canal"),
-
-        # Measures
-        F.col("quantidade").alias("quantity_sold"),
-        F.col("preco_lista_unitario"),
-        F.col("desconto_unitario"),
-        F.col("preco_venda_unitario"),
-        F.col("custo_unitario"),
-        (F.col("quantidade") * F.col("preco_lista_unitario")).alias("gross_sales_amount"),
-        (F.col("quantidade") * F.col("preco_venda_unitario")).alias("net_sales_amount"),
-        (F.col("quantidade") * F.col("custo_unitario")).alias("total_cost_amount"),
-        ((F.col("quantidade") * F.col("preco_venda_unitario")) - (F.col("quantidade") * F.col("custo_unitario"))).alias("gross_margin_amount"),
-        F.lit(1).alias("line_count"),
-
-        # Operational / optional context
-        F.col("flag_promocao"),
-        F.col("lote_fornecedor"),
-
-        # Technical lineage
-        F.col("load_date").alias("item_load_date"),
-        F.col("ingestion_timestamp").alias("item_ingestion_timestamp"),
-        F.col("source_file").alias("item_source_file"),
-        F.col("order_load_date"),
-        F.col("order_ingestion_timestamp"),
-        F.col("order_source_file"),
-    )
-)
-
-# Derived order-level metric at item grain
-order_revenue_window = F.sum("net_sales_amount").over(Window.partitionBy("pedido_id"))
-df_fact_sales = df_fact_sales.withColumn("average_order_value", order_revenue_window)
-
-print("[INFO] Gold fact dataset built successfully.")
-print(f"[INFO] Row count after joins:                 {df_fact_sales.count():,}")
-
-
-# ========================================
-# 8. OUTPUT VALIDATION
-# ========================================
-
-print("[INFO] Validating Gold fact output...")
-
-final_row_count = df_fact_sales.count()
-expected_row_count = valid_order_items_count
-
-duplicate_item_ids = (
-    df_fact_sales
-    .groupBy("item_pedido_id")
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
-)
-
-null_produto_id_final = df_fact_sales.filter(F.col("produto_id").isNull()).count()
-null_item_pedido_id_final = df_fact_sales.filter(F.col("item_pedido_id").isNull()).count()
-orphan_channel_count = df_fact_sales.filter(F.col("nome_canal").isNull()).count()
-orphan_calendar_count = df_fact_sales.filter(F.col("calendar_year").isNull()).count()
-orphan_product_count = df_fact_sales.filter(F.col("produto_nome").isNull()).count()
-
-print(f"[INFO] Expected row count after filtering:    {expected_row_count:,}")
-print(f"[INFO] Output row count:                     {final_row_count:,}")
-print(f"[INFO] Duplicate item_pedido_id count:       {duplicate_item_ids:,}")
-print(f"[INFO] Null produto_id count:                {null_produto_id_final:,}")
-print(f"[INFO] Null item_pedido_id count:            {null_item_pedido_id_final:,}")
-print(f"[INFO] Orphan product rows:                  {orphan_product_count:,}")
-print(f"[INFO] Orphan sales channel rows:            {orphan_channel_count:,}")
-print(f"[INFO] Orphan calendar rows:                 {orphan_calendar_count:,}")
-
-if final_row_count != expected_row_count:
+if source_validation["distinct_item_ids"] != raw_order_items_count:
     raise ValueError(
-        f"Row count mismatch detected. Expected: {expected_row_count}, Got: {final_row_count}"
+        f"item_pedido_id is not unique. Distinct: {source_validation['distinct_item_ids']}, Rows: {raw_order_items_count}"
+    )
+
+if source_validation["null_item_pedido_id"] > 0:
+    raise ValueError(f"Null item_pedido_id detected in source dataset: {source_validation['null_item_pedido_id']}")
+
+print("[INFO] Source validation completed successfully.")
+
+# ========================================
+# 4. CREATE FACT TABLE
+# ========================================
+
+print("[INFO] Creating Gold fact table using CTAS...")
+
+spark.sql(f"""
+CREATE OR REPLACE TABLE {TARGET_TABLE}
+USING DELTA
+LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+WITH orders_customers_clean AS (
+    SELECT
+        *,
+        COALESCE(vendedor_id, 'UNKNOWN') AS vendedor_id_clean
+    FROM {ORDERS_CUSTOMERS_TABLE}
+),
+
+fact_base AS (
+    SELECT
+        oi.item_pedido_id,
+        oi.pedido_id,
+        oi.produto_id,
+        oi.quantidade,
+        oi.preco_lista_unitario,
+        oi.desconto_unitario,
+        oi.preco_venda_unitario,
+        oi.custo_unitario,
+        oi.flag_promocao,
+        oi.lote_fornecedor,
+        oi.load_date,
+        oi.ingestion_timestamp,
+        oi.source_file,
+
+        oc.cliente_id,
+        oc.canal_id,
+        oc.data_pedido,
+        oc.vendedor_id_clean,
+        oc.cidade_entrega,
+        oc.estado_pedido,
+        oc.prazo_entrega_dias,
+        oc.tipo_cliente,
+        oc.cliente_cidade,
+        oc.distrito,
+        oc.segmento,
+        oc.potencial_valor,
+        oc.cluster_comercial,
+        oc.status_cliente,
+        oc.order_load_date,
+        oc.order_ingestion_timestamp,
+        oc.order_source_file
+
+    FROM {ORDER_ITEMS_TABLE} oi
+    INNER JOIN orders_customers_clean oc
+        ON oi.pedido_id = oc.pedido_id
+    WHERE oi.produto_id IS NOT NULL
+),
+
+fact_enriched AS (
+    SELECT
+        fb.item_pedido_id,
+        fb.pedido_id,
+        fb.produto_id,
+        fb.cliente_id,
+        fb.canal_id,
+        p.fornecedor_id,
+
+        fb.data_pedido,
+        cal.ano AS calendar_year,
+        cal.trimestre AS calendar_quarter,
+        cal.mes AS calendar_month,
+        cal.dia AS calendar_day,
+        cal.nome_mes AS calendar_month_name,
+        cal.dia_semana AS calendar_day_of_week,
+        cal.nome_dia_semana AS calendar_day_of_week_name,
+        cal.is_fim_de_semana AS calendar_is_weekend,
+        cal.is_inicio_mes AS calendar_is_month_start,
+        cal.is_fim_mes AS calendar_is_month_end,
+
+        fb.vendedor_id_clean AS vendedor_id,
+        fb.cidade_entrega,
+        fb.estado_pedido,
+        fb.prazo_entrega_dias,
+        fb.tipo_cliente,
+        fb.cliente_cidade,
+        fb.distrito,
+        fb.segmento,
+        fb.potencial_valor,
+        fb.cluster_comercial,
+        fb.status_cliente,
+
+        p.produto_nome,
+        p.categoria,
+        p.marca,
+        p.status_produto,
+        sc.nome_canal,
+        sc.descricao AS descricao_canal,
+
+        fb.quantidade AS quantity_sold,
+        fb.preco_lista_unitario,
+        fb.desconto_unitario,
+        fb.preco_venda_unitario,
+        fb.custo_unitario,
+        fb.quantidade * fb.preco_lista_unitario AS gross_sales_amount,
+        fb.quantidade * fb.preco_venda_unitario AS net_sales_amount,
+        fb.quantidade * fb.custo_unitario AS total_cost_amount,
+        (fb.quantidade * fb.preco_venda_unitario) - (fb.quantidade * fb.custo_unitario) AS gross_margin_amount,
+        1 AS line_count,
+
+        fb.flag_promocao,
+        fb.lote_fornecedor,
+
+        fb.load_date AS item_load_date,
+        fb.ingestion_timestamp AS item_ingestion_timestamp,
+        fb.source_file AS item_source_file,
+        fb.order_load_date,
+        fb.order_ingestion_timestamp,
+        fb.order_source_file
+
+    FROM fact_base fb
+    LEFT JOIN {PRODUCTS_TABLE} p
+        ON fb.produto_id = p.produto_id
+    LEFT JOIN {SALES_CHANNELS_TABLE} sc
+        ON fb.canal_id = sc.canal_id
+    LEFT JOIN {CALENDAR_TABLE} cal
+        ON fb.data_pedido = cal.data
+)
+
+SELECT
+    *,
+    SUM(net_sales_amount) OVER (PARTITION BY pedido_id) AS average_order_value
+
+FROM fact_enriched
+""")
+
+print("[INFO] Gold fact table created successfully.")
+
+# ========================================
+# 5. OPTIMIZATION
+# ========================================
+
+# OPTIMIZE is executed after the full rebuild because this fact table is intended
+# for recurring analytical consumption and downstream Gold/Analytics processing.
+# In future production scenarios, this may be moved to a scheduled maintenance
+# job if execution cost becomes relevant.
+
+print("[INFO] Running OPTIMIZE for clustered Delta layout...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Table optimization completed.")
+
+# ========================================
+# 6. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+target_validation = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("item_pedido_id").alias("distinct_item_ids"),
+        F.sum(F.when(F.col("item_pedido_id").isNull(), 1).otherwise(0)).alias("null_item_pedido_id"),
+        F.sum(F.when(F.col("produto_id").isNull(), 1).otherwise(0)).alias("null_produto_id"),
+        F.sum(F.when(F.col("produto_nome").isNull(), 1).otherwise(0)).alias("orphan_product_rows"),
+        F.sum(F.when(F.col("nome_canal").isNull(), 1).otherwise(0)).alias("orphan_channel_rows"),
+        F.sum(F.when(F.col("calendar_year").isNull(), 1).otherwise(0)).alias("orphan_calendar_rows")
+    )
+    .collect()[0]
+)
+
+duplicate_item_ids = target_validation["row_count"] - target_validation["distinct_item_ids"]
+
+print(f"Expected row count:              {valid_order_items_count:,}")
+print(f"Output row count:                {target_validation['row_count']:,}")
+print(f"Duplicate item_pedido_id count:  {duplicate_item_ids:,}")
+print(f"Null item_pedido_id count:       {target_validation['null_item_pedido_id']:,}")
+print(f"Null produto_id count:           {target_validation['null_produto_id']:,}")
+print(f"Orphan product rows:             {target_validation['orphan_product_rows']:,}")
+print(f"Orphan sales channel rows:       {target_validation['orphan_channel_rows']:,}")
+print(f"Orphan calendar rows:            {target_validation['orphan_calendar_rows']:,}")
+
+if target_validation["row_count"] != valid_order_items_count:
+    raise ValueError(
+        f"Row count mismatch detected. Expected: {valid_order_items_count}, Got: {target_validation['row_count']}"
     )
 
 if duplicate_item_ids > 0:
     raise ValueError(f"Duplicate item_pedido_id detected in output dataset: {duplicate_item_ids}")
 
-if null_produto_id_final > 0:
-    raise ValueError(f"Null produto_id detected in output dataset: {null_produto_id_final}")
+if target_validation["null_item_pedido_id"] > 0:
+    raise ValueError(f"Null item_pedido_id detected in output dataset: {target_validation['null_item_pedido_id']}")
 
-if null_item_pedido_id_final > 0:
-    raise ValueError(f"Null item_pedido_id detected in output dataset: {null_item_pedido_id_final}")
+if target_validation["null_produto_id"] > 0:
+    raise ValueError(f"Null produto_id detected in output dataset: {target_validation['null_produto_id']}")
 
-if orphan_channel_count > 0:
-    raise ValueError(f"Orphan sales channel rows detected: {orphan_channel_count}")
+if target_validation["orphan_product_rows"] > 0:
+    raise ValueError(f"Orphan product rows detected: {target_validation['orphan_product_rows']}")
 
-if orphan_calendar_count > 0:
-    raise ValueError(f"Orphan calendar rows detected: {orphan_calendar_count}")
+if target_validation["orphan_channel_rows"] > 0:
+    raise ValueError(f"Orphan sales channel rows detected: {target_validation['orphan_channel_rows']}")
 
-if orphan_product_count > 0:
-    raise ValueError(f"Orphan product rows detected: {orphan_product_count}")
+if target_validation["orphan_calendar_rows"] > 0:
+    raise ValueError(f"Orphan calendar rows detected: {target_validation['orphan_calendar_rows']}")
 
-print("[INFO] Output validation completed successfully.")
-
-
-# ========================================
-# 9. WRITE DELTA TABLE
-# ========================================
-
-print("[INFO] Writing Gold fact table to Delta format...")
-
-(
-    df_fact_sales.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
-
-spark.sql(f"""
-    CREATE TABLE {TARGET_TABLE}
-    USING DELTA
-    LOCATION '{TARGET_PATH}'
-""")
-
-print("[INFO] Delta table written successfully.")
-
+print("[INFO] Final validations completed successfully.")
 
 # ========================================
-# 10. APPLY TABLE OPTIMIZATION
-# ========================================
-
-print("[INFO] Applying Auto Optimize table properties...")
-
-for property_name, property_value in AUTO_OPTIMIZE_PROPERTIES.items():
-    spark.sql(f"""
-        ALTER TABLE {TARGET_TABLE}
-        SET TBLPROPERTIES ('{property_name}' = '{property_value}')
-    """)
-
-print("[INFO] Auto Optimize table properties applied successfully.")
-
-print("[INFO] Applying Liquid Clustering...")
-spark.sql(f"ALTER TABLE {TARGET_TABLE} CLUSTER BY ({', '.join(CLUSTER_KEYS)})")
-print("[INFO] Liquid clustering applied successfully.")
-
-
-# ========================================
-# 11. FINAL STATUS
+# 7. FINAL TABLE DETAIL
 # ========================================
 
 print("=" * 80)
