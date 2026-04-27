@@ -4,13 +4,11 @@
 # DATASET: weather_porto_daily
 # ========================================
 
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
-from pyspark.sql.types import StringType
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "bronze"
@@ -32,77 +30,12 @@ TARGET_PATH = f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.ne
 EXPECTED_CITY = "Porto"
 VALID_CHOVEU_VALUES = [0, 1]
 
+CLUSTER_COLUMNS = [
+    "data",
+    "cidade"
+]
 
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
-
-spark.sql(f"USE CATALOG {CATALOG}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
-spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
-
-print("Context configured successfully")
-print(f"Catalog: {spark.catalog.currentCatalog()}")
-print(f"Schema: {spark.catalog.currentDatabase()}")
-
-
-# ========================================
-# 2. CONFIGURATION SUMMARY
-# ========================================
-
-print(" ")
-print("========== CONFIGURATION SUMMARY ==========")
-print(f"Source table    : {SOURCE_TABLE}")
-print(f"Target table    : {TARGET_TABLE}")
-print(f"Source path     : {SOURCE_PATH}")
-print(f"Target path     : {TARGET_PATH}")
-print(f"Expected city   : {EXPECTED_CITY}")
-print("===========================================")
-
-
-# ========================================
-# 3. PRE-CHECKS
-# ========================================
-
-print("[INFO] Checking source table availability...")
-spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
-
-print("[INFO] Checking source path access...")
-source_items = dbutils.fs.ls(SOURCE_PATH)
-
-print("[INFO] Checking target container access...")
-target_items = dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
-
-if len(source_items) == 0:
-    raise ValueError(f"[ERROR] No files found in source path: {SOURCE_PATH}")
-
-print(" ")
-print("Pre-checks completed successfully")
-print(f"Source path accessible     : yes ({len(source_items)} items found)")
-print(f"Target container access    : yes ({len(target_items)} items found)")
-
-
-# ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_source = spark.table(SOURCE_TABLE)
-source_row_count = df_source.count()
-
-print(" ")
-print("Source data loaded successfully")
-print(f"Source table     : {SOURCE_TABLE}")
-print(f"Source row count : {source_row_count}")
-
-
-# ========================================
-# 5. CLEANING AND STANDARDIZATION
-# ========================================
-
-print(" ")
-print("[INFO] Starting cleaning and standardization...")
-
-df_silver = df_source.select(
+REQUIRED_COLUMNS = [
     "data",
     "cidade",
     "temperatura_media",
@@ -116,179 +49,234 @@ df_silver = df_source.select(
     "load_date",
     "ingestion_timestamp",
     "source_file"
-)
-
-print("[INFO] Selected relevant columns for Silver layer")
-
-string_columns = [
-    field.name
-    for field in df_silver.schema.fields
-    if isinstance(field.dataType, StringType)
 ]
 
-for col_name in string_columns:
-    df_silver = df_silver.withColumn(
-        col_name,
-        F.when(F.trim(F.col(col_name)) == "", None)
-         .otherwise(F.trim(F.col(col_name)))
+print("=" * 80)
+print("STARTING SILVER PROCESSING: weather_porto_daily")
+print("=" * 80)
+
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
+spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
+
+print("[INFO] Context setup completed successfully.")
+
+# ========================================
+# 1. PRE-CHECKS
+# ========================================
+
+print("[INFO] Checking source table availability...")
+spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
+
+print("[INFO] Checking source path access...")
+source_items = dbutils.fs.ls(SOURCE_PATH)
+
+if len(source_items) == 0:
+    raise ValueError(f"No files found in source path: {SOURCE_PATH}")
+
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print("[INFO] Pre-checks completed successfully.")
+
+# ========================================
+# 2. SOURCE VALIDATION
+# ========================================
+
+print("[INFO] Validating source dataset...")
+
+df_source = spark.table(SOURCE_TABLE)
+
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
+
+if missing_columns:
+    raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
+
+source_validation = (
+    df_source
+    .agg(
+        F.count("*").alias("row_count"),
+        F.sum(F.when(F.col("data").isNull(), 1).otherwise(0)).alias("null_data"),
+        F.sum(F.when(F.col("cidade").isNull(), 1).otherwise(0)).alias("null_cidade"),
+        F.sum(F.when(F.col("fonte_api").isNull(), 1).otherwise(0)).alias("null_fonte_api")
     )
-
-print("[INFO] Applied base string standardization (trim + empty -> null)")
-
-before_dedup_count = df_silver.count()
-df_silver = df_silver.dropDuplicates()
-after_dedup_count = df_silver.count()
-
-print(f"[INFO] Exact-row deduplication applied: {before_dedup_count} -> {after_dedup_count}")
-
-
-# ========================================
-# 6. DATA QUALITY VALIDATION
-# ========================================
-
-silver_row_count = df_silver.count()
-
-print(" ")
-print("[INFO] Data quality validation completed")
-print(f"[INFO] Silver row count : {silver_row_count}")
-
-duplicate_data_count = (
-    df_silver.groupBy("data")
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
+    .collect()[0]
 )
 
-print(f"[INFO] Duplicate date groups found after transformation: {duplicate_data_count}")
+print(f"Source row count:      {source_validation['row_count']:,}")
+print(f"Null data:             {source_validation['null_data']:,}")
+print(f"Null cidade:           {source_validation['null_cidade']:,}")
+print(f"Null fonte_api:        {source_validation['null_fonte_api']:,}")
 
+if source_validation["row_count"] == 0:
+    raise ValueError("Source dataset is empty.")
 
-# ========================================
-# 7. CRITICAL BUSINESS VALIDATION
-# ========================================
+source_null_failures = {
+    "data": source_validation["null_data"],
+    "cidade": source_validation["null_cidade"],
+    "fonte_api": source_validation["null_fonte_api"]
+}
 
-print("[INFO] Validating business rules...")
+source_null_failures = {column: count for column, count in source_null_failures.items() if count > 0}
 
-null_data = df_silver.filter(F.col("data").isNull()).count()
-null_cidade = df_silver.filter(F.col("cidade").isNull()).count()
-null_fonte_api = df_silver.filter(F.col("fonte_api").isNull()).count()
+if source_null_failures:
+    raise ValueError(f"Null values detected in source critical columns: {source_null_failures}")
 
-invalid_choveu_count = df_silver.filter(
-    ~F.col("choveu").isin(VALID_CHOVEU_VALUES)
-).count()
-
-invalid_humidade_count = df_silver.filter(
-    (F.col("humidade_media") < 0) | (F.col("humidade_media") > 100)
-).count()
-
-invalid_precipitacao_count = df_silver.filter(
-    F.col("precipitacao_mm") < 0
-).count()
-
-invalid_vento_count = df_silver.filter(
-    F.col("vento_kmh") < 0
-).count()
-
-invalid_temperatura_interval_count = df_silver.filter(
-    (F.col("temperatura_min") > F.col("temperatura_media")) |
-    (F.col("temperatura_media") > F.col("temperatura_max")) |
-    (F.col("temperatura_min") > F.col("temperatura_max"))
-).count()
-
-invalid_cidade_count = df_silver.filter(
-    F.col("cidade") != EXPECTED_CITY
-).count()
-
-if null_data > 0:
-    raise ValueError(f"[ERROR] data contains {null_data} null values")
-
-if null_cidade > 0:
-    raise ValueError(f"[ERROR] cidade contains {null_cidade} null values")
-
-if null_fonte_api > 0:
-    raise ValueError(f"[ERROR] fonte_api contains {null_fonte_api} null values")
-
-if duplicate_data_count > 0:
-    raise ValueError(f"[ERROR] data contains {duplicate_data_count} duplicate groups after transformation")
-
-if invalid_choveu_count > 0:
-    raise ValueError(f"[ERROR] choveu contains {invalid_choveu_count} invalid values")
-
-if invalid_humidade_count > 0:
-    raise ValueError(f"[ERROR] humidade_media contains {invalid_humidade_count} invalid values")
-
-if invalid_precipitacao_count > 0:
-    raise ValueError(f"[ERROR] precipitacao_mm contains {invalid_precipitacao_count} negative values")
-
-if invalid_vento_count > 0:
-    raise ValueError(f"[ERROR] vento_kmh contains {invalid_vento_count} negative values")
-
-if invalid_temperatura_interval_count > 0:
-    raise ValueError(f"[ERROR] temperature interval validation failed in {invalid_temperatura_interval_count} rows")
-
-if invalid_cidade_count > 0:
-    raise ValueError(f"[ERROR] cidade contains {invalid_cidade_count} unexpected values different from {EXPECTED_CITY}")
-
-if silver_row_count == 0:
-    raise ValueError("[ERROR] Silver dataset is empty after transformations")
-
-print("[INFO] data validation passed (no nulls)")
-print("[INFO] cidade validation passed (no nulls)")
-print("[INFO] fonte_api validation passed (no nulls)")
-print("[INFO] choveu domain validation passed")
-print("[INFO] humidade_media validation passed")
-print("[INFO] precipitacao_mm validation passed")
-print("[INFO] vento_kmh validation passed")
-print("[INFO] temperature interval validation passed")
-print("[INFO] city validation passed")
-print("[INFO] Silver dataset is not empty")
-
+print("[INFO] Source validation completed successfully.")
 
 # ========================================
-# 8. WRITE TO DELTA
+# 3. CREATE SILVER TABLE
 # ========================================
 
-print(" ")
-print(f"[INFO] Writing Silver dataset to target path: {TARGET_PATH}")
-
-(
-    df_silver.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-print("[INFO] Silver dataset written successfully")
-
-
-# ========================================
-# 9. REGISTER TABLE
-# ========================================
-
-print(f"[INFO] Registering target table: {TARGET_TABLE}")
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
+print("[INFO] Creating Silver table using CTAS...")
 
 spark.sql(f"""
-CREATE TABLE {TARGET_TABLE}
+CREATE OR REPLACE TABLE {TARGET_TABLE}
 USING DELTA
 LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+SELECT DISTINCT
+    COALESCE(
+        TO_DATE(data, 'yyyy-MM-dd'),
+        TO_DATE(data, 'yyyy/MM/dd'),
+        TO_DATE(data, 'dd/MM/yyyy'),
+        TO_DATE(data, 'dd-MM-yyyy')
+    ) AS data,
+
+    NULLIF(TRIM(cidade), '') AS cidade,
+
+    CAST(temperatura_media AS DECIMAL(18,4)) AS temperatura_media,
+    CAST(temperatura_min AS DECIMAL(18,4)) AS temperatura_min,
+    CAST(temperatura_max AS DECIMAL(18,4)) AS temperatura_max,
+    CAST(choveu AS INT) AS choveu,
+    CAST(precipitacao_mm AS DECIMAL(18,4)) AS precipitacao_mm,
+    CAST(humidade_media AS DECIMAL(18,4)) AS humidade_media,
+    CAST(vento_kmh AS DECIMAL(18,4)) AS vento_kmh,
+
+    NULLIF(TRIM(fonte_api), '') AS fonte_api,
+
+    load_date,
+    ingestion_timestamp,
+    source_file
+
+FROM {SOURCE_TABLE}
 """)
 
-print("[INFO] Target table registered successfully")
-
+print("[INFO] Silver table created successfully.")
 
 # ========================================
-# 10. FINAL STATUS
+# 4. OPTIMIZATION
 # ========================================
 
-print(" ")
-print("===========================================")
-print("SILVER PROCESS COMPLETED SUCCESSFULLY")
-print(f"Dataset         : {DATASET}")
-print(f"Source table    : {SOURCE_TABLE}")
-print(f"Target table    : {TARGET_TABLE}")
-print(f"Target path     : {TARGET_PATH}")
-print(f"Source row count: {source_row_count}")
-print(f"Target row count: {silver_row_count}")
-print("===========================================")
+print("[INFO] Running OPTIMIZE...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Optimization completed.")
+
+# ========================================
+# 5. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+final = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("data").alias("distinct_dates"),
+        F.sum(F.when(F.col("data").isNull(), 1).otherwise(0)).alias("null_data"),
+        F.sum(F.when(F.col("cidade").isNull(), 1).otherwise(0)).alias("null_cidade"),
+        F.sum(F.when(F.col("fonte_api").isNull(), 1).otherwise(0)).alias("null_fonte_api"),
+        F.sum(F.when(~F.col("choveu").isin(VALID_CHOVEU_VALUES), 1).otherwise(0)).alias("invalid_choveu"),
+        F.sum(F.when((F.col("humidade_media") < 0) | (F.col("humidade_media") > 100), 1).otherwise(0)).alias("invalid_humidade"),
+        F.sum(F.when(F.col("precipitacao_mm") < 0, 1).otherwise(0)).alias("invalid_precipitacao"),
+        F.sum(F.when(F.col("vento_kmh") < 0, 1).otherwise(0)).alias("invalid_vento"),
+        F.sum(
+            F.when(
+                (F.col("temperatura_min") > F.col("temperatura_media")) |
+                (F.col("temperatura_media") > F.col("temperatura_max")) |
+                (F.col("temperatura_min") > F.col("temperatura_max")),
+                1
+            ).otherwise(0)
+        ).alias("invalid_temperatura_interval"),
+        F.sum(F.when(F.col("cidade") != EXPECTED_CITY, 1).otherwise(0)).alias("invalid_cidade")
+    )
+    .collect()[0]
+)
+
+duplicate_date_records = final["row_count"] - final["distinct_dates"]
+
+print(f"Rows:                         {final['row_count']:,}")
+print(f"Duplicate date records:       {duplicate_date_records:,}")
+print(f"Null data:                    {final['null_data']}")
+print(f"Null cidade:                  {final['null_cidade']}")
+print(f"Null fonte_api:               {final['null_fonte_api']}")
+print(f"Invalid choveu:               {final['invalid_choveu']}")
+print(f"Invalid humidade_media:       {final['invalid_humidade']}")
+print(f"Invalid precipitacao_mm:      {final['invalid_precipitacao']}")
+print(f"Invalid vento_kmh:            {final['invalid_vento']}")
+print(f"Invalid temperatura interval: {final['invalid_temperatura_interval']}")
+print(f"Invalid cidade:               {final['invalid_cidade']}")
+
+if final["row_count"] == 0:
+    raise ValueError("Silver dataset is empty.")
+
+critical_nulls = {
+    "data": final["null_data"],
+    "cidade": final["null_cidade"],
+    "fonte_api": final["null_fonte_api"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+if duplicate_date_records > 0:
+    raise ValueError(f"Duplicate date detected after transformation: {duplicate_date_records}")
+
+if final["invalid_choveu"] > 0:
+    raise ValueError(f"Invalid choveu values detected: {final['invalid_choveu']}")
+
+if final["invalid_humidade"] > 0:
+    raise ValueError(f"Invalid humidade_media values detected: {final['invalid_humidade']}")
+
+if final["invalid_precipitacao"] > 0:
+    raise ValueError(f"Invalid precipitacao_mm values detected: {final['invalid_precipitacao']}")
+
+if final["invalid_vento"] > 0:
+    raise ValueError(f"Invalid vento_kmh values detected: {final['invalid_vento']}")
+
+if final["invalid_temperatura_interval"] > 0:
+    raise ValueError(f"Temperature interval validation failed: {final['invalid_temperatura_interval']}")
+
+if final["invalid_cidade"] > 0:
+    raise ValueError(f"Unexpected cidade values different from {EXPECTED_CITY}: {final['invalid_cidade']}")
+
+print("[INFO] Final validations completed.")
+
+# ========================================
+# 6. FINAL STATUS
+# ========================================
+
+detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
+
+print("=" * 80)
+print("FINAL TABLE DETAIL")
+print("=" * 80)
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
+
+print("=" * 80)
+print("COMPLETED")
+print("=" * 80)

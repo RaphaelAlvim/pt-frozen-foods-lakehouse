@@ -4,13 +4,11 @@
 # DATASET: crm_segmentation
 # ========================================
 
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
-from pyspark.sql.types import StringType
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "bronze"
@@ -29,35 +27,33 @@ TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
 SOURCE_PATH = f"abfss://{BRONZE_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 TARGET_PATH = f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
+CLUSTER_COLUMNS = [
+    "cliente_id",
+    "segmento"
+]
 
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
+REQUIRED_COLUMNS = [
+    "cliente_id",
+    "segmento",
+    "potencial_valor",
+    "cluster_comercial",
+    "load_date",
+    "ingestion_timestamp",
+    "source_file"
+]
+
+print("=" * 80)
+print("STARTING SILVER PROCESSING: crm_segmentation")
+print("=" * 80)
 
 spark.sql(f"USE CATALOG {CATALOG}")
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
 spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
 
-print("Context configured successfully")
-print(f"Catalog: {spark.catalog.currentCatalog()}")
-print(f"Schema: {spark.catalog.currentDatabase()}")
-
+print("[INFO] Context setup completed successfully.")
 
 # ========================================
-# 2. CONFIGURATION SUMMARY
-# ========================================
-
-print(" ")
-print("========== CONFIGURATION SUMMARY ==========")
-print(f"Source table    : {SOURCE_TABLE}")
-print(f"Target table    : {TARGET_TABLE}")
-print(f"Source path     : {SOURCE_PATH}")
-print(f"Target path     : {TARGET_PATH}")
-print("===========================================")
-
-
-# ========================================
-# 3. PRE-CHECKS
+# 1. PRE-CHECKS
 # ========================================
 
 print("[INFO] Checking source table availability...")
@@ -66,171 +62,166 @@ spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
 print("[INFO] Checking source path access...")
 source_items = dbutils.fs.ls(SOURCE_PATH)
 
-print("[INFO] Checking target container access...")
-target_items = dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
-
 if len(source_items) == 0:
-    raise ValueError(f"[ERROR] No files found in source path: {SOURCE_PATH}")
+    raise ValueError(f"No files found in source path: {SOURCE_PATH}")
 
-print(" ")
-print("Pre-checks completed successfully")
-print(f"Source path accessible     : yes ({len(source_items)} items found)")
-print(f"Target container access    : yes ({len(target_items)} items found)")
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
 
+print("[INFO] Pre-checks completed successfully.")
 
 # ========================================
-# 4. READ SOURCE DATA
+# 2. SOURCE VALIDATION
 # ========================================
+
+print("[INFO] Validating source dataset...")
 
 df_source = spark.table(SOURCE_TABLE)
-source_row_count = df_source.count()
 
-print(" ")
-print("Source data loaded successfully")
-print(f"Source table     : {SOURCE_TABLE}")
-print(f"Source row count : {source_row_count}")
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
 
+if missing_columns:
+    raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
 
-# ========================================
-# 5. CLEANING AND STANDARDIZATION
-# ========================================
-
-print(" ")
-print("[INFO] Starting cleaning and standardization...")
-
-df_silver = df_source.select(
-    "cliente_id",
-    "segmento",
-    "potencial_valor",
-    "cluster_comercial",
-    "load_date",
-    "ingestion_timestamp",
-    "source_file"
-)
-
-print("[INFO] Selected relevant columns for Silver layer")
-
-string_columns = [
-    field.name
-    for field in df_silver.schema.fields
-    if isinstance(field.dataType, StringType)
-]
-
-for col_name in string_columns:
-    df_silver = df_silver.withColumn(
-        col_name,
-        F.when(F.trim(F.col(col_name)) == "", None)
-         .otherwise(F.trim(F.col(col_name)))
+source_validation = (
+    df_source
+    .agg(
+        F.count("*").alias("row_count"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id"),
+        F.sum(F.when(F.col("segmento").isNull(), 1).otherwise(0)).alias("null_segmento"),
+        F.sum(F.when(F.col("potencial_valor").isNull(), 1).otherwise(0)).alias("null_potencial_valor"),
+        F.sum(F.when(F.col("cluster_comercial").isNull(), 1).otherwise(0)).alias("null_cluster_comercial")
     )
-
-print("[INFO] Applied base string standardization (trim + empty -> null)")
-
-before_dedup_count = df_silver.count()
-df_silver = df_silver.dropDuplicates()
-after_dedup_count = df_silver.count()
-
-print(f"[INFO] Deduplication applied: {before_dedup_count} -> {after_dedup_count}")
-
-
-# ========================================
-# 6. DATA QUALITY VALIDATION
-# ========================================
-
-silver_row_count = df_silver.count()
-
-print(" ")
-print("[INFO] Data quality validation completed")
-print(f"[INFO] Silver row count : {silver_row_count}")
-
-duplicate_cliente_id_count = (
-    df_silver.groupBy("cliente_id")
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
+    .collect()[0]
 )
 
-print(f"[INFO] Duplicate cliente_id groups found after transformation: {duplicate_cliente_id_count}")
+print(f"Source row count:          {source_validation['row_count']:,}")
+print(f"Null cliente_id:           {source_validation['null_cliente_id']:,}")
+print(f"Null segmento:             {source_validation['null_segmento']:,}")
+print(f"Null potencial_valor:      {source_validation['null_potencial_valor']:,}")
+print(f"Null cluster_comercial:    {source_validation['null_cluster_comercial']:,}")
 
+if source_validation["row_count"] == 0:
+    raise ValueError("Source dataset is empty.")
 
-# ========================================
-# 7. CRITICAL DATA VALIDATION
-# ========================================
+source_null_failures = {
+    "cliente_id": source_validation["null_cliente_id"],
+    "segmento": source_validation["null_segmento"],
+    "potencial_valor": source_validation["null_potencial_valor"],
+    "cluster_comercial": source_validation["null_cluster_comercial"]
+}
 
-print("[INFO] Validating critical business rules...")
+source_null_failures = {column: count for column, count in source_null_failures.items() if count > 0}
 
-null_cliente_id = df_silver.filter(F.col("cliente_id").isNull()).count()
-null_segmento = df_silver.filter(F.col("segmento").isNull()).count()
-null_potencial_valor = df_silver.filter(F.col("potencial_valor").isNull()).count()
-null_cluster_comercial = df_silver.filter(F.col("cluster_comercial").isNull()).count()
+if source_null_failures:
+    raise ValueError(f"Null values detected in source critical columns: {source_null_failures}")
 
-if null_cliente_id > 0:
-    raise ValueError(f"[ERROR] cliente_id contains {null_cliente_id} null values")
-
-if null_segmento > 0:
-    raise ValueError(f"[ERROR] segmento contains {null_segmento} null values")
-
-if null_potencial_valor > 0:
-    raise ValueError(f"[ERROR] potencial_valor contains {null_potencial_valor} null values")
-
-if null_cluster_comercial > 0:
-    raise ValueError(f"[ERROR] cluster_comercial contains {null_cluster_comercial} null values")
-
-if silver_row_count == 0:
-    raise ValueError("[ERROR] Silver dataset is empty after transformations")
-
-print("[INFO] cliente_id validation passed (no nulls)")
-print("[INFO] segmento validation passed (no nulls)")
-print("[INFO] potencial_valor validation passed (no nulls)")
-print("[INFO] cluster_comercial validation passed (no nulls)")
-print("[INFO] Silver dataset is not empty")
-
+print("[INFO] Source validation completed successfully.")
 
 # ========================================
-# 8. WRITE TO DELTA
+# 3. CREATE SILVER TABLE
 # ========================================
 
-print(" ")
-print(f"[INFO] Writing Silver dataset to target path: {TARGET_PATH}")
-
-(
-    df_silver.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-print("[INFO] Silver dataset written successfully")
-
-
-# ========================================
-# 9. REGISTER TABLE
-# ========================================
-
-print(f"[INFO] Registering target table: {TARGET_TABLE}")
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
+print("[INFO] Creating Silver table using CTAS...")
 
 spark.sql(f"""
-CREATE TABLE {TARGET_TABLE}
+CREATE OR REPLACE TABLE {TARGET_TABLE}
 USING DELTA
 LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+SELECT DISTINCT
+    NULLIF(TRIM(cliente_id), '') AS cliente_id,
+    NULLIF(TRIM(segmento), '') AS segmento,
+    NULLIF(TRIM(potencial_valor), '') AS potencial_valor,
+    NULLIF(TRIM(cluster_comercial), '') AS cluster_comercial,
+    load_date,
+    ingestion_timestamp,
+    source_file
+
+FROM {SOURCE_TABLE}
 """)
 
-print("[INFO] Target table registered successfully")
-
+print("[INFO] Silver table created successfully.")
 
 # ========================================
-# 10. FINAL STATUS
+# 4. OPTIMIZATION
 # ========================================
 
-print(" ")
-print("===========================================")
-print("SILVER PROCESS COMPLETED SUCCESSFULLY")
-print(f"Dataset         : {DATASET}")
-print(f"Source table    : {SOURCE_TABLE}")
-print(f"Target table    : {TARGET_TABLE}")
-print(f"Target path     : {TARGET_PATH}")
-print(f"Source row count: {source_row_count}")
-print(f"Target row count: {silver_row_count}")
-print("===========================================")
+print("[INFO] Running OPTIMIZE...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Optimization completed.")
+
+# ========================================
+# 5. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+final = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("cliente_id").alias("distinct_cliente_ids"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id"),
+        F.sum(F.when(F.col("segmento").isNull(), 1).otherwise(0)).alias("null_segmento"),
+        F.sum(F.when(F.col("potencial_valor").isNull(), 1).otherwise(0)).alias("null_potencial_valor"),
+        F.sum(F.when(F.col("cluster_comercial").isNull(), 1).otherwise(0)).alias("null_cluster_comercial")
+    )
+    .collect()[0]
+)
+
+duplicates = final["row_count"] - final["distinct_cliente_ids"]
+
+print(f"Rows:                    {final['row_count']:,}")
+print(f"Duplicate cliente_id:    {duplicates:,}")
+print(f"Null cliente_id:         {final['null_cliente_id']}")
+print(f"Null segmento:           {final['null_segmento']}")
+print(f"Null potencial_valor:    {final['null_potencial_valor']}")
+print(f"Null cluster_comercial:  {final['null_cluster_comercial']}")
+
+if final["row_count"] == 0:
+    raise ValueError("Silver dataset is empty.")
+
+if duplicates > 0:
+    raise ValueError("Duplicate cliente_id detected.")
+
+critical_nulls = {
+    "cliente_id": final["null_cliente_id"],
+    "segmento": final["null_segmento"],
+    "potencial_valor": final["null_potencial_valor"],
+    "cluster_comercial": final["null_cluster_comercial"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+print("[INFO] Final validations completed.")
+
+# ========================================
+# 6. FINAL STATUS
+# ========================================
+
+detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
+
+print("=" * 80)
+print("FINAL TABLE DETAIL")
+print("=" * 80)
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
+
+print("=" * 80)
+print("COMPLETED")
+print("=" * 80)

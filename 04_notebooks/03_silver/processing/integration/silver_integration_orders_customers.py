@@ -4,16 +4,10 @@
 # DATASET: silver_integration_orders_customers
 # ========================================
 
-from pyspark.sql.functions import broadcast, col, lit, row_number, when
-from pyspark.sql.window import Window
-
-print("=" * 80)
-print("STARTING SILVER PROCESSING: silver_integration_orders_customers")
-print("=" * 80)
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
-# Environment, Storage, and Performance Settings
 # ========================================
 
 CATALOG = "ptfrozenfoods_dev"
@@ -39,16 +33,58 @@ STATUS_TABLE = f"{CATALOG}.{SOURCE_SCHEMA}.{STATUS_DATASET}"
 TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
 TARGET_PATH = f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
-CLUSTER_KEYS = "data_pedido, cliente_id"
+CLUSTER_COLUMNS = [
+    "data_pedido",
+    "cliente_id"
+]
 
-# Session-level performance settings
-spark.conf.set("spark.databricks.delta.optimizeWrite.enabled", "true")
-spark.conf.set("spark.databricks.delta.autoCompact.enabled", "true")
+ORDERS_REQUIRED_COLUMNS = [
+    "pedido_id",
+    "cliente_id",
+    "data_pedido",
+    "canal_id",
+    "vendedor_id",
+    "cidade_entrega",
+    "estado_pedido",
+    "prazo_entrega_dias",
+    "observacao_pedido",
+    "sistema_origem",
+    "usuario_ultima_alteracao",
+    "load_date",
+    "ingestion_timestamp",
+    "source_file"
+]
 
-# ========================================
-# 1. CONTEXT SETUP
-# Unity Catalog Configuration and Governance
-# ========================================
+CLIENTS_REQUIRED_COLUMNS = [
+    "cliente_id",
+    "nome_cliente",
+    "tipo_cliente",
+    "nif",
+    "data_registo",
+    "cidade",
+    "distrito",
+    "canal_captacao",
+    "score_atividade",
+    "obs_comercial"
+]
+
+SEGMENTATION_REQUIRED_COLUMNS = [
+    "cliente_id",
+    "segmento",
+    "potencial_valor",
+    "cluster_comercial"
+]
+
+STATUS_REQUIRED_COLUMNS = [
+    "cliente_id",
+    "status_cliente",
+    "data_status",
+    "motivo_status"
+]
+
+print("=" * 80)
+print("STARTING SILVER PROCESSING: silver_integration_orders_customers")
+print("=" * 80)
 
 spark.sql(f"USE CATALOG {CATALOG}")
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
@@ -57,32 +93,7 @@ spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
 print("[INFO] Context setup completed successfully.")
 
 # ========================================
-# 2. CONFIGURATION SUMMARY
-# Execution Parameters and Metadata Overview
-# ========================================
-
-print("=" * 80)
-print("SILVER PROCESSING NOTEBOOK CONFIGURATION")
-print("=" * 80)
-print(f"Catalog:                         {CATALOG}")
-print(f"Source schema:                   {SOURCE_SCHEMA}")
-print(f"Target schema:                   {TARGET_SCHEMA}")
-print(f"Domain:                          {DOMAIN}")
-print(f"Dataset:                         {DATASET}")
-print(f"Orders table:                    {ORDERS_TABLE}")
-print(f"Clients table:                   {CLIENTS_TABLE}")
-print(f"Segmentation table:              {SEGMENTATION_TABLE}")
-print(f"Status table:                    {STATUS_TABLE}")
-print(f"Target table:                    {TARGET_TABLE}")
-print(f"Target path:                     {TARGET_PATH}")
-print(f"Cluster keys:                    {CLUSTER_KEYS}")
-print(f"Optimize write enabled:          {spark.conf.get('spark.databricks.delta.optimizeWrite.enabled')}")
-print(f"Auto compact enabled:            {spark.conf.get('spark.databricks.delta.autoCompact.enabled')}")
-print("=" * 80)
-
-# ========================================
-# 3. PRE-CHECKS
-# Data Availability and Environment Validation
+# 1. PRE-CHECKS
 # ========================================
 
 print("[INFO] Checking source table availability...")
@@ -97,247 +108,334 @@ dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.ne
 print("[INFO] Pre-checks completed successfully.")
 
 # ========================================
-# 4. READ SOURCE DATA
-# Optimized Data Loading from Silver Layer
+# 2. SOURCE VALIDATION
 # ========================================
+
+print("[INFO] Validating source datasets...")
 
 df_orders = spark.table(ORDERS_TABLE)
 df_clients = spark.table(CLIENTS_TABLE)
 df_segmentation = spark.table(SEGMENTATION_TABLE)
 df_status = spark.table(STATUS_TABLE)
 
-orders_count_raw = df_orders.count()
+missing_orders_columns = [c for c in ORDERS_REQUIRED_COLUMNS if c not in df_orders.columns]
+missing_clients_columns = [c for c in CLIENTS_REQUIRED_COLUMNS if c not in df_clients.columns]
+missing_segmentation_columns = [c for c in SEGMENTATION_REQUIRED_COLUMNS if c not in df_segmentation.columns]
+missing_status_columns = [c for c in STATUS_REQUIRED_COLUMNS if c not in df_status.columns]
 
-print("[INFO] Source data loaded successfully.")
-print(f"[INFO] Raw orders row count: {orders_count_raw}")
+missing_columns = {
+    "orders": missing_orders_columns,
+    "clients": missing_clients_columns,
+    "segmentation": missing_segmentation_columns,
+    "status": missing_status_columns
+}
 
-# ========================================
-# 5. DEDUPLICATE ORDERS HEADER
-# Logical Optimization: Deterministic Grain Enforcement
-# ========================================
+missing_columns = {table: cols for table, cols in missing_columns.items() if cols}
 
-df_orders_scored = (
+if missing_columns:
+    raise ValueError(f"Missing required columns in source datasets: {missing_columns}")
+
+orders_validation = (
     df_orders
-    .withColumn(
-        "business_completeness_score",
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("pedido_id").alias("distinct_pedido_ids"),
+        F.sum(F.when(F.col("pedido_id").isNull(), 1).otherwise(0)).alias("null_pedido_id"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id")
+    )
+    .collect()[0]
+)
+
+clients_validation = (
+    df_clients
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("cliente_id").alias("distinct_cliente_ids"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id")
+    )
+    .collect()[0]
+)
+
+segmentation_validation = (
+    df_segmentation
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("cliente_id").alias("distinct_cliente_ids"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id")
+    )
+    .collect()[0]
+)
+
+status_validation = (
+    df_status
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("cliente_id").alias("distinct_cliente_ids"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id")
+    )
+    .collect()[0]
+)
+
+orders_repeated_pedido_id_records = orders_validation["row_count"] - orders_validation["distinct_pedido_ids"]
+
+print(f"Orders row count:                       {orders_validation['row_count']:,}")
+print(f"Orders repeated pedido_id records:      {orders_repeated_pedido_id_records:,}")
+print(f"Orders null pedido_id:                  {orders_validation['null_pedido_id']:,}")
+print(f"Orders null cliente_id:                 {orders_validation['null_cliente_id']:,}")
+
+print(f"Clients row count:                      {clients_validation['row_count']:,}")
+print(f"Clients null cliente_id:                {clients_validation['null_cliente_id']:,}")
+
+print(f"Segmentation row count:                 {segmentation_validation['row_count']:,}")
+print(f"Segmentation null cliente_id:           {segmentation_validation['null_cliente_id']:,}")
+
+print(f"Status row count:                       {status_validation['row_count']:,}")
+print(f"Status null cliente_id:                 {status_validation['null_cliente_id']:,}")
+
+if orders_validation["row_count"] == 0:
+    raise ValueError("Orders source dataset is empty.")
+
+source_null_failures = {
+    "orders.pedido_id": orders_validation["null_pedido_id"],
+    "orders.cliente_id": orders_validation["null_cliente_id"]
+}
+
+source_null_failures = {column: count for column, count in source_null_failures.items() if count > 0}
+
+if source_null_failures:
+    raise ValueError(f"Null values detected in source critical columns: {source_null_failures}")
+
+print("[INFO] Source validation completed successfully.")
+
+# ========================================
+# 3. CREATE SILVER INTEGRATION TABLE
+# ========================================
+
+print("[INFO] Creating Silver integration table using CTAS...")
+
+spark.sql(f"""
+CREATE OR REPLACE TABLE {TARGET_TABLE}
+USING DELTA
+LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+WITH orders_scored AS (
+    SELECT
+        *,
         (
-            when(col("data_pedido").isNotNull(), lit(1)).otherwise(lit(0)) +
-            when(col("cliente_id").isNotNull(), lit(1)).otherwise(lit(0)) +
-            when(col("canal_id").isNotNull(), lit(1)).otherwise(lit(0)) +
-            when(col("vendedor_id").isNotNull(), lit(1)).otherwise(lit(0)) +
-            when(col("cidade_entrega").isNotNull(), lit(1)).otherwise(lit(0)) +
-            when(col("estado_pedido").isNotNull(), lit(1)).otherwise(lit(0)) +
-            when(col("prazo_entrega_dias").isNotNull(), lit(1)).otherwise(lit(0)) +
-            when(col("observacao_pedido").isNotNull(), lit(1)).otherwise(lit(0)) +
-            when(col("sistema_origem").isNotNull(), lit(1)).otherwise(lit(0))
-        )
+            CASE WHEN data_pedido IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN cliente_id IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN canal_id IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN vendedor_id IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN cidade_entrega IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN estado_pedido IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN prazo_entrega_dias IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN observacao_pedido IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN sistema_origem IS NOT NULL THEN 1 ELSE 0 END
+        ) AS business_completeness_score
+    FROM {ORDERS_TABLE}
+),
+
+orders_deduplicated AS (
+    SELECT *
+    FROM (
+        SELECT
+            *,
+            ROW_NUMBER() OVER (
+                PARTITION BY pedido_id
+                ORDER BY
+                    business_completeness_score DESC,
+                    ingestion_timestamp DESC,
+                    source_file DESC,
+                    usuario_ultima_alteracao DESC
+            ) AS row_num
+        FROM orders_scored
     )
+    WHERE row_num = 1
+),
+
+orders_selected AS (
+    SELECT
+        pedido_id,
+        cliente_id,
+        data_pedido,
+        canal_id,
+        vendedor_id,
+        cidade_entrega,
+        estado_pedido,
+        prazo_entrega_dias,
+        observacao_pedido,
+        sistema_origem,
+        usuario_ultima_alteracao,
+        load_date AS order_load_date,
+        ingestion_timestamp AS order_ingestion_timestamp,
+        source_file AS order_source_file
+    FROM orders_deduplicated
+),
+
+clients_selected AS (
+    SELECT
+        cliente_id,
+        nome_cliente,
+        tipo_cliente,
+        nif,
+        data_registo,
+        cidade AS cliente_cidade,
+        distrito,
+        canal_captacao,
+        score_atividade,
+        obs_comercial
+    FROM {CLIENTS_TABLE}
+),
+
+segmentation_selected AS (
+    SELECT
+        cliente_id,
+        segmento,
+        potencial_valor,
+        cluster_comercial
+    FROM {SEGMENTATION_TABLE}
+),
+
+status_selected AS (
+    SELECT
+        cliente_id,
+        status_cliente,
+        data_status,
+        motivo_status
+    FROM {STATUS_TABLE}
 )
 
-orders_window = Window.partitionBy("pedido_id").orderBy(
-    col("business_completeness_score").desc(),
-    col("ingestion_timestamp").desc(),
-    col("source_file").desc(),
-    col("usuario_ultima_alteracao").desc()
-)
+SELECT
+    o.pedido_id,
+    o.cliente_id,
+    o.data_pedido,
+    o.canal_id,
+    o.vendedor_id,
+    o.cidade_entrega,
+    o.estado_pedido,
+    o.prazo_entrega_dias,
+    o.observacao_pedido,
+    o.sistema_origem,
+    o.usuario_ultima_alteracao,
+    o.order_load_date,
+    o.order_ingestion_timestamp,
+    o.order_source_file,
 
-df_orders_dedup = (
-    df_orders_scored
-    .withColumn("row_num", row_number().over(orders_window))
-    .filter(col("row_num") == 1)
-    .drop("business_completeness_score", "row_num")
-)
+    c.nome_cliente,
+    c.tipo_cliente,
+    c.nif,
+    c.data_registo,
+    c.cliente_cidade,
+    c.distrito,
+    c.canal_captacao,
+    c.score_atividade,
+    c.obs_comercial,
 
-orders_count_before_dedup = df_orders.count()
-orders_count_after_dedup = df_orders_dedup.count()
-duplicate_orders_removed = orders_count_before_dedup - orders_count_after_dedup
+    s.segmento,
+    s.potencial_valor,
+    s.cluster_comercial,
 
-print("[INFO] Orders header deduplicated successfully.")
-print(f"[INFO] Orders count before deduplication: {orders_count_before_dedup}")
-print(f"[INFO] Orders count after deduplication:  {orders_count_after_dedup}")
-print(f"[INFO] Duplicate orders removed:          {duplicate_orders_removed}")
+    st.status_cliente,
+    st.data_status,
+    st.motivo_status
+
+FROM orders_selected o
+LEFT JOIN clients_selected c
+    ON o.cliente_id = c.cliente_id
+LEFT JOIN segmentation_selected s
+    ON o.cliente_id = s.cliente_id
+LEFT JOIN status_selected st
+    ON o.cliente_id = st.cliente_id
+""")
+
+print("[INFO] Silver integration table created successfully.")
 
 # ========================================
-# 6. SELECT AND PREPARE COLUMNS
-# Logical Optimization: Column Pruning and Metadata Standardization
+# 4. OPTIMIZATION
 # ========================================
 
-df_orders_sel = df_orders_dedup.select(
-    col("pedido_id"),
-    col("cliente_id"),
-    col("data_pedido"),
-    col("canal_id"),
-    col("vendedor_id"),
-    col("cidade_entrega"),
-    col("estado_pedido"),
-    col("prazo_entrega_dias"),
-    col("observacao_pedido"),
-    col("sistema_origem"),
-    col("usuario_ultima_alteracao"),
-    col("load_date").alias("order_load_date"),
-    col("ingestion_timestamp").alias("order_ingestion_timestamp"),
-    col("source_file").alias("order_source_file")
-)
+print("[INFO] Running OPTIMIZE...")
 
-df_clients_sel = df_clients.select(
-    col("cliente_id"),
-    col("nome_cliente"),
-    col("tipo_cliente"),
-    col("nif"),
-    col("data_registo"),
-    col("cidade").alias("cliente_cidade"),
-    col("distrito"),
-    col("canal_captacao"),
-    col("score_atividade"),
-    col("obs_comercial")
-)
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
 
-df_segmentation_sel = df_segmentation.select(
-    col("cliente_id"),
-    col("segmento"),
-    col("potencial_valor"),
-    col("cluster_comercial")
-)
-
-df_status_sel = df_status.select(
-    col("cliente_id"),
-    col("status_cliente"),
-    col("data_status"),
-    col("motivo_status")
-)
-
-print("[INFO] Source columns selected and standardized successfully.")
+print("[INFO] Optimization completed.")
 
 # ========================================
-# 7. JOIN AND BUILD INTEGRATED DATASET
-# Logical Optimization: Broadcast Joins and Join Order Control
+# 5. FINAL VALIDATIONS
 # ========================================
 
-df_final = (
-    df_orders_sel.alias("o")
-    .join(
-        broadcast(df_clients_sel).alias("c"),
-        on="cliente_id",
-        how="left"
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+orders_expected = (
+    df_orders
+    .select("pedido_id")
+    .distinct()
+    .count()
+)
+
+final = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("pedido_id").alias("distinct_pedido_ids"),
+        F.sum(F.when(F.col("pedido_id").isNull(), 1).otherwise(0)).alias("null_pedido_id"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id")
     )
-    .join(
-        broadcast(df_segmentation_sel).alias("s"),
-        on="cliente_id",
-        how="left"
-    )
-    .join(
-        broadcast(df_status_sel).alias("st"),
-        on="cliente_id",
-        how="left"
-    )
+    .collect()[0]
 )
 
-print("[INFO] Integrated dataset built successfully.")
+duplicate_pedido_ids = final["row_count"] - final["distinct_pedido_ids"]
 
-# ========================================
-# 8. VALIDATE OUTPUT
-# Data Quality Assurance and Grain Validation
-# ========================================
+print(f"Expected row count after deduplication: {orders_expected:,}")
+print(f"Output row count:                       {final['row_count']:,}")
+print(f"Duplicate pedido_id records:            {duplicate_pedido_ids:,}")
+print(f"Null pedido_id:                         {final['null_pedido_id']}")
+print(f"Null cliente_id:                        {final['null_cliente_id']}")
 
-expected_orders_count = df_orders_dedup.count()
-final_count = df_final.count()
+if final["row_count"] == 0:
+    raise ValueError("Silver integration dataset is empty.")
 
-if final_count != expected_orders_count:
+if final["row_count"] != orders_expected:
     raise ValueError(
-        f"Row count mismatch detected. Expected: {expected_orders_count}, Found: {final_count}"
+        f"Row count mismatch detected. Expected: {orders_expected}, Found: {final['row_count']}"
     )
 
-duplicate_orders = (
-    df_final.groupBy("pedido_id")
-    .count()
-    .filter(col("count") > 1)
-    .count()
-)
+if duplicate_pedido_ids > 0:
+    raise ValueError(f"Duplicate pedido_id detected in output dataset: {duplicate_pedido_ids}")
 
-if duplicate_orders > 0:
-    raise ValueError(f"Duplicate pedido_id detected in output dataset: {duplicate_orders}")
+critical_nulls = {
+    "pedido_id": final["null_pedido_id"],
+    "cliente_id": final["null_cliente_id"]
+}
 
-null_cliente_id = df_final.filter(col("cliente_id").isNull()).count()
-if null_cliente_id > 0:
-    raise ValueError(f"Null cliente_id detected in output dataset: {null_cliente_id}")
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
 
-null_pedido_id = df_final.filter(col("pedido_id").isNull()).count()
-if null_pedido_id > 0:
-    raise ValueError(f"Null pedido_id detected in output dataset: {null_pedido_id}")
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
 
-print("[INFO] Output validation completed successfully.")
-print(f"[INFO] Expected row count after deduplication: {expected_orders_count}")
-print(f"[INFO] Output row count:                        {final_count}")
-print(f"[INFO] Duplicate pedido_id count:               {duplicate_orders}")
-print(f"[INFO] Null cliente_id count:                   {null_cliente_id}")
-print(f"[INFO] Null pedido_id count:                    {null_pedido_id}")
+print("[INFO] Final validations completed.")
 
 # ========================================
-# 9. WRITE DELTA TABLE
-# Physical Optimization: External Delta Table
+# 6. FINAL STATUS
 # ========================================
 
-(
-    df_final.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .option("path", TARGET_PATH)
-    .saveAsTable(TARGET_TABLE)
-)
-
-print("[INFO] Delta table written successfully.")
-
-# ========================================
-# 10. APPLY TABLE PERFORMANCE SETTINGS
-# Physical Optimization: Auto Optimize
-# ========================================
-
-spark.sql(f"""
-ALTER TABLE {TARGET_TABLE}
-SET TBLPROPERTIES (
-  delta.autoOptimize.optimizeWrite = true,
-  delta.autoOptimize.autoCompact = true
-)
-""")
-
-print("[INFO] Auto Optimize table properties applied successfully.")
-
-# ========================================
-# 11. APPLY LIQUID CLUSTERING
-# Physical Optimization: Modern Delta Lake Layout Strategy
-# ========================================
-
-spark.sql(f"""
-ALTER TABLE {TARGET_TABLE}
-CLUSTER BY ({CLUSTER_KEYS})
-""")
-
-print("[INFO] Liquid clustering applied successfully.")
-
-# ========================================
-# 12. FINAL STATUS
-# Operational Validation and Table Inspection
-# ========================================
+detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
 
 print("=" * 80)
 print("FINAL TABLE DETAIL")
 print("=" * 80)
-
-final_detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0]
-
-print(f"Format:              {final_detail['format']}")
-print(f"Table name:          {final_detail['name']}")
-print(f"Location:            {final_detail['location']}")
-print(f"Created at:          {final_detail['createdAt']}")
-print(f"Last modified:       {final_detail['lastModified']}")
-print(f"Partition columns:   {final_detail['partitionColumns']}")
-print(f"Clustering columns:  {final_detail['clusteringColumns']}")
-print(f"Number of files:     {final_detail['numFiles']}")
-print(f"Size in bytes:       {final_detail['sizeInBytes']}")
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
 
 print("=" * 80)
-print("SILVER PROCESSING COMPLETED SUCCESSFULLY")
+print("COMPLETED")
 print("=" * 80)
-print(f"Target table: {TARGET_TABLE}")
-print(f"Target path:  {TARGET_PATH}")

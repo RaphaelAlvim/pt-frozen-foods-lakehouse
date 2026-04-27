@@ -4,13 +4,11 @@
 # DATASET: erp_orders
 # ========================================
 
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
-from pyspark.sql.types import StringType
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "bronze"
@@ -29,81 +27,13 @@ TARGET_TABLE = f"{CATALOG}.{TARGET_SCHEMA}.{DATASET}"
 SOURCE_PATH = f"abfss://{BRONZE_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 TARGET_PATH = f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
 
-# Key columns used only for duplicate monitoring.
-# Use a list even when there is only one key column.
-DUPLICATE_KEY_COLUMNS = ["pedido_id"]
+CLUSTER_COLUMNS = [
+    "data_pedido",
+    "cliente_id",
+    "canal_id"
+]
 
-
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
-
-spark.sql(f"USE CATALOG {CATALOG}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
-spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
-
-print("Context configured successfully")
-print(f"Catalog: {spark.catalog.currentCatalog()}")
-print(f"Schema: {spark.catalog.currentDatabase()}")
-
-
-# ========================================
-# 2. CONFIGURATION SUMMARY
-# ========================================
-
-print(" ")
-print("========== CONFIGURATION SUMMARY ==========")
-print(f"Source table    : {SOURCE_TABLE}")
-print(f"Target table    : {TARGET_TABLE}")
-print(f"Source path     : {SOURCE_PATH}")
-print(f"Target path     : {TARGET_PATH}")
-print(f"Duplicate keys  : {DUPLICATE_KEY_COLUMNS}")
-print("===========================================")
-
-
-# ========================================
-# 3. PRE-CHECKS
-# ========================================
-
-print("[INFO] Checking source table availability...")
-spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
-
-print("[INFO] Checking source path access...")
-source_items = dbutils.fs.ls(SOURCE_PATH)
-
-print("[INFO] Checking target container access...")
-target_items = dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
-
-if len(source_items) == 0:
-    raise ValueError(f"[ERROR] No files found in source path: {SOURCE_PATH}")
-
-print(" ")
-print("Pre-checks completed successfully")
-print(f"Source path accessible     : yes ({len(source_items)} items found)")
-print(f"Target container access    : yes ({len(target_items)} items found)")
-
-
-# ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_source = spark.table(SOURCE_TABLE)
-source_row_count = df_source.count()
-
-print(" ")
-print("Source data loaded successfully")
-print(f"Source table     : {SOURCE_TABLE}")
-print(f"Source row count : {source_row_count}")
-
-
-# ========================================
-# 5. CLEANING AND STANDARDIZATION
-# ========================================
-
-print(" ")
-print("[INFO] Starting cleaning and standardization...")
-
-df_silver = df_source.select(
+REQUIRED_COLUMNS = [
     "pedido_id",
     "data_pedido",
     "cliente_id",
@@ -118,153 +48,210 @@ df_silver = df_source.select(
     "load_date",
     "ingestion_timestamp",
     "source_file"
-)
-
-print("[INFO] Selected relevant columns for Silver layer")
-
-string_columns = [
-    field.name
-    for field in df_silver.schema.fields
-    if isinstance(field.dataType, StringType)
 ]
 
-for col_name in string_columns:
-    df_silver = df_silver.withColumn(
-        col_name,
-        F.when(F.trim(F.col(col_name)) == "", None)
-         .otherwise(F.trim(F.col(col_name)))
+print("=" * 80)
+print("STARTING SILVER PROCESSING: erp_orders")
+print("=" * 80)
+
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
+spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
+
+print("[INFO] Context setup completed successfully.")
+
+# ========================================
+# 1. PRE-CHECKS
+# ========================================
+
+print("[INFO] Checking source table availability...")
+spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
+
+print("[INFO] Checking source path access...")
+source_items = dbutils.fs.ls(SOURCE_PATH)
+
+if len(source_items) == 0:
+    raise ValueError(f"No files found in source path: {SOURCE_PATH}")
+
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print("[INFO] Pre-checks completed successfully.")
+
+# ========================================
+# 2. SOURCE VALIDATION
+# ========================================
+
+print("[INFO] Validating source dataset...")
+
+df_source = spark.table(SOURCE_TABLE)
+
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
+
+if missing_columns:
+    raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
+
+source_validation = (
+    df_source
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("pedido_id").alias("distinct_pedido_ids"),
+        F.sum(F.when(F.col("pedido_id").isNull(), 1).otherwise(0)).alias("null_pedido_id"),
+        F.sum(F.when(F.col("data_pedido").isNull(), 1).otherwise(0)).alias("null_data_pedido"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id"),
+        F.sum(F.when(F.col("canal_id").isNull(), 1).otherwise(0)).alias("null_canal_id"),
+        F.sum(F.when(F.col("estado_pedido").isNull(), 1).otherwise(0)).alias("null_estado_pedido")
     )
-
-print("[INFO] Applied base string standardization (trim + empty -> null)")
-
-df_silver = df_silver.withColumn(
-    "data_pedido",
-    F.coalesce(
-        F.to_date("data_pedido", "yyyy-MM-dd"),
-        F.to_date("data_pedido", "dd/MM/yyyy"),
-        F.to_date("data_pedido", "dd-MM-yyyy"),
-        F.to_date("data_pedido", "yyyy/MM/dd")
-    )
+    .collect()[0]
 )
 
-print("[INFO] Converted data_pedido to date using multiple input formats")
+source_duplicate_pedido_ids = source_validation["row_count"] - source_validation["distinct_pedido_ids"]
 
-before_dedup_count = df_silver.count()
+print(f"Source row count:              {source_validation['row_count']:,}")
+print(f"Repeated pedido_id records:     {source_duplicate_pedido_ids:,}")
+print(f"Null pedido_id:                {source_validation['null_pedido_id']:,}")
+print(f"Null data_pedido:              {source_validation['null_data_pedido']:,}")
+print(f"Null cliente_id:               {source_validation['null_cliente_id']:,}")
+print(f"Null canal_id:                 {source_validation['null_canal_id']:,}")
+print(f"Null estado_pedido:            {source_validation['null_estado_pedido']:,}")
 
-# Remove only exact duplicate rows.
-# Do NOT deduplicate by pedido_id, because repeated pedido_id values may represent
-# different business versions of the same order and not only technical duplication.
-df_silver = df_silver.dropDuplicates()
+if source_validation["row_count"] == 0:
+    raise ValueError("Source dataset is empty.")
 
-after_dedup_count = df_silver.count()
+source_null_failures = {
+    "pedido_id": source_validation["null_pedido_id"],
+    "data_pedido": source_validation["null_data_pedido"],
+    "cliente_id": source_validation["null_cliente_id"],
+    "canal_id": source_validation["null_canal_id"],
+    "estado_pedido": source_validation["null_estado_pedido"]
+}
 
-print(f"[INFO] Exact-row deduplication applied: {before_dedup_count} -> {after_dedup_count}")
+source_null_failures = {column: count for column, count in source_null_failures.items() if count > 0}
 
+if source_null_failures:
+    raise ValueError(f"Null values detected in source critical columns: {source_null_failures}")
 
-# ========================================
-# 6. DATA QUALITY VALIDATION
-# ========================================
-
-silver_row_count = df_silver.count()
-
-print(" ")
-print("[INFO] Data quality validation completed")
-print(f"[INFO] Silver row count : {silver_row_count}")
-
-duplicate_key_count_after = (
-    df_silver.groupBy(*DUPLICATE_KEY_COLUMNS)
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
-)
-
-print(f"[INFO] Remaining duplicate key groups after exact-row deduplication: {duplicate_key_count_after}")
-
+print("[INFO] Source validation completed successfully.")
 
 # ========================================
-# 7. CRITICAL DATA VALIDATION
+# 3. CREATE SILVER TABLE
 # ========================================
 
-print("[INFO] Validating critical business rules...")
-
-null_pedido_id = df_silver.filter(F.col("pedido_id").isNull()).count()
-null_data_pedido = df_silver.filter(F.col("data_pedido").isNull()).count()
-null_cliente_id = df_silver.filter(F.col("cliente_id").isNull()).count()
-null_canal_id = df_silver.filter(F.col("canal_id").isNull()).count()
-null_estado_pedido = df_silver.filter(F.col("estado_pedido").isNull()).count()
-
-if null_pedido_id > 0:
-    raise ValueError(f"[ERROR] pedido_id contains {null_pedido_id} null values")
-
-if null_data_pedido > 0:
-    raise ValueError(f"[ERROR] data_pedido contains {null_data_pedido} null values after parsing")
-
-if null_cliente_id > 0:
-    raise ValueError(f"[ERROR] cliente_id contains {null_cliente_id} null values")
-
-if null_canal_id > 0:
-    raise ValueError(f"[ERROR] canal_id contains {null_canal_id} null values")
-
-if null_estado_pedido > 0:
-    raise ValueError(f"[ERROR] estado_pedido contains {null_estado_pedido} null values")
-
-if silver_row_count == 0:
-    raise ValueError("[ERROR] Silver dataset is empty after transformations")
-
-print("[INFO] pedido_id validation passed (no nulls)")
-print("[INFO] data_pedido validation passed (no nulls)")
-print("[INFO] cliente_id validation passed (no nulls)")
-print("[INFO] canal_id validation passed (no nulls)")
-print("[INFO] estado_pedido validation passed (no nulls)")
-print("[INFO] Silver dataset is not empty")
-
-
-# ========================================
-# 8. WRITE TO DELTA
-# ========================================
-
-print(" ")
-print(f"[INFO] Writing Silver dataset to target path: {TARGET_PATH}")
-
-(
-    df_silver.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-print("[INFO] Silver dataset written successfully")
-
-
-# ========================================
-# 9. REGISTER TABLE
-# ========================================
-
-print(f"[INFO] Registering target table: {TARGET_TABLE}")
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
+print("[INFO] Creating Silver table using CTAS...")
 
 spark.sql(f"""
-CREATE TABLE {TARGET_TABLE}
+CREATE OR REPLACE TABLE {TARGET_TABLE}
 USING DELTA
 LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+SELECT DISTINCT
+    NULLIF(TRIM(pedido_id), '') AS pedido_id,
+
+    COALESCE(
+        TO_DATE(data_pedido, 'yyyy-MM-dd'),
+        TO_DATE(data_pedido, 'dd/MM/yyyy'),
+        TO_DATE(data_pedido, 'dd-MM-yyyy'),
+        TO_DATE(data_pedido, 'yyyy/MM/dd')
+    ) AS data_pedido,
+
+    NULLIF(TRIM(cliente_id), '') AS cliente_id,
+    NULLIF(TRIM(canal_id), '') AS canal_id,
+    NULLIF(TRIM(vendedor_id), '') AS vendedor_id,
+    NULLIF(TRIM(cidade_entrega), '') AS cidade_entrega,
+    NULLIF(TRIM(estado_pedido), '') AS estado_pedido,
+    CAST(prazo_entrega_dias AS INT) AS prazo_entrega_dias,
+    NULLIF(TRIM(observacao_pedido), '') AS observacao_pedido,
+    NULLIF(TRIM(sistema_origem), '') AS sistema_origem,
+    NULLIF(TRIM(usuario_ultima_alteracao), '') AS usuario_ultima_alteracao,
+
+    load_date,
+    ingestion_timestamp,
+    source_file
+
+FROM {SOURCE_TABLE}
 """)
 
-print("[INFO] Target table registered successfully")
-
+print("[INFO] Silver table created successfully.")
 
 # ========================================
-# 10. FINAL STATUS
+# 4. OPTIMIZATION
 # ========================================
 
-print(" ")
-print("===========================================")
-print("SILVER PROCESS COMPLETED SUCCESSFULLY")
-print(f"Dataset         : {DATASET}")
-print(f"Source table    : {SOURCE_TABLE}")
-print(f"Target table    : {TARGET_TABLE}")
-print(f"Target path     : {TARGET_PATH}")
-print(f"Source row count: {source_row_count}")
-print(f"Target row count: {silver_row_count}")
-print("===========================================")
+print("[INFO] Running OPTIMIZE...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Optimization completed.")
+
+# ========================================
+# 5. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+final = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("pedido_id").alias("distinct_pedido_ids"),
+        F.sum(F.when(F.col("pedido_id").isNull(), 1).otherwise(0)).alias("null_pedido_id"),
+        F.sum(F.when(F.col("data_pedido").isNull(), 1).otherwise(0)).alias("null_data_pedido"),
+        F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id"),
+        F.sum(F.when(F.col("canal_id").isNull(), 1).otherwise(0)).alias("null_canal_id"),
+        F.sum(F.when(F.col("estado_pedido").isNull(), 1).otherwise(0)).alias("null_estado_pedido")
+    )
+    .collect()[0]
+)
+
+repeated_pedido_id_records = final["row_count"] - final["distinct_pedido_ids"]
+
+print(f"Rows:                         {final['row_count']:,}")
+print(f"Repeated pedido_id records:   {repeated_pedido_id_records:,}")
+print(f"Null pedido_id:               {final['null_pedido_id']}")
+print(f"Null data_pedido:             {final['null_data_pedido']}")
+print(f"Null cliente_id:              {final['null_cliente_id']}")
+print(f"Null canal_id:                {final['null_canal_id']}")
+print(f"Null estado_pedido:           {final['null_estado_pedido']}")
+
+if final["row_count"] == 0:
+    raise ValueError("Silver dataset is empty.")
+
+critical_nulls = {
+    "pedido_id": final["null_pedido_id"],
+    "data_pedido": final["null_data_pedido"],
+    "cliente_id": final["null_cliente_id"],
+    "canal_id": final["null_canal_id"],
+    "estado_pedido": final["null_estado_pedido"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+print("[INFO] Final validations completed.")
+
+# ========================================
+# 6. FINAL STATUS
+# ========================================
+
+detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
+
+print("=" * 80)
+print("FINAL TABLE DETAIL")
+print("=" * 80)
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
+
+print("=" * 80)
+print("COMPLETED")
+print("=" * 80)

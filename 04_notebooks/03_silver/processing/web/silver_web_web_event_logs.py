@@ -4,14 +4,11 @@
 # DATASET: web_event_logs
 # ========================================
 
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
-from pyspark.sql.types import StringType
-from pyspark.sql.window import Window
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "bronze"
@@ -35,80 +32,13 @@ VALID_DISPOSITIVO_VALUES = ["Desktop", "Mobile", "Tablet"]
 VALID_ORIGEM_TRAFEGO_VALUES = ["Orgânico", "Anúncio", "Direto", "Email", "Social"]
 VALID_USER_AGENT_FAMILY_VALUES = ["Chrome", "Edge", "Firefox", "Safari"]
 
+CLUSTER_COLUMNS = [
+    "data_hora",
+    "tipo_evento",
+    "cliente_id"
+]
 
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
-
-spark.sql(f"USE CATALOG {CATALOG}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
-spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
-
-print("Context configured successfully")
-print(f"Catalog: {spark.catalog.currentCatalog()}")
-print(f"Schema: {spark.catalog.currentDatabase()}")
-
-
-# ========================================
-# 2. CONFIGURATION SUMMARY
-# ========================================
-
-print(" ")
-print("========== CONFIGURATION SUMMARY ==========")
-print(f"Source table      : {SOURCE_TABLE}")
-print(f"Target table      : {TARGET_TABLE}")
-print(f"Source path       : {SOURCE_PATH}")
-print(f"Target path       : {TARGET_PATH}")
-print(f"Valid event types : {VALID_TIPO_EVENTO_VALUES}")
-print(f"Valid devices     : {VALID_DISPOSITIVO_VALUES}")
-print(f"Valid traffic src : {VALID_ORIGEM_TRAFEGO_VALUES}")
-print(f"Valid user agents : {VALID_USER_AGENT_FAMILY_VALUES}")
-print("===========================================")
-
-
-# ========================================
-# 3. PRE-CHECKS
-# ========================================
-
-print("[INFO] Checking source table availability...")
-spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
-
-print("[INFO] Checking source path access...")
-source_items = dbutils.fs.ls(SOURCE_PATH)
-
-print("[INFO] Checking target container access...")
-target_items = dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
-
-if len(source_items) == 0:
-    raise ValueError(f"[ERROR] No files found in source path: {SOURCE_PATH}")
-
-print(" ")
-print("Pre-checks completed successfully")
-print(f"Source path accessible     : yes ({len(source_items)} items found)")
-print(f"Target container access    : yes ({len(target_items)} items found)")
-
-
-# ========================================
-# 4. READ SOURCE DATA
-# ========================================
-
-df_source = spark.table(SOURCE_TABLE)
-source_row_count = df_source.count()
-
-print(" ")
-print("Source data loaded successfully")
-print(f"Source table     : {SOURCE_TABLE}")
-print(f"Source row count : {source_row_count}")
-
-
-# ========================================
-# 5. CLEANING AND STANDARDIZATION
-# ========================================
-
-print(" ")
-print("[INFO] Starting cleaning and standardization...")
-
-df_silver = df_source.select(
+REQUIRED_COLUMNS = [
     "evento_id",
     "data_hora",
     "sessao_id",
@@ -124,245 +54,314 @@ df_silver = df_source.select(
     "load_date",
     "ingestion_timestamp",
     "source_file"
-)
-
-print("[INFO] Selected relevant columns for Silver layer")
-
-string_columns = [
-    field.name
-    for field in df_silver.schema.fields
-    if isinstance(field.dataType, StringType)
 ]
 
-for col_name in string_columns:
-    df_silver = df_silver.withColumn(
-        col_name,
-        F.when(F.trim(F.col(col_name)) == "", None)
-         .otherwise(F.trim(F.col(col_name)))
+print("=" * 80)
+print("STARTING SILVER PROCESSING: web_event_logs")
+print("=" * 80)
+
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
+spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
+
+print("[INFO] Context setup completed successfully.")
+
+# ========================================
+# 1. PRE-CHECKS
+# ========================================
+
+print("[INFO] Checking source table availability...")
+spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
+
+print("[INFO] Checking source path access...")
+source_items = dbutils.fs.ls(SOURCE_PATH)
+
+if len(source_items) == 0:
+    raise ValueError(f"No files found in source path: {SOURCE_PATH}")
+
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print("[INFO] Pre-checks completed successfully.")
+
+# ========================================
+# 2. SOURCE VALIDATION
+# ========================================
+
+print("[INFO] Validating source dataset...")
+
+df_source = spark.table(SOURCE_TABLE)
+
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
+
+if missing_columns:
+    raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
+
+source_validation = (
+    df_source
+    .agg(
+        F.count("*").alias("row_count"),
+        F.sum(F.when(F.col("evento_id").isNull(), 1).otherwise(0)).alias("null_evento_id"),
+        F.sum(F.when(F.col("data_hora").isNull(), 1).otherwise(0)).alias("null_data_hora"),
+        F.sum(F.when(F.col("sessao_id").isNull(), 1).otherwise(0)).alias("null_sessao_id"),
+        F.sum(F.when(F.col("tipo_evento").isNull(), 1).otherwise(0)).alias("null_tipo_evento"),
+        F.sum(F.when(F.col("dispositivo").isNull(), 1).otherwise(0)).alias("null_dispositivo"),
+        F.sum(F.when(F.col("origem_trafego").isNull(), 1).otherwise(0)).alias("null_origem_trafego"),
+        F.sum(F.when(F.col("user_agent_family").isNull(), 1).otherwise(0)).alias("null_user_agent_family")
     )
-
-print("[INFO] Applied base string standardization (trim + empty -> null)")
-
-
-# ========================================
-# 5.1 BUSINESS-AWARE DEDUPLICATION
-# ========================================
-
-print("[INFO] Applying business-aware deduplication by evento_id...")
-
-completeness_score = (
-    F.when(F.col("cliente_id").isNotNull(), 1).otherwise(0) +
-    F.when(F.col("visitante_id").isNotNull(), 1).otherwise(0) +
-    F.when(F.col("produto_id").isNotNull(), 1).otherwise(0) +
-    F.when(F.col("valor_busca").isNotNull(), 1).otherwise(0) +
-    F.when(F.col("user_agent_family").isNotNull(), 1).otherwise(0) +
-    F.when(F.col("tracking_batch_id").isNotNull(), 1).otherwise(0)
+    .collect()[0]
 )
 
-window_evento = Window.partitionBy("evento_id").orderBy(
-    F.col("_completeness_score").desc(),
-    F.col("ingestion_timestamp").desc(),
-    F.col("tracking_batch_id").desc_nulls_last()
-)
+print(f"Source row count:              {source_validation['row_count']:,}")
+print(f"Null evento_id:                {source_validation['null_evento_id']:,}")
+print(f"Null data_hora:                {source_validation['null_data_hora']:,}")
+print(f"Null sessao_id:                {source_validation['null_sessao_id']:,}")
+print(f"Null tipo_evento:              {source_validation['null_tipo_evento']:,}")
+print(f"Null dispositivo:              {source_validation['null_dispositivo']:,}")
+print(f"Null origem_trafego:           {source_validation['null_origem_trafego']:,}")
+print(f"Null user_agent_family:        {source_validation['null_user_agent_family']:,}")
 
-before_dedup_count = df_silver.count()
+if source_validation["row_count"] == 0:
+    raise ValueError("Source dataset is empty.")
 
-df_silver = (
-    df_silver
-    .withColumn("_completeness_score", completeness_score)
-    .withColumn("_rn", F.row_number().over(window_evento))
-    .filter(F.col("_rn") == 1)
-    .drop("_completeness_score", "_rn")
-)
+source_null_failures = {
+    "evento_id": source_validation["null_evento_id"],
+    "data_hora": source_validation["null_data_hora"],
+    "sessao_id": source_validation["null_sessao_id"],
+    "tipo_evento": source_validation["null_tipo_evento"],
+    "dispositivo": source_validation["null_dispositivo"],
+    "origem_trafego": source_validation["null_origem_trafego"],
+    "user_agent_family": source_validation["null_user_agent_family"]
+}
 
-after_dedup_count = df_silver.count()
+source_null_failures = {column: count for column, count in source_null_failures.items() if count > 0}
 
-print(f"[INFO] Business-aware deduplication applied: {before_dedup_count} -> {after_dedup_count}")
+if source_null_failures:
+    raise ValueError(f"Null values detected in source critical columns: {source_null_failures}")
 
-
-# ========================================
-# 6. DATA QUALITY VALIDATION
-# ========================================
-
-silver_row_count = df_silver.count()
-
-print(" ")
-print("[INFO] Data quality validation completed")
-print(f"[INFO] Silver row count : {silver_row_count}")
-
-duplicate_evento_id_count = (
-    df_silver.groupBy("evento_id")
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
-)
-
-print(f"[INFO] Duplicate evento_id groups found after transformation: {duplicate_evento_id_count}")
-
+print("[INFO] Source validation completed successfully.")
 
 # ========================================
-# 7. CRITICAL BUSINESS VALIDATION
+# 3. CREATE SILVER TABLE
 # ========================================
 
-print("[INFO] Validating business rules...")
-
-null_evento_id = df_silver.filter(F.col("evento_id").isNull()).count()
-null_data_hora = df_silver.filter(F.col("data_hora").isNull()).count()
-null_sessao_id = df_silver.filter(F.col("sessao_id").isNull()).count()
-null_tipo_evento = df_silver.filter(F.col("tipo_evento").isNull()).count()
-null_dispositivo = df_silver.filter(F.col("dispositivo").isNull()).count()
-null_origem_trafego = df_silver.filter(F.col("origem_trafego").isNull()).count()
-null_user_agent_family = df_silver.filter(F.col("user_agent_family").isNull()).count()
-
-invalid_tipo_evento_count = df_silver.filter(
-    ~F.col("tipo_evento").isin(VALID_TIPO_EVENTO_VALUES)
-).count()
-
-invalid_dispositivo_count = df_silver.filter(
-    ~F.col("dispositivo").isin(VALID_DISPOSITIVO_VALUES)
-).count()
-
-invalid_origem_trafego_count = df_silver.filter(
-    ~F.col("origem_trafego").isin(VALID_ORIGEM_TRAFEGO_VALUES)
-).count()
-
-invalid_user_agent_family_count = df_silver.filter(
-    ~F.col("user_agent_family").isin(VALID_USER_AGENT_FAMILY_VALUES)
-).count()
-
-invalid_search_logic_count = df_silver.filter(
-    (F.col("tipo_evento") == "search") &
-    F.col("valor_busca").isNull()
-).count()
-
-invalid_non_search_logic_count = df_silver.filter(
-    (F.col("tipo_evento") != "search") &
-    F.col("valor_busca").isNotNull()
-).count()
-
-invalid_identity_logic_count = df_silver.filter(
-    F.col("cliente_id").isNull() &
-    F.col("visitante_id").isNull()
-).count()
-
-invalid_evento_id_count = df_silver.filter(
-    F.col("evento_id") <= 0
-).count()
-
-if null_evento_id > 0:
-    raise ValueError(f"[ERROR] evento_id contains {null_evento_id} null values")
-
-if null_data_hora > 0:
-    raise ValueError(f"[ERROR] data_hora contains {null_data_hora} null values")
-
-if null_sessao_id > 0:
-    raise ValueError(f"[ERROR] sessao_id contains {null_sessao_id} null values")
-
-if null_tipo_evento > 0:
-    raise ValueError(f"[ERROR] tipo_evento contains {null_tipo_evento} null values")
-
-if null_dispositivo > 0:
-    raise ValueError(f"[ERROR] dispositivo contains {null_dispositivo} null values")
-
-if null_origem_trafego > 0:
-    raise ValueError(f"[ERROR] origem_trafego contains {null_origem_trafego} null values")
-
-if null_user_agent_family > 0:
-    raise ValueError(f"[ERROR] user_agent_family contains {null_user_agent_family} null values")
-
-if duplicate_evento_id_count > 0:
-    raise ValueError(f"[ERROR] evento_id contains {duplicate_evento_id_count} duplicate groups after transformation")
-
-if invalid_tipo_evento_count > 0:
-    raise ValueError(f"[ERROR] tipo_evento contains {invalid_tipo_evento_count} invalid values")
-
-if invalid_dispositivo_count > 0:
-    raise ValueError(f"[ERROR] dispositivo contains {invalid_dispositivo_count} invalid values")
-
-if invalid_origem_trafego_count > 0:
-    raise ValueError(f"[ERROR] origem_trafego contains {invalid_origem_trafego_count} invalid values")
-
-if invalid_user_agent_family_count > 0:
-    raise ValueError(f"[ERROR] user_agent_family contains {invalid_user_agent_family_count} invalid values")
-
-if invalid_search_logic_count > 0:
-    raise ValueError(f"[ERROR] search events without valor_busca found in {invalid_search_logic_count} rows")
-
-if invalid_non_search_logic_count > 0:
-    raise ValueError(f"[ERROR] non-search events with valor_busca found in {invalid_non_search_logic_count} rows")
-
-if invalid_identity_logic_count > 0:
-    raise ValueError(f"[ERROR] events without cliente_id and visitante_id found in {invalid_identity_logic_count} rows")
-
-if invalid_evento_id_count > 0:
-    raise ValueError(f"[ERROR] evento_id contains {invalid_evento_id_count} non-positive values")
-
-if silver_row_count == 0:
-    raise ValueError("[ERROR] Silver dataset is empty after transformations")
-
-print("[INFO] evento_id validation passed (no nulls)")
-print("[INFO] data_hora validation passed (no nulls)")
-print("[INFO] sessao_id validation passed (no nulls)")
-print("[INFO] tipo_evento validation passed (no nulls)")
-print("[INFO] dispositivo validation passed (no nulls)")
-print("[INFO] origem_trafego validation passed (no nulls)")
-print("[INFO] user_agent_family validation passed (no nulls)")
-print("[INFO] tipo_evento domain validation passed")
-print("[INFO] dispositivo domain validation passed")
-print("[INFO] origem_trafego domain validation passed")
-print("[INFO] user_agent_family domain validation passed")
-print("[INFO] search event logic validation passed")
-print("[INFO] identity logic validation passed")
-print("[INFO] evento_id numeric validation passed")
-print("[INFO] Silver dataset is not empty")
-
-
-# ========================================
-# 8. WRITE TO DELTA
-# ========================================
-
-print(" ")
-print(f"[INFO] Writing Silver dataset to target path: {TARGET_PATH}")
-
-(
-    df_silver.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-print("[INFO] Silver dataset written successfully")
-
-
-# ========================================
-# 9. REGISTER TABLE
-# ========================================
-
-print(f"[INFO] Registering target table: {TARGET_TABLE}")
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
+print("[INFO] Creating Silver table using CTAS...")
 
 spark.sql(f"""
-CREATE TABLE {TARGET_TABLE}
+CREATE OR REPLACE TABLE {TARGET_TABLE}
 USING DELTA
 LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+WITH standardized AS (
+    SELECT
+        CAST(evento_id AS BIGINT) AS evento_id,
+
+        COALESCE(
+            TO_TIMESTAMP(data_hora, 'yyyy-MM-dd HH:mm:ss'),
+            TO_TIMESTAMP(data_hora, 'yyyy/MM/dd HH:mm:ss'),
+            TO_TIMESTAMP(data_hora, 'dd/MM/yyyy HH:mm:ss'),
+            TO_TIMESTAMP(data_hora, 'dd-MM-yyyy HH:mm:ss')
+        ) AS data_hora,
+
+        NULLIF(TRIM(sessao_id), '') AS sessao_id,
+        NULLIF(TRIM(cliente_id), '') AS cliente_id,
+        NULLIF(TRIM(visitante_id), '') AS visitante_id,
+        NULLIF(TRIM(produto_id), '') AS produto_id,
+        NULLIF(TRIM(tipo_evento), '') AS tipo_evento,
+        NULLIF(TRIM(valor_busca), '') AS valor_busca,
+        NULLIF(TRIM(dispositivo), '') AS dispositivo,
+        NULLIF(TRIM(origem_trafego), '') AS origem_trafego,
+        NULLIF(TRIM(user_agent_family), '') AS user_agent_family,
+        NULLIF(TRIM(tracking_batch_id), '') AS tracking_batch_id,
+
+        load_date,
+        ingestion_timestamp,
+        source_file
+
+    FROM {SOURCE_TABLE}
+),
+
+scored AS (
+    SELECT
+        *,
+        (
+            CASE WHEN cliente_id IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN visitante_id IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN produto_id IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN valor_busca IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN user_agent_family IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN tracking_batch_id IS NOT NULL THEN 1 ELSE 0 END
+        ) AS completeness_score
+    FROM standardized
+),
+
+deduplicated AS (
+    SELECT *
+    FROM (
+        SELECT
+            *,
+            ROW_NUMBER() OVER (
+                PARTITION BY evento_id
+                ORDER BY
+                    completeness_score DESC,
+                    ingestion_timestamp DESC,
+                    tracking_batch_id DESC NULLS LAST
+            ) AS rn
+        FROM scored
+    )
+    WHERE rn = 1
+)
+
+SELECT
+    evento_id,
+    data_hora,
+    sessao_id,
+    cliente_id,
+    visitante_id,
+    produto_id,
+    tipo_evento,
+    valor_busca,
+    dispositivo,
+    origem_trafego,
+    user_agent_family,
+    tracking_batch_id,
+    load_date,
+    ingestion_timestamp,
+    source_file
+
+FROM deduplicated
 """)
 
-print("[INFO] Target table registered successfully")
-
+print("[INFO] Silver table created successfully.")
 
 # ========================================
-# 10. FINAL STATUS
+# 4. OPTIMIZATION
 # ========================================
 
-print(" ")
-print("===========================================")
-print("SILVER PROCESS COMPLETED SUCCESSFULLY")
-print(f"Dataset         : {DATASET}")
-print(f"Source table    : {SOURCE_TABLE}")
-print(f"Target table    : {TARGET_TABLE}")
-print(f"Target path     : {TARGET_PATH}")
-print(f"Source row count: {source_row_count}")
-print(f"Target row count: {silver_row_count}")
-print("===========================================")
+print("[INFO] Running OPTIMIZE...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Optimization completed.")
+
+# ========================================
+# 5. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+final = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("evento_id").alias("distinct_evento_ids"),
+        F.sum(F.when(F.col("evento_id").isNull(), 1).otherwise(0)).alias("null_evento_id"),
+        F.sum(F.when(F.col("data_hora").isNull(), 1).otherwise(0)).alias("null_data_hora"),
+        F.sum(F.when(F.col("sessao_id").isNull(), 1).otherwise(0)).alias("null_sessao_id"),
+        F.sum(F.when(F.col("tipo_evento").isNull(), 1).otherwise(0)).alias("null_tipo_evento"),
+        F.sum(F.when(F.col("dispositivo").isNull(), 1).otherwise(0)).alias("null_dispositivo"),
+        F.sum(F.when(F.col("origem_trafego").isNull(), 1).otherwise(0)).alias("null_origem_trafego"),
+        F.sum(F.when(F.col("user_agent_family").isNull(), 1).otherwise(0)).alias("null_user_agent_family"),
+        F.sum(F.when(~F.col("tipo_evento").isin(VALID_TIPO_EVENTO_VALUES), 1).otherwise(0)).alias("invalid_tipo_evento"),
+        F.sum(F.when(~F.col("dispositivo").isin(VALID_DISPOSITIVO_VALUES), 1).otherwise(0)).alias("invalid_dispositivo"),
+        F.sum(F.when(~F.col("origem_trafego").isin(VALID_ORIGEM_TRAFEGO_VALUES), 1).otherwise(0)).alias("invalid_origem_trafego"),
+        F.sum(F.when(~F.col("user_agent_family").isin(VALID_USER_AGENT_FAMILY_VALUES), 1).otherwise(0)).alias("invalid_user_agent_family"),
+        F.sum(F.when((F.col("tipo_evento") == "search") & F.col("valor_busca").isNull(), 1).otherwise(0)).alias("invalid_search_logic"),
+        F.sum(F.when((F.col("tipo_evento") != "search") & F.col("valor_busca").isNotNull(), 1).otherwise(0)).alias("invalid_non_search_logic"),
+        F.sum(F.when(F.col("cliente_id").isNull() & F.col("visitante_id").isNull(), 1).otherwise(0)).alias("invalid_identity_logic"),
+        F.sum(F.when(F.col("evento_id") <= 0, 1).otherwise(0)).alias("invalid_evento_id")
+    )
+    .collect()[0]
+)
+
+duplicate_evento_id_records = final["row_count"] - final["distinct_evento_ids"]
+
+print(f"Rows:                         {final['row_count']:,}")
+print(f"Duplicate evento_id records:  {duplicate_evento_id_records:,}")
+print(f"Null evento_id:               {final['null_evento_id']}")
+print(f"Null data_hora:               {final['null_data_hora']}")
+print(f"Null sessao_id:               {final['null_sessao_id']}")
+print(f"Null tipo_evento:             {final['null_tipo_evento']}")
+print(f"Null dispositivo:             {final['null_dispositivo']}")
+print(f"Null origem_trafego:          {final['null_origem_trafego']}")
+print(f"Null user_agent_family:       {final['null_user_agent_family']}")
+print(f"Invalid tipo_evento:          {final['invalid_tipo_evento']}")
+print(f"Invalid dispositivo:          {final['invalid_dispositivo']}")
+print(f"Invalid origem_trafego:       {final['invalid_origem_trafego']}")
+print(f"Invalid user_agent_family:    {final['invalid_user_agent_family']}")
+print(f"Invalid search logic:         {final['invalid_search_logic']}")
+print(f"Invalid non-search logic:     {final['invalid_non_search_logic']}")
+print(f"Invalid identity logic:       {final['invalid_identity_logic']}")
+print(f"Invalid evento_id:            {final['invalid_evento_id']}")
+
+if final["row_count"] == 0:
+    raise ValueError("Silver dataset is empty.")
+
+critical_nulls = {
+    "evento_id": final["null_evento_id"],
+    "data_hora": final["null_data_hora"],
+    "sessao_id": final["null_sessao_id"],
+    "tipo_evento": final["null_tipo_evento"],
+    "dispositivo": final["null_dispositivo"],
+    "origem_trafego": final["null_origem_trafego"],
+    "user_agent_family": final["null_user_agent_family"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+if duplicate_evento_id_records > 0:
+    raise ValueError(f"Duplicate evento_id detected after transformation: {duplicate_evento_id_records}")
+
+if final["invalid_tipo_evento"] > 0:
+    raise ValueError(f"Invalid tipo_evento values detected: {final['invalid_tipo_evento']}")
+
+if final["invalid_dispositivo"] > 0:
+    raise ValueError(f"Invalid dispositivo values detected: {final['invalid_dispositivo']}")
+
+if final["invalid_origem_trafego"] > 0:
+    raise ValueError(f"Invalid origem_trafego values detected: {final['invalid_origem_trafego']}")
+
+if final["invalid_user_agent_family"] > 0:
+    raise ValueError(f"Invalid user_agent_family values detected: {final['invalid_user_agent_family']}")
+
+if final["invalid_search_logic"] > 0:
+    raise ValueError(f"Search events without valor_busca detected: {final['invalid_search_logic']}")
+
+if final["invalid_non_search_logic"] > 0:
+    raise ValueError(f"Non-search events with valor_busca detected: {final['invalid_non_search_logic']}")
+
+if final["invalid_identity_logic"] > 0:
+    raise ValueError(f"Events without cliente_id and visitante_id detected: {final['invalid_identity_logic']}")
+
+if final["invalid_evento_id"] > 0:
+    raise ValueError(f"Non-positive evento_id values detected: {final['invalid_evento_id']}")
+
+print("[INFO] Final validations completed.")
+
+# ========================================
+# 6. FINAL STATUS
+# ========================================
+
+detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
+
+print("=" * 80)
+print("FINAL TABLE DETAIL")
+print("=" * 80)
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
+
+print("=" * 80)
+print("COMPLETED")
+print("=" * 80)

@@ -4,13 +4,11 @@
 # DATASET: erp_suppliers
 # ========================================
 
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
 # ========================================
-
-from pyspark.sql import functions as F
-from pyspark.sql.types import StringType
 
 CATALOG = "ptfrozenfoods_dev"
 SOURCE_SCHEMA = "bronze"
@@ -31,29 +29,13 @@ TARGET_PATH = f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.ne
 
 VALID_STATUS_VALUES = ["Ativo", "Inativo"]
 
+CLUSTER_COLUMNS = [
+    "pais",
+    "status_fornecedor",
+    "fornecedor_id"
+]
 
-# ========================================
-# 1. CONTEXT SETUP
-# ========================================
-
-spark.sql(f"USE CATALOG {CATALOG}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
-spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
-
-
-# ========================================
-# 2. READ SOURCE DATA
-# ========================================
-
-df_source = spark.table(SOURCE_TABLE)
-source_row_count = df_source.count()
-
-
-# ========================================
-# 3. CLEANING AND STANDARDIZATION
-# ========================================
-
-df_silver = df_source.select(
+REQUIRED_COLUMNS = [
     "fornecedor_id",
     "nome_fornecedor",
     "pais",
@@ -63,104 +45,196 @@ df_silver = df_source.select(
     "load_date",
     "ingestion_timestamp",
     "source_file"
-)
-
-# STRING CLEANING
-string_columns = [
-    field.name
-    for field in df_silver.schema.fields
-    if isinstance(field.dataType, StringType)
 ]
 
-for col_name in string_columns:
-    df_silver = df_silver.withColumn(
-        col_name,
-        F.when(F.trim(F.col(col_name)) == "", None)
-         .otherwise(F.trim(F.col(col_name)))
+print("=" * 80)
+print("STARTING SILVER PROCESSING: erp_suppliers")
+print("=" * 80)
+
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
+spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
+
+print("[INFO] Context setup completed successfully.")
+
+# ========================================
+# 1. PRE-CHECKS
+# ========================================
+
+print("[INFO] Checking source table availability...")
+spark.sql(f"DESCRIBE TABLE {SOURCE_TABLE}")
+
+print("[INFO] Checking source path access...")
+source_items = dbutils.fs.ls(SOURCE_PATH)
+
+if len(source_items) == 0:
+    raise ValueError(f"No files found in source path: {SOURCE_PATH}")
+
+print("[INFO] Checking target container access...")
+dbutils.fs.ls(f"abfss://{SILVER_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print("[INFO] Pre-checks completed successfully.")
+
+# ========================================
+# 2. SOURCE VALIDATION
+# ========================================
+
+print("[INFO] Validating source dataset...")
+
+df_source = spark.table(SOURCE_TABLE)
+
+missing_columns = [c for c in REQUIRED_COLUMNS if c not in df_source.columns]
+
+if missing_columns:
+    raise ValueError(f"Missing required columns in source dataset: {missing_columns}")
+
+source_validation = (
+    df_source
+    .agg(
+        F.count("*").alias("row_count"),
+        F.sum(F.when(F.col("fornecedor_id").isNull(), 1).otherwise(0)).alias("null_fornecedor_id"),
+        F.sum(F.when(F.col("nome_fornecedor").isNull(), 1).otherwise(0)).alias("null_nome_fornecedor"),
+        F.sum(F.when(F.col("pais").isNull(), 1).otherwise(0)).alias("null_pais")
     )
+    .collect()[0]
+)
 
-# REMOVE EXACT DUPLICATES
-df_silver = df_silver.dropDuplicates()
+print(f"Source row count:           {source_validation['row_count']:,}")
+print(f"Null fornecedor_id:         {source_validation['null_fornecedor_id']:,}")
+print(f"Null nome_fornecedor:       {source_validation['null_nome_fornecedor']:,}")
+print(f"Null pais:                  {source_validation['null_pais']:,}")
 
+if source_validation["row_count"] == 0:
+    raise ValueError("Source dataset is empty.")
+
+source_null_failures = {
+    "fornecedor_id": source_validation["null_fornecedor_id"],
+    "nome_fornecedor": source_validation["null_nome_fornecedor"],
+    "pais": source_validation["null_pais"]
+}
+
+source_null_failures = {column: count for column, count in source_null_failures.items() if count > 0}
+
+if source_null_failures:
+    raise ValueError(f"Null values detected in source critical columns: {source_null_failures}")
+
+print("[INFO] Source validation completed successfully.")
 
 # ========================================
-# 4. DATA VALIDATION
+# 3. CREATE SILVER TABLE
 # ========================================
 
-silver_row_count = df_silver.count()
+print("[INFO] Creating Silver table using CTAS...")
 
-# Null checks
-null_fornecedor_id = df_silver.filter(F.col("fornecedor_id").isNull()).count()
-null_nome = df_silver.filter(F.col("nome_fornecedor").isNull()).count()
-null_pais = df_silver.filter(F.col("pais").isNull()).count()
+spark.sql(f"""
+CREATE OR REPLACE TABLE {TARGET_TABLE}
+USING DELTA
+LOCATION '{TARGET_PATH}'
+TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',
+  'delta.autoOptimize.autoCompact' = 'true'
+)
+CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
+AS
+SELECT DISTINCT
+    NULLIF(TRIM(fornecedor_id), '') AS fornecedor_id,
+    NULLIF(TRIM(nome_fornecedor), '') AS nome_fornecedor,
+    NULLIF(TRIM(pais), '') AS pais,
+    NULLIF(TRIM(status_fornecedor), '') AS status_fornecedor,
+    NULLIF(TRIM(codigo_legacy), '') AS codigo_legacy,
+    CAST(ultima_sincronizacao AS TIMESTAMP) AS ultima_sincronizacao,
 
-# Domain validation
-invalid_status = df_silver.filter(
+    load_date,
+    ingestion_timestamp,
+    source_file
+
+FROM {SOURCE_TABLE}
+""")
+
+print("[INFO] Silver table created successfully.")
+
+# ========================================
+# 4. OPTIMIZATION
+# ========================================
+
+print("[INFO] Running OPTIMIZE...")
+
+spark.sql(f"OPTIMIZE {TARGET_TABLE}")
+
+print("[INFO] Optimization completed.")
+
+# ========================================
+# 5. FINAL VALIDATIONS
+# ========================================
+
+print("=" * 80)
+print("FINAL VALIDATIONS")
+print("=" * 80)
+
+df_target = spark.table(TARGET_TABLE)
+
+final = (
+    df_target
+    .agg(
+        F.count("*").alias("row_count"),
+        F.countDistinct("fornecedor_id").alias("distinct_fornecedor_ids"),
+        F.sum(F.when(F.col("fornecedor_id").isNull(), 1).otherwise(0)).alias("null_fornecedor_id"),
+        F.sum(F.when(F.col("nome_fornecedor").isNull(), 1).otherwise(0)).alias("null_nome_fornecedor"),
+        F.sum(F.when(F.col("pais").isNull(), 1).otherwise(0)).alias("null_pais")
+    )
+    .collect()[0]
+)
+
+duplicate_fornecedor_id_records = final["row_count"] - final["distinct_fornecedor_ids"]
+
+invalid_status_count = df_target.filter(
     ~F.col("status_fornecedor").isin(VALID_STATUS_VALUES)
 ).count()
 
-# Business validation
-future_sync = df_silver.filter(
+future_sync_count = df_target.filter(
     F.col("ultima_sincronizacao") > F.current_timestamp()
 ).count()
 
+print(f"Rows:                            {final['row_count']:,}")
+print(f"Repeated fornecedor_id records:  {duplicate_fornecedor_id_records:,}")
+print(f"Null fornecedor_id:              {final['null_fornecedor_id']}")
+print(f"Null nome_fornecedor:            {final['null_nome_fornecedor']}")
+print(f"Null pais:                       {final['null_pais']}")
+
+if final["row_count"] == 0:
+    raise ValueError("Silver dataset is empty.")
+
+critical_nulls = {
+    "fornecedor_id": final["null_fornecedor_id"],
+    "nome_fornecedor": final["null_nome_fornecedor"],
+    "pais": final["null_pais"]
+}
+
+null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
+
+if null_failures:
+    raise ValueError(f"Null values detected in critical columns: {null_failures}")
+
+if invalid_status_count > 0:
+    raise ValueError(f"Invalid status_fornecedor values detected: {invalid_status_count}")
+
+if future_sync_count > 0:
+    raise ValueError(f"ultima_sincronizacao in the future detected: {future_sync_count}")
+
+print("[INFO] Final validations completed.")
 
 # ========================================
-# 5. ERROR HANDLING
+# 6. FINAL STATUS
 # ========================================
 
-if null_fornecedor_id > 0:
-    raise ValueError(f"[ERROR] fornecedor_id nulls: {null_fornecedor_id}")
+detail = spark.sql(f"DESCRIBE DETAIL {TARGET_TABLE}").collect()[0].asDict()
 
-if null_nome > 0:
-    raise ValueError(f"[ERROR] nome_fornecedor nulls: {null_nome}")
+print("=" * 80)
+print("FINAL TABLE DETAIL")
+print("=" * 80)
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
 
-if null_pais > 0:
-    raise ValueError(f"[ERROR] pais nulls: {null_pais}")
-
-if invalid_status > 0:
-    raise ValueError(f"[ERROR] invalid status_fornecedor values: {invalid_status}")
-
-if future_sync > 0:
-    raise ValueError(f"[ERROR] ultima_sincronizacao in the future: {future_sync}")
-
-if silver_row_count == 0:
-    raise ValueError("[ERROR] Empty dataset")
-
-
-# ========================================
-# 6. WRITE TO DELTA
-# ========================================
-
-(
-    df_silver.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .save(TARGET_PATH)
-)
-
-
-# ========================================
-# 7. REGISTER TABLE
-# ========================================
-
-spark.sql(f"DROP TABLE IF EXISTS {TARGET_TABLE}")
-
-spark.sql(f"""
-CREATE TABLE {TARGET_TABLE}
-USING DELTA
-LOCATION '{TARGET_PATH}'
-""")
-
-
-# ========================================
-# 8. FINAL STATUS
-# ========================================
-
-print("===========================================")
-print("SILVER PROCESS COMPLETED SUCCESSFULLY")
-print(f"Dataset         : {DATASET}")
-print(f"Source rows     : {source_row_count}")
-print(f"Target rows     : {silver_row_count}")
-print("===========================================")
+print("=" * 80)
+print("COMPLETED")
+print("=" * 80)
