@@ -139,6 +139,30 @@
 					},
 					"waitOnCompletion": true
 				}
+			},
+			{
+				"name": "exec_analytics",
+				"description": "Analytics pipeline for consumption-optimized datasets and business analytics",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exec_gold_marts",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_analytics",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
 			}
 		],
 		"annotations": []

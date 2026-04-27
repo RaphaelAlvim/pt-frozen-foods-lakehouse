@@ -1,0 +1,30 @@
+{
+	"name": "pl_analytics",
+	"properties": {
+		"description": "Analytics pipeline for consumption-optimized datasets and business analytics",
+		"activities": [
+			{
+				"name": "nb_analytics_sales_overview",
+				"description": "Run analytics notebook for sales overview dataset",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Workspace/Shared/pt-frozen-foods-lakehouse/04_notebooks/05_analytics/processing/analytics_sales_overview_processing"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks_ptfrozenfoods_dev",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": []
+	}
+}
