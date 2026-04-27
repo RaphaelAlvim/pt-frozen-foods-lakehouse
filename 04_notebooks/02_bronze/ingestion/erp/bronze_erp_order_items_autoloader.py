@@ -4,6 +4,7 @@
 # DATASET: erp_order_items
 # ========================================
 
+from pyspark.sql import functions as F
 
 # ========================================
 # 0. CONFIGURATION
@@ -26,51 +27,56 @@ BRONZE_PATH = f"abfss://{BRONZE_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.ne
 CHECKPOINT_PATH = f"abfss://{BRONZE_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/_checkpoints/{DOMAIN}/{DATASET}/"
 SCHEMA_PATH = f"abfss://{BRONZE_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/_schemas/{DOMAIN}/{DATASET}/"
 
+print("=" * 80)
+print("STARTING BRONZE INGESTION: erp_order_items")
+print("=" * 80)
 
 # ========================================
 # 1. CONTEXT SETUP
 # ========================================
 
 spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA}")
 spark.sql(f"USE SCHEMA {SCHEMA}")
 
-print("Context configured successfully")
-print(f"Catalog: {spark.catalog.currentCatalog()}")
-print(f"Schema: {spark.catalog.currentDatabase()}")
-
+print("[INFO] Context setup completed successfully.")
 
 # ========================================
 # 2. CONFIGURATION SUMMARY
 # ========================================
 
-print(" ")
-print("========== CONFIGURATION SUMMARY ==========")
-print(f"Table name      : {TABLE_NAME}")
-print(f"Source path     : {SOURCE_PATH}")
-print(f"Bronze path     : {BRONZE_PATH}")
-print(f"Checkpoint path : {CHECKPOINT_PATH}")
-print(f"Schema path     : {SCHEMA_PATH}")
-print("===========================================")
-
+print("=" * 80)
+print("BRONZE INGESTION CONFIGURATION")
+print("=" * 80)
+print(f"Table name:       {TABLE_NAME}")
+print(f"Source path:      {SOURCE_PATH}")
+print(f"Bronze path:      {BRONZE_PATH}")
+print(f"Checkpoint path:  {CHECKPOINT_PATH}")
+print(f"Schema path:      {SCHEMA_PATH}")
+print("=" * 80)
 
 # ========================================
 # 3. PRE-CHECKS
 # ========================================
 
+print("[INFO] Checking RAW source path access...")
 raw_items = dbutils.fs.ls(SOURCE_PATH)
-bronze_items = dbutils.fs.ls(f"abfss://{BRONZE_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
 
-print(" ")
-print("Pre-checks completed successfully")
-print(f"RAW path accessible      : yes ({len(raw_items)} items found)")
-print(f"Bronze container access  : yes ({len(bronze_items)} items found)")
+if len(raw_items) == 0:
+    raise ValueError(f"No files found in source path: {SOURCE_PATH}")
 
+print("[INFO] Checking Bronze container access...")
+dbutils.fs.ls(f"abfss://{BRONZE_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/")
+
+print(f"[INFO] RAW path accessible: {len(raw_items)} items found.")
+print("[INFO] Bronze container access validated.")
+print("[INFO] Pre-checks completed successfully.")
 
 # ========================================
 # 4. AUTO LOADER READ
 # ========================================
 
-from pyspark.sql.functions import current_timestamp, col
+print("[INFO] Creating Auto Loader stream...")
 
 df = (
     spark.readStream
@@ -82,25 +88,27 @@ df = (
     .load(SOURCE_PATH)
 )
 
-print(" ")
-print("Auto Loader stream created successfully")
-
+print("[INFO] Auto Loader stream created successfully.")
 
 # ========================================
 # 5. TECHNICAL COLUMNS
 # ========================================
 
+print("[INFO] Adding technical metadata columns...")
+
 df = (
-    df.withColumn("ingestion_timestamp", current_timestamp())
-      .withColumn("source_file", col("_metadata.file_path"))
+    df
+    .withColumn("ingestion_timestamp", F.current_timestamp())
+    .withColumn("source_file", F.col("_metadata.file_path"))
 )
 
-print("Technical columns added successfully")
-
+print("[INFO] Technical columns added successfully.")
 
 # ========================================
-# 6. WRITE TO BRONZE (DELTA)
+# 6. WRITE TO BRONZE
 # ========================================
+
+print("[INFO] Starting Bronze streaming write...")
 
 query = (
     df.writeStream
@@ -112,17 +120,15 @@ query = (
     .start()
 )
 
-print(" ")
-print("Streaming write started...")
-
 query.awaitTermination()
 
-print("Streaming write completed successfully")
-
+print("[INFO] Bronze streaming write completed successfully.")
 
 # ========================================
-# 7. REGISTER TABLE IN UNITY CATALOG
+# 7. REGISTER TABLE
 # ========================================
+
+print("[INFO] Registering Bronze table in Unity Catalog...")
 
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {TABLE_NAME}
@@ -130,102 +136,20 @@ USING DELTA
 LOCATION '{BRONZE_PATH}'
 """)
 
-print("Unity Catalog table registered successfully")
-
+print("[INFO] Unity Catalog table registered successfully.")
 
 # ========================================
 # 8. FINAL STATUS
 # ========================================
 
-print(" ")
-print("===========================================")
-print("BRONZE INGESTION COMPLETED SUCCESSFULLY")
-print(f"Dataset         : {DATASET}")
-print(f"Registered table: {TABLE_NAME}")
-print(f"Delta location  : {BRONZE_PATH}")
-print("===========================================")
+detail = spark.sql(f"DESCRIBE DETAIL {TABLE_NAME}").collect()[0].asDict()
 
-# COMMAND ----------
+print("=" * 80)
+print("FINAL TABLE DETAIL")
+print("=" * 80)
+print(f"Files: {detail.get('numFiles')}")
+print(f"Size:  {detail.get('sizeInBytes')}")
 
-# MAGIC %md
-# MAGIC ## Validation (Development Only)
-# MAGIC
-# MAGIC The following checks are used for data validation and debugging during development.
-# MAGIC
-# MAGIC They are controlled by the `RUN_VALIDATION` flag and should remain disabled in production execution.
-
-# COMMAND ----------
-
-# ========================================
-# BRONZE VALIDATION CONTROL (DEV ONLY)
-# ========================================
-
-RUN_VALIDATION = False
-
-if RUN_VALIDATION:
-
-    TABLE_FULL_NAME = f"{CATALOG}.{SCHEMA}.{DATASET}"
-    BRONZE_DATASET_PATH = f"abfss://{BRONZE_CONTAINER}@{STORAGE_ACCOUNT}.dfs.core.windows.net/{DOMAIN}/{DATASET}/"
-
-    print(" ")
-    print("===========================================")
-    print("BRONZE VALIDATION STARTED")
-    print(f"Dataset         : {DATASET}")
-    print(f"Table           : {TABLE_FULL_NAME}")
-    print(f"Storage path    : {BRONZE_DATASET_PATH}")
-    print("===========================================")
-
-    # ----------------------------------------
-    # 1. PREVIEW TABLE DATA
-    # ----------------------------------------
-
-    try:
-        print(" ")
-        print("Step 1 - Preview table data")
-        display(
-            spark.sql(f"""
-            SELECT *
-            FROM {TABLE_FULL_NAME}
-            LIMIT 10
-            """)
-        )
-        print("Step 1 completed successfully")
-    except Exception as e:
-        print("Step 1 failed")
-        print(f"Error: {e}")
-
-    # ----------------------------------------
-    # 2. LIST STORAGE FILES
-    # ----------------------------------------
-
-    try:
-        print(" ")
-        print("Step 2 - List storage files")
-        files = dbutils.fs.ls(BRONZE_DATASET_PATH)
-        display(files)
-        print(f"Step 2 completed successfully - {len(files)} items found")
-    except Exception as e:
-        print("Step 2 failed")
-        print(f"Error: {e}")
-
-    # ----------------------------------------
-    # 3. DESCRIBE TABLE
-    # ----------------------------------------
-
-    try:
-        print(" ")
-        print("Step 3 - Describe table")
-        display(
-            spark.sql(f"""
-            DESCRIBE TABLE {TABLE_FULL_NAME}
-            """)
-        )
-        print("Step 3 completed successfully")
-    except Exception as e:
-        print("Step 3 failed")
-        print(f"Error: {e}")
-
-    print(" ")
-    print("===========================================")
-    print("BRONZE VALIDATION FINISHED")
-    print("===========================================")
+print("=" * 80)
+print("COMPLETED")
+print("=" * 80)
