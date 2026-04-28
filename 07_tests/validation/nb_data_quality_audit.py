@@ -423,8 +423,8 @@ print("=" * 80)
 
 gold_configs = {
     "dim_calendar": {
-        "critical": ["date_key", "data"],
-        "grain": ["date_key"],
+        "critical": ["calendar_date"],
+        "grain": ["calendar_date"],
         "grain_severity": "FAIL"
     },
     "dim_customer": {
@@ -448,8 +448,8 @@ gold_configs = {
         "grain_severity": "FAIL"
     },
     "dim_weather": {
-        "critical": ["data"],
-        "grain": ["data"],
+        "critical": ["weather_date", "city"],
+        "grain": ["weather_date"],
         "grain_severity": "FAIL"
     },
     "fact_sales": {
