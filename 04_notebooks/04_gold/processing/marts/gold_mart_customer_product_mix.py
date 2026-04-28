@@ -66,7 +66,7 @@ REQUIRED_COLUMNS = [
     "total_cost_amount",
     "gross_margin_amount",
     "line_count",
-    "average_order_value"
+    "order_total_amount"
 ]
 
 TOLERANCE = 0.01
@@ -168,7 +168,7 @@ SELECT
     SUM(gross_margin_amount) AS gross_margin_amount,
     COUNT(DISTINCT pedido_id) AS order_count,
     SUM(line_count) AS line_count,
-    AVG(average_order_value) AS average_order_value
+    AVG(order_total_amount) AS avg_order_total_amount
 
 FROM {SOURCE_TABLE}
 

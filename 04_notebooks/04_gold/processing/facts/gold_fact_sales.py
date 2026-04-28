@@ -268,7 +268,7 @@ fact_enriched AS (
 
 SELECT
     *,
-    SUM(net_sales_amount) OVER (PARTITION BY pedido_id) AS average_order_value
+    SUM(net_sales_amount) OVER (PARTITION BY pedido_id) AS order_total_amount
 
 FROM fact_enriched
 """)
