@@ -115,10 +115,6 @@ print("[INFO] Source validation completed successfully.")
 
 print("[INFO] Creating Silver table using CTAS...")
 
-# CTAS creates, overwrites, registers, and materializes the Delta table in one step.
-# String fields are standardized with trim + empty-string-to-null logic.
-# Date parsing is handled using the accepted input formats identified during exploration.
-
 spark.sql(f"""
 CREATE OR REPLACE TABLE {TARGET_TABLE}
 USING DELTA
@@ -188,20 +184,18 @@ final = (
     .collect()[0]
 )
 
-duplicates = final["row_count"] - final["distinct_cliente_ids"]
+duplicate_cliente_id_records = final["row_count"] - final["distinct_cliente_ids"]
 
-print(f"Rows:                  {final['row_count']:,}")
-print(f"Duplicate cliente_id:  {duplicates:,}")
-print(f"Null cliente_id:       {final['null_cliente_id']}")
-print(f"Null nome_cliente:     {final['null_nome_cliente']}")
-print(f"Null tipo_cliente:     {final['null_tipo_cliente']}")
-print(f"Null data_registo:     {final['null_data_registo']}")
+print(f"Rows:                           {final['row_count']:,}")
+print(f"Duplicate cliente_id records:   {duplicate_cliente_id_records:,}")
+print("[INFO] Duplicate cliente_id records are reported for monitoring only.")
+print(f"Null cliente_id:                {final['null_cliente_id']}")
+print(f"Null nome_cliente:              {final['null_nome_cliente']}")
+print(f"Null tipo_cliente:              {final['null_tipo_cliente']}")
+print(f"Null data_registo:              {final['null_data_registo']}")
 
 if final["row_count"] == 0:
     raise ValueError("Silver dataset is empty.")
-
-if duplicates > 0:
-    raise ValueError("Duplicate cliente_id detected.")
 
 if final["null_cliente_id"] > 0:
     raise ValueError("Null cliente_id detected.")

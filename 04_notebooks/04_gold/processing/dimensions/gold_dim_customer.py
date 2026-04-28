@@ -79,14 +79,16 @@ if missing_columns:
 source_validation = (
     df_source
     .agg(
+        F.count("*").alias("row_count"),
         F.countDistinct("cliente_id").alias("distinct_cliente_ids"),
         F.sum(F.when(F.col("cliente_id").isNull(), 1).otherwise(0)).alias("null_cliente_id")
     )
     .collect()[0]
 )
 
-print(f"Distinct cliente_id:     {source_validation['distinct_cliente_ids']:,}")
-print(f"Null cliente_id:         {source_validation['null_cliente_id']:,}")
+print(f"Source row count:         {source_validation['row_count']:,}")
+print(f"Distinct cliente_id:      {source_validation['distinct_cliente_ids']:,}")
+print(f"Null cliente_id:          {source_validation['null_cliente_id']:,}")
 
 if source_validation["null_cliente_id"] > 0:
     raise ValueError("Null cliente_id detected in source dataset.")
@@ -99,6 +101,11 @@ print("[INFO] Source validation completed successfully.")
 
 print("[INFO] Creating Gold dimension table using CTAS...")
 
+# This notebook preserves the original business rule from the previous version:
+# one record per cliente_id, equivalent to dropDuplicates(["cliente_id"]).
+# ROW_NUMBER is used instead of SELECT DISTINCT to avoid generating multiple
+# records for the same cliente_id when customer attributes differ across rows.
+
 spark.sql(f"""
 CREATE OR REPLACE TABLE {TARGET_TABLE}
 USING DELTA
@@ -109,7 +116,24 @@ TBLPROPERTIES (
 )
 CLUSTER BY ({", ".join(CLUSTER_COLUMNS)})
 AS
-SELECT DISTINCT
+WITH ranked_customers AS (
+    SELECT
+        cliente_id,
+        tipo_cliente,
+        segmento,
+        cliente_cidade,
+        distrito,
+        potencial_valor,
+        cluster_comercial,
+        status_cliente,
+        ROW_NUMBER() OVER (
+            PARTITION BY cliente_id
+            ORDER BY cliente_id
+        ) AS rn
+    FROM {SOURCE_TABLE}
+)
+
+SELECT
     cliente_id,
     tipo_cliente,
     segmento,
@@ -119,7 +143,8 @@ SELECT DISTINCT
     cluster_comercial,
     status_cliente
 
-FROM {SOURCE_TABLE}
+FROM ranked_customers
+WHERE rn = 1
 """)
 
 print("[INFO] Gold dimension table created successfully.")
