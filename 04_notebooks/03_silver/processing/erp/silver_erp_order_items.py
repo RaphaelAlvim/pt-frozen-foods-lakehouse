@@ -113,6 +113,7 @@ print(f"Duplicate item_pedido_id records:  {source_duplicate_item_pedido_ids:,}"
 print(f"Null item_pedido_id:               {source_validation['null_item_pedido_id']:,}")
 print(f"Null pedido_id:                    {source_validation['null_pedido_id']:,}")
 print(f"Null produto_id:                   {source_validation['null_produto_id']:,}")
+print("[INFO] Null produto_id is reported for monitoring only. Gold fact_sales filters these records.")
 print(f"Null quantidade:                   {source_validation['null_quantidade']:,}")
 print(f"Null preco_venda_unitario:         {source_validation['null_preco_venda_unitario']:,}")
 print(f"Null custo_unitario:               {source_validation['null_custo_unitario']:,}")
@@ -123,7 +124,6 @@ if source_validation["row_count"] == 0:
 source_null_failures = {
     "item_pedido_id": source_validation["null_item_pedido_id"],
     "pedido_id": source_validation["null_pedido_id"],
-    "produto_id": source_validation["null_produto_id"],
     "quantidade": source_validation["null_quantidade"],
     "preco_venda_unitario": source_validation["null_preco_venda_unitario"],
     "custo_unitario": source_validation["null_custo_unitario"]
@@ -252,6 +252,7 @@ print(f"Duplicate item_pedido_id:      {duplicates:,}")
 print(f"Null item_pedido_id:           {final['null_item_pedido_id']}")
 print(f"Null pedido_id:                {final['null_pedido_id']}")
 print(f"Null produto_id:               {final['null_produto_id']}")
+print("[INFO] Null produto_id is reported for monitoring only. Gold fact_sales filters these records.")
 print(f"Null quantidade:               {final['null_quantidade']}")
 print(f"Null preco_venda_unitario:     {final['null_preco_venda_unitario']}")
 print(f"Null custo_unitario:           {final['null_custo_unitario']}")
@@ -265,7 +266,6 @@ if duplicates > 0:
 critical_nulls = {
     "item_pedido_id": final["null_item_pedido_id"],
     "pedido_id": final["null_pedido_id"],
-    "produto_id": final["null_produto_id"],
     "quantidade": final["null_quantidade"],
     "preco_venda_unitario": final["null_preco_venda_unitario"],
     "custo_unitario": final["null_custo_unitario"]
