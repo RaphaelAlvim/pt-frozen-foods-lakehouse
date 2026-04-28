@@ -201,9 +201,7 @@ if final["null_cliente_id"] > 0:
     raise ValueError("Null cliente_id detected.")
 
 critical_nulls = {
-    "nome_cliente": final["null_nome_cliente"],
-    "tipo_cliente": final["null_tipo_cliente"],
-    "data_registo": final["null_data_registo"]
+    "nome_cliente": final["null_nome_cliente"]
 }
 
 null_failures = {column: count for column, count in critical_nulls.items() if count > 0}

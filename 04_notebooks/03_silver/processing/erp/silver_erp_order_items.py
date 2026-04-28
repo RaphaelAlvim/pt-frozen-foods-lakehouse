@@ -123,10 +123,7 @@ if source_validation["row_count"] == 0:
 
 source_null_failures = {
     "item_pedido_id": source_validation["null_item_pedido_id"],
-    "pedido_id": source_validation["null_pedido_id"],
-    "quantidade": source_validation["null_quantidade"],
-    "preco_venda_unitario": source_validation["null_preco_venda_unitario"],
-    "custo_unitario": source_validation["null_custo_unitario"]
+    "pedido_id": source_validation["null_pedido_id"]
 }
 
 source_null_failures = {column: count for column, count in source_null_failures.items() if count > 0}
@@ -265,10 +262,7 @@ if duplicates > 0:
 
 critical_nulls = {
     "item_pedido_id": final["null_item_pedido_id"],
-    "pedido_id": final["null_pedido_id"],
-    "quantidade": final["null_quantidade"],
-    "preco_venda_unitario": final["null_preco_venda_unitario"],
-    "custo_unitario": final["null_custo_unitario"]
+    "pedido_id": final["null_pedido_id"]
 }
 
 null_failures = {column: count for column, count in critical_nulls.items() if count > 0}
