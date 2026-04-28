@@ -40,6 +40,7 @@ GRAIN_COLUMNS = [
 ]
 
 CLUSTER_COLUMNS = [
+    "data_pedido",
     "cliente_id",
     "produto_id",
     "canal_id"
@@ -50,6 +51,7 @@ print("STARTING ANALYTICS PROCESSING: analytics_sales_overview")
 print("=" * 80)
 
 spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{TARGET_SCHEMA}")
 spark.sql(f"USE SCHEMA {TARGET_SCHEMA}")
 
 # ========================================
