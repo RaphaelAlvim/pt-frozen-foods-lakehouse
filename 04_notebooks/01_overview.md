@@ -16,7 +16,7 @@ The notebooks are organized by layer:
 - 02_bronze  
 - 03_silver  
 - 04_gold  
-- 05_analytics (future)  
+- 05_analytics  
 - 06_ml (future)  
 
 ---
@@ -36,6 +36,7 @@ Processing
 - used for production data pipelines  
 - executed by Azure Data Factory  
 - optimized for performance and reliability  
+- uses CTAS (CREATE OR REPLACE TABLE AS SELECT) as standard pattern in Gold and Analytics layers
 
 ---
 
