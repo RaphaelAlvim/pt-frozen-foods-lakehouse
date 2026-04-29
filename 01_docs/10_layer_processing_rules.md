@@ -91,7 +91,7 @@ The Bronze layer is fully implemented across all domains:
 - CRM
 - ERP
 - Reference
-- Weather API
+- Weather
 - Web
 
 ---
@@ -177,6 +177,7 @@ The Gold layer is the analytical delivery layer.
 - outputs should be optimized for consumption
 - tables follow dimensional modeling principles
 - datasets are optimized for query performance
+- processing uses CTAS (CREATE OR REPLACE TABLE AS SELECT) as standard pattern
 
 ### Typical Activities
 

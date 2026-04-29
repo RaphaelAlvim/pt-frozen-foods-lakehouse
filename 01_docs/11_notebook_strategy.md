@@ -62,7 +62,7 @@ bronze_<domain>_<dataset>_autoloader
 - bronze_crm_clients_autoloader
 - bronze_erp_orders_autoloader
 - bronze_reference_locations_autoloader
-- bronze_weather_api_weather_porto_daily_autoloader
+bronze_weather_weather_porto_daily_autoloader
 - bronze_web_web_event_logs_autoloader
 
 ### Typical Structure
@@ -167,6 +167,9 @@ Gold notebooks deliver business-ready datasets.
 - datasets must follow dimensional modeling principles
 - tables must be optimized for query performance
 - data must remain in Delta format
+- CTAS (CREATE OR REPLACE TABLE AS SELECT) is the standard pattern for table creation
+- avoid DataFrame write + CREATE TABLE pattern
+- prefer SQL-based transformations for performance and optimization
 
 ### Typical Outputs
 

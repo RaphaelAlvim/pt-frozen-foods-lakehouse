@@ -103,7 +103,14 @@ Layers:
 
 - Bronze → ingestion and initial structuring  
 - Silver → cleansing, validation, and integration  
-- Gold → business-ready datasets  
+- Gold → business-ready datasets 
+
+Processing follows a production-oriented pattern:
+
+- CTAS (CREATE OR REPLACE TABLE AS SELECT) for table creation  
+- Delta Lake as storage format  
+- Liquid Clustering for performance optimization  
+- Built-in data quality validations (grain, nulls, reconciliation)
 
 ---
 
@@ -130,11 +137,15 @@ The analytical model follows a dimensional approach.
 - mart_sales_performance  
 - mart_customer_product_mix  
 
+### Analytics
+
+- analytics_sales_overview
+
 ---
 
 ## Analytics Layer
 
-The Gold layer enables:
+The Analytics layer (built on top of Gold) enables:
 
 - KPI analysis  
 - reporting and dashboards  
@@ -175,6 +186,9 @@ pt_frozen_foods_251201/
 - modular and scalable design  
 - performance-oriented processing  
 - reproducibility and governance  
+- CTAS-based processing pattern  
+- data quality validation embedded in pipelines  
+- performance optimization with Liquid Clustering  
 
 ---
 

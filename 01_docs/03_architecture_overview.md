@@ -31,7 +31,7 @@ Data Sources
 → RAW (ADLS)  
 → Processing (Databricks)  
 → Bronze → Silver (Curated & Integration) → Gold  
-→ Analytics / Machine Learning  
+→ Analytics → Machine Learning  
 
 Governance Layer (Unity Catalog) spans across all processed data.
 
@@ -52,7 +52,7 @@ Governance Layer (Unity Catalog) spans across all processed data.
 
 - processing engine
 - executes transformations across all layers
-- supports Auto Loader for ingestion
+- supports incremental ingestion patterns (Auto Loader-ready)
 - integrates with Unity Catalog for governance
 - enables Delta Lake optimizations and Liquid Clustering
 
@@ -175,6 +175,7 @@ raw/<domain>/<dataset>/load_date=YYYY-MM-DD/
 
 Processing is performed in Azure Databricks following the Medallion Architecture.
 
+
 ### Bronze Layer
 
 - ingestion from RAW using Auto Loader
@@ -215,6 +216,7 @@ To ensure performance and scalability, the platform adopts modern Lakehouse opti
 
 - Delta Lake as the storage format
 - external tables stored in ADLS Gen2
+- CTAS-based processing to reduce unnecessary scans and improve performance
 - Liquid Clustering for optimized data layout
 - Auto Optimize for efficient writes and compaction
 - Photon engine for accelerated query performance
@@ -318,6 +320,8 @@ Implemented:
 - Bronze ingestion with Auto Loader implemented
 - Silver layer transformations implemented
 - Silver integration datasets created and optimized using Delta Lake and Liquid Clustering
+- Gold layer fully implemented (dimensions, fact, marts)
+- Analytics layer implemented for business consumption
 
 ---
 

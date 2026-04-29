@@ -87,6 +87,8 @@ Key achievements include:
 - use of external tables stored in Azure Data Lake Storage Gen2
 - development of exploratory notebooks for data validation and analysis
 - establishment of standardized processing notebooks for production workloads
+- adoption of CTAS-based processing (CREATE OR REPLACE TABLE AS SELECT)
+- implementation of built-in data quality validation (grain, nulls, reconciliation)
 
 ---
 
@@ -122,6 +124,10 @@ The project is now structured as an enterprise-grade data platform with:
 - external Delta tables stored in Azure Data Lake Storage Gen2
 - comprehensive and well-structured documentation
 - alignment with real-world data engineering best practices
+- Gold layer implemented (dimensions, fact table, and data marts)
+- Analytics layer implemented for business consumption
+- processing optimized using CTAS and Liquid Clustering
+- data quality validations embedded across layers
 
 ---
 
@@ -129,10 +135,9 @@ The project is now structured as an enterprise-grade data platform with:
 
 The next phase focuses on expanding analytical capabilities and enabling advanced data consumption:
 
-- development of the Gold layer with dimensional models and business metrics
-- implementation of data marts for analytics and reporting
-- orchestration of end-to-end pipelines using Azure Data Factory
-- integration with Power BI for dashboards and business insights
-- implementation of data quality and validation frameworks
-- enablement of advanced analytics and machine learning use cases
-- adoption of CI/CD practices for infrastructure and notebooks
+- CI/CD implementation for infrastructure and notebooks
+- monitoring and alerting improvements
+- metadata-driven pipeline evolution
+- Power BI integration for dashboards
+- expansion of analytics use cases
+- machine learning implementation

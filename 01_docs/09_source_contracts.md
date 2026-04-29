@@ -129,10 +129,10 @@ Each dataset is defined by:
 ## Weather Source
 
 ### weather_porto_daily
-- domain: weather_api
+- domain: weather
 - ingestion: manual_upload
 - format: csv
-- path: raw/weather_api/weather_porto_daily/load_date=YYYY-MM-DD/
+- path: raw/weather/weather_porto_daily/load_date=YYYY-MM-DD/
 - description: daily weather data
 
 ---

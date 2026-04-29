@@ -27,7 +27,7 @@ The platform addresses typical enterprise challenges:
 The Lakehouse-based data platform is designed to:
 
 - centralize data from multiple sources
-- standardize data processing across domains
+- standardize and validate data processing across domains
 - enable consistent analytics and reporting
 - support forecasting and machine learning use cases
 
@@ -57,3 +57,4 @@ The platform enables:
 - digital behavior and funnel analysis
 - demand forecasting
 - recommendation systems
+- reliable KPI reporting based on validated data pipelines

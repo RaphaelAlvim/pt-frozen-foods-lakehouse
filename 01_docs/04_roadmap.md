@@ -43,11 +43,13 @@ Develop the processing layer using Azure Databricks.
 - Unity Catalog integration and access control
 - implementation of the Silver layer
 - development of Silver Integration datasets
+- CTAS-based processing pattern (CREATE OR REPLACE TABLE AS SELECT)
 - performance optimization using Delta Lake and Liquid Clustering
+- built-in data quality validation (grain, nulls, reconciliation)
 
 ---
 
-## Phase 4 — Data Layers (In Progress)
+## Phase 4 — Data Layers (Completed)
 
 Implement structured data transformations aligned with business requirements.
 
@@ -56,10 +58,13 @@ Implement structured data transformations aligned with business requirements.
 - Silver Integration datasets (ERP and CRM)
 - Gold layer analytical datasets
 - reusable data models aligned with business use cases
+- implementation of fact table (fact_sales)
+- implementation of dimensional model (dimensions)
+- development of data marts
 
 ---
 
-## Phase 5 — Analytics
+## Phase 5 — Analytics (Completed)
 
 Enable business insights and reporting.
 
@@ -67,6 +72,8 @@ Enable business insights and reporting.
 - KPI definitions
 - support for dashboards (e.g., Power BI)
 - business performance analysis
+- analytics layer implementation (analytics_sales_overview)
+- validated analytical datasets built on top of Gold
 
 ---
 

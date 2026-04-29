@@ -204,7 +204,7 @@ Azure Databricks is responsible for processing after ingestion.
 
 - handled by Auto Loader (cloudFiles)
 - incremental ingestion
-- schema inference and evolution enabled
+- schema inference and controlled evolution enabled
 - data converted to Delta format
 - checkpointing ensures exactly-once processing
 
@@ -289,4 +289,3 @@ Possible improvements include:
 - tracking ingestion metadata
 - implementing CI/CD pipelines
 - adding validation workflows after ingestion
-- implementing data quality checks in the Silver layer

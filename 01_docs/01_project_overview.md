@@ -33,7 +33,7 @@ The project demonstrates:
 - Data Processing with Databricks
 - Data Governance with Unity Catalog
 - Data Orchestration with Azure Data Factory
-- Incremental ingestion using Auto Loader
+- Incremental ingestion patterns (Auto Loader-ready)
 - Data modeling and analytics preparation
 
 ---
@@ -66,7 +66,7 @@ The platform follows a Lakehouse architecture using:
 Key characteristics:
 
 - separation of storage, processing, and governance
-- incremental data ingestion (Auto Loader)
+- support for incremental data ingestion patterns
 - schema evolution support
 - identity-based security model
 

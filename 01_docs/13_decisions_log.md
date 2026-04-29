@@ -669,9 +669,7 @@ Adopt Liquid Clustering for optimizing Delta tables in the Silver and Gold layer
 
 ### Impact
 - clustering applied to high-value analytical datasets
-- initial clustering keys:
-  - data_pedido
-  - cliente_id
+- clustering keys defined per dataset based on analytical access patterns
 - enhanced performance for BI and analytical workloads
 
 ---
@@ -781,3 +779,21 @@ Additional analytics datasets may be introduced if:
 - specialized analytical views are needed (e.g., customer lifecycle, time-series trends)  
 
 Any new dataset must be justified and documented before implementation.
+
+---
+
+## Decision 038 — Adoption of CTAS for Gold and Analytics
+
+### Decision
+Use CTAS (CREATE OR REPLACE TABLE AS SELECT) as the standard pattern for table creation in Gold and Analytics layers.
+
+### Rationale
+- improves performance by reducing multiple write operations
+- simplifies table creation and registration in a single step
+- aligns with SQL-optimized execution in Databricks
+- reduces code complexity and operational risk
+
+### Impact
+- replacement of DataFrame write + CREATE TABLE pattern
+- standardization of SQL-based transformations
+- improved maintainability and performance of processing notebooks

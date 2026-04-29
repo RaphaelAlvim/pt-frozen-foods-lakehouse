@@ -33,7 +33,7 @@ domain → dataset → partition
 - crm
 - erp
 - reference
-- weather_api
+- weather
 - web
 
 These domains align with the ingestion strategy and enterprise data classification.

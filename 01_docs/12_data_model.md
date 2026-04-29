@@ -139,6 +139,8 @@ Supports analysis across product, customer, channel, and time.
 - order_count
 - line_count
 - average_order_value
+- total_cost_amount
+- gross_margin_amount
 
 **Primary Key:**
 
@@ -146,11 +148,11 @@ Supports analysis across product, customer, channel, and time.
 
 **Foreign Keys:**
 
-- product_id
-- customer_id
-- supplier_id
-- sales_channel_id
-- date
+- produto_id
+- cliente_id
+- fornecedor_id
+- canal_id
+- data_pedido
 
 **Grain:**
 
