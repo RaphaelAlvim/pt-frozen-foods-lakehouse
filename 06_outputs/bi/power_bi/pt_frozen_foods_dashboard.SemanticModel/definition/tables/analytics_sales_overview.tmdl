@@ -1,0 +1,278 @@
+table analytics_sales_overview
+	lineageTag: 1e208639-eba7-4106-a856-94791dec9fe8
+
+	measure 'Gross Sales' = SUM(analytics_sales_overview[gross_sales_amount])
+		formatString: "€"\ #,0;-"€"\ #,0;"€"\ #,0
+		lineageTag: ac2edc7b-a153-4a56-b885-4c753d749e83
+
+	measure 'Net Sales' = SUM(analytics_sales_overview[net_sales_amount])
+		formatString: "€"\ #,0;-"€"\ #,0;"€"\ #,0
+		lineageTag: 33828449-2c0d-47fe-a5ac-bf5e656e92df
+
+	measure Margin = SUM(analytics_sales_overview[gross_margin_amount])
+		formatString: "€"\ #,0;-"€"\ #,0;"€"\ #,0
+		lineageTag: 8cf77072-61e7-49d2-8c53-291586185704
+
+	measure 'Margin %' = DIVIDE([Margin], [Net Sales])
+		formatString: 0.0%;-0.0%;0.0%
+		lineageTag: 3a9e6f2c-2b56-46cc-a995-b98cfa1f899d
+
+	column data_pedido
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 383adb1b-9381-42e4-b16a-1af431d7c2f3
+		summarizeBy: none
+		sourceColumn: data_pedido
+
+		variation Variação
+			isDefault
+			relationship: 04fa52b3-5f28-45d6-9a49-d78c3a1eb84e
+			defaultHierarchy: LocalDateTable_d0236967-60b0-46a2-a866-f4bc05db03ea.'Hierarquia de Datas'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column calendar_year
+		dataType: int64
+		formatString: 0
+		lineageTag: edee17da-3310-4f59-a18b-ea055982bc06
+		summarizeBy: sum
+		sourceColumn: calendar_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column calendar_quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: e3562ff4-f829-420c-a577-d790779701bd
+		summarizeBy: sum
+		sourceColumn: calendar_quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column calendar_month
+		dataType: int64
+		formatString: 0
+		lineageTag: 482c4a5d-e1c8-4fcc-8c39-c75d2119c837
+		summarizeBy: sum
+		sourceColumn: calendar_month
+
+		annotation SummarizationSetBy = Automatic
+
+	column calendar_month_name
+		dataType: string
+		lineageTag: 318a2b41-3404-4cb0-ac87-8f6e8d64a7c9
+		summarizeBy: none
+		sourceColumn: calendar_month_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column cliente_id
+		dataType: string
+		lineageTag: b5983b81-84ce-463f-97dd-3e2699dca1b0
+		summarizeBy: none
+		sourceColumn: cliente_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column tipo_cliente
+		dataType: string
+		lineageTag: 7236608b-3ff2-4008-a909-47698a887b29
+		summarizeBy: none
+		sourceColumn: tipo_cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column cliente_cidade
+		dataType: string
+		lineageTag: cbc45c9f-1665-4ab5-9db5-b4fd3683e151
+		summarizeBy: none
+		sourceColumn: cliente_cidade
+
+		annotation SummarizationSetBy = Automatic
+
+	column distrito
+		dataType: string
+		lineageTag: 6a99a183-f55a-430c-b6f6-f1dc13eab11d
+		summarizeBy: none
+		sourceColumn: distrito
+
+		annotation SummarizationSetBy = Automatic
+
+	column segmento
+		dataType: string
+		lineageTag: 11a33b3b-a7ae-4e55-800a-c2ab1ced611b
+		summarizeBy: none
+		sourceColumn: segmento
+
+		annotation SummarizationSetBy = Automatic
+
+	column potencial_valor
+		dataType: string
+		lineageTag: 9f32eed6-3421-4e9c-8867-50ed81951c17
+		summarizeBy: none
+		sourceColumn: potencial_valor
+
+		annotation SummarizationSetBy = Automatic
+
+	column cluster_comercial
+		dataType: string
+		lineageTag: e3729764-8487-4185-90a6-c1523306ee23
+		summarizeBy: none
+		sourceColumn: cluster_comercial
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_cliente
+		dataType: string
+		lineageTag: 6cfd0f3c-0132-47d6-8b26-3fa70a269689
+		summarizeBy: none
+		sourceColumn: status_cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column produto_id
+		dataType: string
+		lineageTag: 66d1882a-0c6f-47ec-b027-564389868b45
+		summarizeBy: none
+		sourceColumn: produto_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column produto_nome
+		dataType: string
+		lineageTag: a680235b-54b0-4094-bb30-0a27b0b7c143
+		summarizeBy: none
+		sourceColumn: produto_nome
+
+		annotation SummarizationSetBy = Automatic
+
+	column categoria
+		dataType: string
+		lineageTag: 3f1f6e45-4450-4606-8987-dd8d676798f7
+		summarizeBy: none
+		sourceColumn: categoria
+
+		annotation SummarizationSetBy = Automatic
+
+	column marca
+		dataType: string
+		lineageTag: 8fcabe2d-ffe7-4b65-979c-3a515da1ff55
+		summarizeBy: none
+		sourceColumn: marca
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_produto
+		dataType: string
+		lineageTag: 2888a889-6b40-42e2-b63c-badb1548d6c3
+		summarizeBy: none
+		sourceColumn: status_produto
+
+		annotation SummarizationSetBy = Automatic
+
+	column canal_id
+		dataType: string
+		lineageTag: af4b4c03-b98c-4dd0-a924-62b1cc746be4
+		summarizeBy: none
+		sourceColumn: canal_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome_canal
+		dataType: string
+		lineageTag: 3ab912e7-46b6-40bb-b18f-8db4dc729d61
+		summarizeBy: none
+		sourceColumn: nome_canal
+
+		annotation SummarizationSetBy = Automatic
+
+	column descricao_canal
+		dataType: string
+		lineageTag: 7b90096a-9fff-44fc-81bb-f52f67e736b7
+		summarizeBy: none
+		sourceColumn: descricao_canal
+
+		annotation SummarizationSetBy = Automatic
+
+	column quantity_sold
+		dataType: int64
+		formatString: 0
+		lineageTag: 2e301bbf-7f37-4af3-9054-141411339611
+		summarizeBy: sum
+		sourceColumn: quantity_sold
+
+		annotation SummarizationSetBy = Automatic
+
+	column gross_sales_amount
+		dataType: double
+		lineageTag: 529eddef-6cde-4433-966d-6c38c8121166
+		summarizeBy: sum
+		sourceColumn: gross_sales_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column net_sales_amount
+		dataType: double
+		lineageTag: 96c67ac5-e8b7-4fb8-b686-26690688b46b
+		summarizeBy: sum
+		sourceColumn: net_sales_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_cost_amount
+		dataType: double
+		lineageTag: 721c8435-aab2-47d2-8cef-424f17cd2a5a
+		summarizeBy: sum
+		sourceColumn: total_cost_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column gross_margin_amount
+		dataType: double
+		lineageTag: 68023461-d846-4304-8543-97039d2c2a0e
+		summarizeBy: sum
+		sourceColumn: gross_margin_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column order_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 577c3a4d-4afe-471f-bf7d-e6cbb9e5ef27
+		summarizeBy: sum
+		sourceColumn: order_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column line_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 07202886-f0b6-46f5-904e-f27bdf0d575d
+		summarizeBy: sum
+		sourceColumn: line_count
+
+		annotation SummarizationSetBy = Automatic
+
+	partition analytics_sales_overview = m
+		mode: import
+		source =
+				let
+				    Origem = Databricks.Catalogs("adb-7405616723982428.8.azuredatabricks.net", "sql/protocolv1/o/7405616723982428/0324-000715-9cgtztf6", [Catalog=null, Database=null, QueryTags=null, EnableAutomaticProxyDiscovery=null, Implementation="2.0"]),
+				    ptfrozenfoods_dev_Database = Origem{[Name="ptfrozenfoods_dev",Kind="Database"]}[Data],
+				    gold_Schema = ptfrozenfoods_dev_Database{[Name="gold",Kind="Schema"]}[Data],
+				    analytics_sales_overview_Table = gold_Schema{[Name="analytics_sales_overview",Kind="Table"]}[Data]
+				in
+				    analytics_sales_overview_Table
+
+	annotation PBI_ResultType = Table
+

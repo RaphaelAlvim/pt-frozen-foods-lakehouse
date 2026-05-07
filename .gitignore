@@ -90,3 +90,29 @@ override.tf.json
 !03_data/bronze/**/.gitkeep
 !03_data/silver/**/.gitkeep
 !03_data/gold/**/.gitkeep
+
+# ============================================================
+# Power BI
+# ============================================================
+
+# Local Power BI cache/settings
+**/.pbi/
+**/cache.abf
+**/localSettings.json
+**/editorSettings.json
+
+# Optional temporary files
+**/*.tmp
+
+# Keep PBIP project structure versioned
+!**/*.pbip
+!**/*.pbir
+!**/*.pbism
+!**/*.tmdl
+!**/report.json
+!**/visual.json
+!**/page.json
+!**/pages.json
+!**/relationships.tmdl
+!**/model.tmdl
+!**/database.tmdl

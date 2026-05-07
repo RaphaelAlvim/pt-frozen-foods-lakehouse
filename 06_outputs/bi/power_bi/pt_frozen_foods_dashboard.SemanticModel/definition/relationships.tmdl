@@ -1,0 +1,5 @@
+relationship 04fa52b3-5f28-45d6-9a49-d78c3a1eb84e
+	joinOnDateBehavior: datePartOnly
+	fromColumn: analytics_sales_overview.data_pedido
+	toColumn: LocalDateTable_d0236967-60b0-46a2-a866-f4bc05db03ea.Date
+
