@@ -7,6 +7,7 @@
 # Processing decisions:
 # - Use CTAS (CREATE OR REPLACE TABLE AS SELECT) to create and register the Delta table in one step.
 # - Use Liquid Clustering to optimize recurring queries by customer, product, and channel.
+# - Include vendedor_id to support salesperson-level BI analysis.
 # - Avoid unnecessary cache, repartition, or coalesce operations.
 # - Keep only essential final validations to control processing cost.
 # - Run OPTIMIZE after table creation to improve file layout for analytical consumption.
@@ -36,7 +37,8 @@ GRAIN_COLUMNS = [
     "data_pedido",
     "cliente_id",
     "produto_id",
-    "canal_id"
+    "canal_id",
+    "vendedor_id"
 ]
 
 CLUSTER_COLUMNS = [
@@ -78,6 +80,7 @@ SELECT
     calendar_month_name,
 
     cliente_id,
+    vendedor_id,
     tipo_cliente,
     cliente_cidade,
     distrito,
@@ -114,6 +117,7 @@ GROUP BY
     calendar_month_name,
 
     cliente_id,
+    vendedor_id,
     tipo_cliente,
     cliente_cidade,
     distrito,

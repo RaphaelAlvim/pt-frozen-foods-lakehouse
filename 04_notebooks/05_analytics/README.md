@@ -30,10 +30,11 @@ It bridges the gap between raw analytical structures (Gold layer) and business-f
 #### Current Implementation
 
 - `analytics_sales_overview`  
-  - grain: `data_pedido + cliente_id + produto_id + canal_id`  
+  - grain: `data_pedido + cliente_id + produto_id + canal_id + vendedor_id`  
   - source: `gold.fact_sales`  
-  - purpose: enable multi-dimensional analysis across customer, product, channel, and time  
+  - purpose: enable multi-dimensional analysis across customer, product, channel, salesperson, and time  
   - optimized for analytical consumption using Delta + Liquid Clustering  
+  - evolved incrementally to support salesperson-level BI analysis requirements identified during Power BI dashboard development  
 
 ---
 
