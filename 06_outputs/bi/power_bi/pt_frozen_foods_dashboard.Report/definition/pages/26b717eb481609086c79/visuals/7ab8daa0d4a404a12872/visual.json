@@ -23,11 +23,11 @@
                       "Entity": "analytics_sales_overview"
                     }
                   },
-                  "Property": "cliente_id"
+                  "Property": "vendedor_id"
                 }
               },
-              "queryRef": "analytics_sales_overview.cliente_id",
-              "nativeQueryRef": "cliente_id",
+              "queryRef": "analytics_sales_overview.vendedor_id",
+              "nativeQueryRef": "vendedor_id",
               "active": true
             }
           ]
@@ -70,6 +70,34 @@
         "isDefaultSort": true
       }
     },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Salesperson'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "' '"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "visualContainerObjects": {
       "title": [
         {
@@ -77,7 +105,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Top Customers by Gross Sales'"
+                  "Value": "'Top Salespersons by Gross Sales'"
                 }
               }
             }
@@ -90,7 +118,7 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "c02b3fb85b97c58f21da",
+        "name": "a43ee1598fd0433281c0",
         "field": {
           "Column": {
             "Expression": {
@@ -98,60 +126,13 @@
                 "Entity": "analytics_sales_overview"
               }
             },
-            "Property": "cliente_id"
+            "Property": "vendedor_id"
           }
         },
-        "type": "TopN",
+        "type": "Categorical",
         "filter": {
           "Version": 2,
           "From": [
-            {
-              "Name": "subquery",
-              "Expression": {
-                "Subquery": {
-                  "Query": {
-                    "Version": 2,
-                    "From": [
-                      {
-                        "Name": "a",
-                        "Entity": "analytics_sales_overview",
-                        "Type": 0
-                      }
-                    ],
-                    "Select": [
-                      {
-                        "Column": {
-                          "Expression": {
-                            "SourceRef": {
-                              "Source": "a"
-                            }
-                          },
-                          "Property": "cliente_id"
-                        },
-                        "Name": "field"
-                      }
-                    ],
-                    "OrderBy": [
-                      {
-                        "Direction": 2,
-                        "Expression": {
-                          "Measure": {
-                            "Expression": {
-                              "SourceRef": {
-                                "Source": "a"
-                              }
-                            },
-                            "Property": "Net Sales"
-                          }
-                        }
-                      }
-                    ],
-                    "Top": 5
-                  }
-                }
-              },
-              "Type": 2
-            },
             {
               "Name": "a",
               "Entity": "analytics_sales_overview",
@@ -161,22 +142,46 @@
           "Where": [
             {
               "Condition": {
-                "In": {
-                  "Expressions": [
-                    {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Source": "a"
+                "Not": {
+                  "Expression": {
+                    "In": {
+                      "Expressions": [
+                        {
+                          "Column": {
+                            "Expression": {
+                              "SourceRef": {
+                                "Source": "a"
+                              }
+                            },
+                            "Property": "vendedor_id"
                           }
-                        },
-                        "Property": "cliente_id"
-                      }
+                        }
+                      ],
+                      "Values": [
+                        [
+                          {
+                            "Literal": {
+                              "Value": "'UNKNOWN'"
+                            }
+                          }
+                        ]
+                      ]
                     }
-                  ],
-                  "Table": {
-                    "SourceRef": {
-                      "Source": "subquery"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "howCreated": "User",
+        "objects": {
+          "general": [
+            {
+              "properties": {
+                "isInvertedSelectionMode": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "true"
                     }
                   }
                 }

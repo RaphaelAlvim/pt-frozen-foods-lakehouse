@@ -263,6 +263,14 @@ table analytics_sales_overview
 
 		annotation SummarizationSetBy = Automatic
 
+	column vendedor_id
+		dataType: string
+		lineageTag: 03f44149-acc1-45c8-b719-063d5f18767d
+		summarizeBy: none
+		sourceColumn: vendedor_id
+
+		annotation SummarizationSetBy = Automatic
+
 	partition analytics_sales_overview = m
 		mode: import
 		source =

@@ -39,7 +39,7 @@
               },
               "queryRef": "analytics_sales_overview.data_pedido.Variação.Hierarquia de Datas.Ano",
               "nativeQueryRef": "data_pedido Ano",
-              "active": false
+              "active": true
             },
             {
               "field": {
@@ -66,32 +66,6 @@
               "queryRef": "analytics_sales_overview.data_pedido.Variação.Hierarquia de Datas.Mês",
               "nativeQueryRef": "data_pedido Mês",
               "active": true
-            },
-            {
-              "field": {
-                "HierarchyLevel": {
-                  "Expression": {
-                    "Hierarchy": {
-                      "Expression": {
-                        "PropertyVariationSource": {
-                          "Expression": {
-                            "SourceRef": {
-                              "Entity": "analytics_sales_overview"
-                            }
-                          },
-                          "Name": "Variação",
-                          "Property": "data_pedido"
-                        }
-                      },
-                      "Hierarchy": "Hierarquia de Datas"
-                    }
-                  },
-                  "Level": "Dia"
-                }
-              },
-              "queryRef": "analytics_sales_overview.data_pedido.Variação.Hierarquia de Datas.Dia",
-              "nativeQueryRef": "data_pedido Dia",
-              "active": false
             }
           ]
         },
@@ -112,8 +86,54 @@
               "nativeQueryRef": "Gross Sales"
             }
           ]
+        },
+        "Y2": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "analytics_sales_overview"
+                    }
+                  },
+                  "Property": "Net Sales"
+                }
+              },
+              "queryRef": "analytics_sales_overview.Net Sales",
+              "nativeQueryRef": "Net Sales"
+            }
+          ]
         }
       }
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Year-Month'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "' '"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "visualContainerObjects": {
       "title": [
@@ -122,7 +142,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Monthly Gross Sales'"
+                  "Value": "'Gross Sales Over Time'"
                 }
               }
             }
