@@ -1,16 +1,16 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
-  "name": "c8a4438608d1322db086",
+  "name": "ce145a82386fc408d00e",
   "position": {
-    "x": 870.656794841175,
-    "y": 496.47002627179364,
-    "z": 0,
-    "height": 223.7783615954144,
-    "width": 409.648913303081,
-    "tabOrder": 1000
+    "x": 28.177971283907738,
+    "y": 392.23736027199573,
+    "z": 2000,
+    "height": 285.16106939314631,
+    "width": 817.16116723332436,
+    "tabOrder": 2000
   },
   "visual": {
-    "visualType": "columnChart",
+    "visualType": "clusteredColumnChart",
     "query": {
       "queryState": {
         "Category": {
@@ -23,11 +23,11 @@
                       "Entity": "analytics_sales_overview"
                     }
                   },
-                  "Property": "nome_canal"
+                  "Property": "cliente_cidade"
                 }
               },
-              "queryRef": "analytics_sales_overview.nome_canal",
-              "nativeQueryRef": "nome_canal",
+              "queryRef": "analytics_sales_overview.cliente_cidade",
+              "nativeQueryRef": "cliente_cidade",
               "active": true
             }
           ]
@@ -74,13 +74,6 @@
       "categoryAxis": [
         {
           "properties": {
-            "titleText": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Channel'"
-                }
-              }
-            },
             "showAxisTitle": {
               "expr": {
                 "Literal": {
@@ -94,10 +87,10 @@
       "valueAxis": [
         {
           "properties": {
-            "titleText": {
+            "showAxisTitle": {
               "expr": {
                 "Literal": {
-                  "Value": "' '"
+                  "Value": "false"
                 }
               }
             }
@@ -112,7 +105,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Channel Performance'"
+                  "Value": "'Gross Sales by Customer City'"
                 }
               }
             }

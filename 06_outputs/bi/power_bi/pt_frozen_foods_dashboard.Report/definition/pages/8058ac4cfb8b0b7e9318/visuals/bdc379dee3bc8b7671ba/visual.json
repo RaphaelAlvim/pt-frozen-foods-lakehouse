@@ -1,16 +1,16 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
-  "name": "c8a4438608d1322db086",
+  "name": "bdc379dee3bc8b7671ba",
   "position": {
-    "x": 870.656794841175,
-    "y": 496.47002627179364,
-    "z": 0,
-    "height": 223.7783615954144,
-    "width": 409.648913303081,
-    "tabOrder": 1000
+    "x": 844.97731072366855,
+    "y": 144.29424408884643,
+    "z": 3000,
+    "height": 163.8595653212324,
+    "width": 421.87723907332219,
+    "tabOrder": 3000
   },
   "visual": {
-    "visualType": "columnChart",
+    "visualType": "donutChart",
     "query": {
       "queryState": {
         "Category": {
@@ -23,11 +23,11 @@
                       "Entity": "analytics_sales_overview"
                     }
                   },
-                  "Property": "nome_canal"
+                  "Property": "segmento"
                 }
               },
-              "queryRef": "analytics_sales_overview.nome_canal",
-              "nativeQueryRef": "nome_canal",
+              "queryRef": "analytics_sales_overview.segmento",
+              "nativeQueryRef": "segmento",
               "active": true
             }
           ]
@@ -70,41 +70,6 @@
         "isDefaultSort": true
       }
     },
-    "objects": {
-      "categoryAxis": [
-        {
-          "properties": {
-            "titleText": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Channel'"
-                }
-              }
-            },
-            "showAxisTitle": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "valueAxis": [
-        {
-          "properties": {
-            "titleText": {
-              "expr": {
-                "Literal": {
-                  "Value": "' '"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
     "visualContainerObjects": {
       "title": [
         {
@@ -112,7 +77,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Channel Performance'"
+                  "Value": "'Revenue Distribution by Segment'"
                 }
               }
             }

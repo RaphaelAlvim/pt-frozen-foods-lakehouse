@@ -1,16 +1,16 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
-  "name": "c8a4438608d1322db086",
+  "name": "eb55b392b373fa1214a5",
   "position": {
-    "x": 870.656794841175,
+    "x": 500.138524002866,
     "y": 496.47002627179364,
-    "z": 0,
+    "z": 12000,
     "height": 223.7783615954144,
-    "width": 409.648913303081,
-    "tabOrder": 1000
+    "width": 370.51827083830904,
+    "tabOrder": 12000
   },
   "visual": {
-    "visualType": "columnChart",
+    "visualType": "barChart",
     "query": {
       "queryState": {
         "Category": {
@@ -23,11 +23,11 @@
                       "Entity": "analytics_sales_overview"
                     }
                   },
-                  "Property": "nome_canal"
+                  "Property": "vendedor_id"
                 }
               },
-              "queryRef": "analytics_sales_overview.nome_canal",
-              "nativeQueryRef": "nome_canal",
+              "queryRef": "analytics_sales_overview.vendedor_id",
+              "nativeQueryRef": "vendedor_id",
               "active": true
             }
           ]
@@ -74,13 +74,6 @@
       "categoryAxis": [
         {
           "properties": {
-            "titleText": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Channel'"
-                }
-              }
-            },
             "showAxisTitle": {
               "expr": {
                 "Literal": {
@@ -94,10 +87,10 @@
       "valueAxis": [
         {
           "properties": {
-            "titleText": {
+            "showAxisTitle": {
               "expr": {
                 "Literal": {
-                  "Value": "' '"
+                  "Value": "false"
                 }
               }
             }
@@ -112,7 +105,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Channel Performance'"
+                  "Value": "'Salesperson Performance'"
                 }
               }
             }
@@ -121,5 +114,81 @@
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "76c8f9bf0c22b20c2a1e",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "analytics_sales_overview"
+              }
+            },
+            "Property": "vendedor_id"
+          }
+        },
+        "type": "Categorical",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "a",
+              "Entity": "analytics_sales_overview",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "Not": {
+                  "Expression": {
+                    "In": {
+                      "Expressions": [
+                        {
+                          "Column": {
+                            "Expression": {
+                              "SourceRef": {
+                                "Source": "a"
+                              }
+                            },
+                            "Property": "vendedor_id"
+                          }
+                        }
+                      ],
+                      "Values": [
+                        [
+                          {
+                            "Literal": {
+                              "Value": "'UNKNOWN'"
+                            }
+                          }
+                        ]
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "objects": {
+          "general": [
+            {
+              "properties": {
+                "isInvertedSelectionMode": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "true"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
   }
 }

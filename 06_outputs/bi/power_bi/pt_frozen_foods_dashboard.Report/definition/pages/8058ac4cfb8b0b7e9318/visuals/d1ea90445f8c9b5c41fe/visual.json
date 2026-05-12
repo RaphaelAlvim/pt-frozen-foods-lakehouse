@@ -1,13 +1,13 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
-  "name": "5269bb604e9615628320",
+  "name": "d1ea90445f8c9b5c41fe",
   "position": {
-    "x": 0,
-    "y": 440.48175011306722,
-    "z": 4000,
-    "height": 279.93232717465958,
-    "width": 875.474631065847,
-    "tabOrder": 4000
+    "x": 27.05085243255143,
+    "y": 72.135606486803809,
+    "z": 1000,
+    "height": 287.41530709585891,
+    "width": 818.28828608468075,
+    "tabOrder": 1000
   },
   "visual": {
     "visualType": "columnChart",
@@ -23,11 +23,11 @@
                       "Entity": "analytics_sales_overview"
                     }
                   },
-                  "Property": "produto_nome"
+                  "Property": "cliente_id"
                 }
               },
-              "queryRef": "analytics_sales_overview.produto_nome",
-              "nativeQueryRef": "produto_nome",
+              "queryRef": "analytics_sales_overview.cliente_id",
+              "nativeQueryRef": "cliente_id",
               "active": true
             }
           ]
@@ -74,10 +74,10 @@
       "categoryAxis": [
         {
           "properties": {
-            "titleText": {
+            "showAxisTitle": {
               "expr": {
                 "Literal": {
-                  "Value": "'Product Name'"
+                  "Value": "false"
                 }
               }
             }
@@ -87,10 +87,10 @@
       "valueAxis": [
         {
           "properties": {
-            "titleText": {
+            "showAxisTitle": {
               "expr": {
                 "Literal": {
-                  "Value": "''"
+                  "Value": "false"
                 }
               }
             }
@@ -105,7 +105,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Top Products by Gross Sales'"
+                  "Value": "'Top 20 Customers by Gross Sales'"
                 }
               }
             }
@@ -118,7 +118,7 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "feae0bf4fb8ddd33fbc7",
+        "name": "1d55d8cd5b1da8c25713",
         "field": {
           "Column": {
             "Expression": {
@@ -126,7 +126,7 @@
                 "Entity": "analytics_sales_overview"
               }
             },
-            "Property": "produto_nome"
+            "Property": "cliente_id"
           }
         },
         "type": "TopN",
@@ -154,7 +154,7 @@
                               "Source": "a"
                             }
                           },
-                          "Property": "produto_nome"
+                          "Property": "cliente_id"
                         },
                         "Name": "field"
                       }
@@ -169,7 +169,7 @@
                                 "Source": "a"
                               }
                             },
-                            "Property": "Net Sales"
+                            "Property": "Gross Sales"
                           }
                         }
                       }
@@ -198,7 +198,7 @@
                             "Source": "a"
                           }
                         },
-                        "Property": "produto_nome"
+                        "Property": "cliente_id"
                       }
                     }
                   ],

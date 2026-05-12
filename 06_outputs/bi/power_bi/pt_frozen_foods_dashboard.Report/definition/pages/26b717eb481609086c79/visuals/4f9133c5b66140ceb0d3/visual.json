@@ -1,16 +1,16 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
-  "name": "7ab8daa0d4a404a12872",
+  "name": "4f9133c5b66140ceb0d3",
   "position": {
-    "x": 875.54812514927153,
-    "y": 29.347981848578936,
-    "z": 5000,
-    "height": 330.16479579651303,
-    "width": 404.75758299498449,
-    "tabOrder": 5000
+    "x": 12.228325770241224,
+    "y": 496.47002627179364,
+    "z": 11000,
+    "height": 223.7783615954144,
+    "width": 487.91019823262479,
+    "tabOrder": 11000
   },
   "visual": {
-    "visualType": "barChart",
+    "visualType": "columnChart",
     "query": {
       "queryState": {
         "Category": {
@@ -23,11 +23,11 @@
                       "Entity": "analytics_sales_overview"
                     }
                   },
-                  "Property": "vendedor_id"
+                  "Property": "produto_nome"
                 }
               },
-              "queryRef": "analytics_sales_overview.vendedor_id",
-              "nativeQueryRef": "vendedor_id",
+              "queryRef": "analytics_sales_overview.produto_nome",
+              "nativeQueryRef": "produto_nome",
               "active": true
             }
           ]
@@ -77,7 +77,14 @@
             "titleText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Salesperson'"
+                  "Value": "'Channel'"
+                }
+              }
+            },
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
                 }
               }
             }
@@ -105,7 +112,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Top Salespersons by Gross Sales'"
+                  "Value": "'Top Products by Gross Sales'"
                 }
               }
             }
@@ -118,7 +125,7 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "a43ee1598fd0433281c0",
+        "name": "684149435e20c0220880",
         "field": {
           "Column": {
             "Expression": {
@@ -126,13 +133,60 @@
                 "Entity": "analytics_sales_overview"
               }
             },
-            "Property": "vendedor_id"
+            "Property": "produto_nome"
           }
         },
-        "type": "Categorical",
+        "type": "TopN",
         "filter": {
           "Version": 2,
           "From": [
+            {
+              "Name": "subquery",
+              "Expression": {
+                "Subquery": {
+                  "Query": {
+                    "Version": 2,
+                    "From": [
+                      {
+                        "Name": "a",
+                        "Entity": "analytics_sales_overview",
+                        "Type": 0
+                      }
+                    ],
+                    "Select": [
+                      {
+                        "Column": {
+                          "Expression": {
+                            "SourceRef": {
+                              "Source": "a"
+                            }
+                          },
+                          "Property": "produto_nome"
+                        },
+                        "Name": "field"
+                      }
+                    ],
+                    "OrderBy": [
+                      {
+                        "Direction": 2,
+                        "Expression": {
+                          "Measure": {
+                            "Expression": {
+                              "SourceRef": {
+                                "Source": "a"
+                              }
+                            },
+                            "Property": "Gross Sales"
+                          }
+                        }
+                      }
+                    ],
+                    "Top": 5
+                  }
+                }
+              },
+              "Type": 2
+            },
             {
               "Name": "a",
               "Entity": "analytics_sales_overview",
@@ -142,46 +196,22 @@
           "Where": [
             {
               "Condition": {
-                "Not": {
-                  "Expression": {
-                    "In": {
-                      "Expressions": [
-                        {
-                          "Column": {
-                            "Expression": {
-                              "SourceRef": {
-                                "Source": "a"
-                              }
-                            },
-                            "Property": "vendedor_id"
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "a"
                           }
-                        }
-                      ],
-                      "Values": [
-                        [
-                          {
-                            "Literal": {
-                              "Value": "'UNKNOWN'"
-                            }
-                          }
-                        ]
-                      ]
+                        },
+                        "Property": "produto_nome"
+                      }
                     }
-                  }
-                }
-              }
-            }
-          ]
-        },
-        "howCreated": "User",
-        "objects": {
-          "general": [
-            {
-              "properties": {
-                "isInvertedSelectionMode": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "true"
+                  ],
+                  "Table": {
+                    "SourceRef": {
+                      "Source": "subquery"
                     }
                   }
                 }
