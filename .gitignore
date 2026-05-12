@@ -7,7 +7,9 @@ __pycache__/
 *.pyo
 *.pyd
 
+# ============================================================
 # Virtual environments
+# ============================================================
 .venv/
 venv/
 env/
@@ -45,25 +47,49 @@ temp/
 # ============================================================
 # Terraform
 # ============================================================
+
 # Terraform local variable files
 *.tfvars
 !*.tfvars.example
+
 # Terraform state files
 *.tfstate
 *.tfstate.*
+
 # Terraform plan files
 *.tfplan
 plan.out
+
 # Terraform working directory
 .terraform/
+
 # Crash logs
 crash.log
 crash.*.log
+
 # Override files
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# ============================================================
+# Databricks
+# ============================================================
+.databricks/
+
+# ============================================================
+# Python tooling
+# ============================================================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ============================================================
+# Coverage
+# ============================================================
+.coverage
+htmlcov/
 
 # ============================================================
 # Outputs / Reports generated locally
@@ -80,13 +106,17 @@ override.tf.json
 !03_data/exports/.gitkeep
 
 # ============================================================
-# Large / local data (adjust if needed)
+# Synthetic raw datasets are intentionally versioned
+# because they are part of the reproducible project setup.
 # ============================================================
-# Raw data is kept in the repository because it is synthetic
-# and part of the reproducible project setup.
+
+# ============================================================
+# Large processed data (not versioned)
+# ============================================================
 03_data/bronze/**
 03_data/silver/**
 03_data/gold/**
+
 !03_data/bronze/**/.gitkeep
 !03_data/silver/**/.gitkeep
 !03_data/gold/**/.gitkeep
@@ -116,3 +146,8 @@ override.tf.json
 !**/relationships.tmdl
 !**/model.tmdl
 !**/database.tmdl
+
+# ============================================================
+# Mac / Linux hidden files
+# ============================================================
+._*
